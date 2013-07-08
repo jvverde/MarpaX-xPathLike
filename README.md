@@ -1,8 +1,8 @@
 # NAME
 
 Data::pQuery - a xpath like processor for json like data-objects (hashes and arrays)! 
-It looks for data-objects wich match the pQuery expression and returns a list
-of references (or the contente) of each of matched data-object 
+It looks for data-objects which match the pQuery expression and returns a list
+of references (or content) of each matched data-object  
 
 # VERSION
 
@@ -12,16 +12,18 @@ Version 0.02
 
 How to use it.
 
-    use Data::pQuery;
+	use Data::pQuery;
 
-	my $pq = Data::pQuery->new('a.b');
+	my $pquery = Data::pQuery->new('a.b');
 	my $data = {a => { b => 'bb'}, c => 'cc'};
-	my $results = $pq->execute();
+	my $results = $pquery->execute($data);
 	my @values = $results->getvalues();
-	print "$values[0]\n";						#outputs 'bb'
+	print $values[0];                               #outputs 'bb'
 	my @refs = $results->getrefs();
 	${$refs[0]} = 'new value';
-	print $data->{a}->{b};						#outputs 'new value'
+	print $data->{a}->{b};                          #outputs 'new value'
+
+
 
 
 
