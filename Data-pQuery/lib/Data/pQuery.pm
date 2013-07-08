@@ -17,7 +17,7 @@ our $VERSION = '0.02';
 
 Data::pQuery - a xpath like processor for json like data-objects (hashes and arrays)! 
 It looks for data-objects which match the pQuery expression and returns a list
-of references (or content) of each matched data-object  
+with matched data-objects  
 
 =head1 VERSION
 
