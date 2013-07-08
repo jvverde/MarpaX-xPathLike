@@ -16,8 +16,8 @@ our $VERSION = '0.02';
 =head1 NAME
 
 Data::pQuery - a xpath like processor for json like data-objects (hashes and arrays)! 
-It looks for data-objects wich match the pQuery expression and returns a list
-of references (or the contente) of each of matched data-object 
+It looks for data-objects which match the pQuery expression and returns a list
+of references (or content) of each matched data-object  
 
 =head1 VERSION
 
@@ -727,7 +727,7 @@ sub execute{
 		my ($self,$data) = @_;
 		return undef unless defined $self->{query} and (defined $self->{query}->{oper} or defined $self->{query}->{path});
 		push @context, {data  => \$data};
-		print "struct ", Dumper $self->{query};
+		#print "struct ", Dumper $self->{query};
 		my @r = defined $self->{query}->{oper} ? 
 			map {\$_} (_operation($self->{query}))								#if an operation	
 			: map {$_->{data}} _getObjects($data, @{$self->{query}->{path}}); 	#else is a path
@@ -741,7 +741,7 @@ package Data::pQuery::Util;
 use Data::Dumper;
 
 sub new{
-	print "new", Dumper \@_;
+	#print "new", Dumper \@_;
 	my ($self,@results) = @_;
 	return bless {results=>[@results]}, $self;
 }
@@ -762,16 +762,17 @@ __END__
 
 How to use it.
 
-    use Data::pQuery;
+	use Data::pQuery;
 
-	my $pq = Data::pQuery->new('a.b');
+	my $pquery = Data::pQuery->new('a.b');
 	my $data = {a => { b => 'bb'}, c => 'cc'};
-	my $results = $pq->execute();
+	my $results = $pquery->execute($data);
 	my @values = $results->getvalues();
-	print "$values[0]\n";						#outputs 'bb'
+	print $values[0];                               #outputs 'bb'
 	my @refs = $results->getrefs();
 	${$refs[0]} = 'new value';
-	print $data->{a}->{b};						#outputs 'new value'
+	print $data->{a}->{b};                          #outputs 'new value'
+
 
 
 =head1 Data::pQuery methods

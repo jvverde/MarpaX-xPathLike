@@ -131,8 +131,8 @@
 .nh
 .SH "NAME"
 Data::pQuery \- a xpath like processor for json like data\-objects (hashes and arrays)! 
-It looks for data\-objects wich match the pQuery expression and returns a list
-of references (or the contente) of each of matched data\-object
+It looks for data\-objects which match the pQuery expression and returns a list
+of references (or content) of each matched data\-object
 .SH "VERSION"
 .IX Header "VERSION"
 Version 0.02
@@ -143,9 +143,9 @@ How to use it.
 .Vb 1
 \&    use Data::pQuery;
 \&
-\&        my $pq = Data::pQuery\->new(\*(Aqa.b\*(Aq);
+\&        my $pquery = Data::pQuery\->new(\*(Aqa.b\*(Aq);
 \&        my $data = {a => { b => \*(Aqbb\*(Aq}, c => \*(Aqcc\*(Aq};
-\&        my $results = $pq\->execute();
+\&        my $results = $pqquery\->execute($data);
 \&        my @values = $results\->getvalues();
 \&        print "$values[0]\en";                                           #outputs \*(Aqbb\*(Aq
 \&        my @refs = $results\->getrefs();
