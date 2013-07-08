@@ -124,40 +124,46 @@
 .\" ========================================================================
 .\"
 .IX Title "Data::pQuery 3"
-.TH Data::pQuery 3 "2013-07-04" "perl v5.14.2" "User Contributed Perl Documentation"
+.TH Data::pQuery 3 "2013-07-08" "perl v5.14.2" "User Contributed Perl Documentation"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
 .nh
 .SH "NAME"
-Data::pQuery \- The great new Data::pQuery!
+Data::pQuery \- a xpath like processor for json like data\-objects (hashes and arrays)! 
+It looks for data\-objects wich match the pQuery expression and returns a list
+of references (or the contente) of each of matched data\-object
 .SH "VERSION"
 .IX Header "VERSION"
-Version 0.01
+Version 0.02
 .SH "SYNOPSIS"
 .IX Header "SYNOPSIS"
-Quick summary of what the module does.
-.PP
-Perhaps a little code snippet.
+How to use it.
 .PP
 .Vb 1
 \&    use Data::pQuery;
 \&
-\&    my $foo = Data::pQuery\->new();
-\&    ...
+\&        my $pq = Data::pQuery\->new(\*(Aqa.b\*(Aq);
+\&        my $data = {a => { b => \*(Aqbb\*(Aq}, c => \*(Aqcc\*(Aq};
+\&        my $results = $pq\->execute();
+\&        my @values = $results\->getvalues();
+\&        print "$values[0]\en";                                           #outputs \*(Aqbb\*(Aq
+\&        my @refs = $results\->getrefs();
+\&        ${$refs[0]} = \*(Aqnew value\*(Aq;
+\&        print $data\->{a}\->{b};                                          #outputs \*(Aqnew value\*(Aq
 .Ve
-.SH "EXPORT"
-.IX Header "EXPORT"
-A list of functions that can be exported.  You can delete this section
-if you don't export anything, such as for a purely object-oriented module.
-.SH "SUBROUTINES/METHODS"
-.IX Header "SUBROUTINES/METHODS"
-.SS "execute"
-.IX Subsection "execute"
-.SS "new"
-.IX Subsection "new"
-.SS "compile"
-.IX Subsection "compile"
+.SH "Data::pQuery methods"
+.IX Header "Data::pQuery methods"
+.SS "new(pQuery) Parse a pQuery string and returns a new Data::pQuery Object;"
+.IX Subsection "new(pQuery) Parse a pQuery string and returns a new Data::pQuery Object;"
+.SS "execute($data) Receives a hash or array reference as argument, execute the pQuery on it and then returns the results in new  Data::pQuery::Util."
+.IX Subsection "execute($data) Receives a hash or array reference as argument, execute the pQuery on it and then returns the results in new  Data::pQuery::Util."
+.SH "Data::pQuery::util methods"
+.IX Header "Data::pQuery::util methods"
+.SS "\fIgetrefs()\fP Returns a list o references for each matched data-object;"
+.IX Subsection "getrefs() Returns a list o references for each matched data-object;"
+.SS "\fIgetvalues()\fP Returns a list of values for each matched data-object;"
+.IX Subsection "getvalues() Returns a list of values for each matched data-object;"
 .SH "AUTHOR"
 .IX Header "AUTHOR"
 Isidro Vila Verde, \f(CW\*(C`<jvverde at gmail.com>\*(C'\fR

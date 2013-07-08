@@ -1,23 +1,27 @@
 package Data::pQuery;
 use 5.006;
 use strict;
+use Carp;
 use warnings FATAL => 'all';
 use Marpa::R2;
 use Data::Dumper;
+use Scalar::Util qw{looks_like_number};
 
 require Exporter;
 our @ISA = qw(Exporter);
 our @EXPORT = qw();
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 =head1 NAME
 
-Data::pQuery - The great new Data::pQuery!
+Data::pQuery - a xpath like processor for json like data-objects (hashes and arrays)! 
+It looks for data-objects wich match the pQuery expression and returns a list
+of references (or the contente) of each of matched data-object 
 
 =head1 VERSION
 
-Version 0.01
+Version 0.02
 
 =cut
 
@@ -25,24 +29,20 @@ my $grammar = Marpa::R2::Scanless::G->new({
 	#default_action => '::first',
 	action_object	=> __PACKAGE__,
 	source => \(<<'END_OF_SOURCE'),
+
 :default ::= action => ::array
-#:default ::= action => ::rhs
 :start ::= Start
 
 Start	::= OperExp									action => _do_arg1
 
 OperExp ::=
-	PathExpr 										action => _do_getPath
-	| PathExpr Operator 							action => _do__operationSetPathUpdate
-	| PathExpr Operator Value						action => _do__operationSetPathWithValue
-	| PathExpr Operator PathExpr					action => _do__operationSetPathFromPath
+	PathExpr 										action => _do_path
+	|Function 										action => _do_arg1
 
-Operator ::= '='									action => _do_arg1
-
-Value ::=
-	NumericExpr										action => _do_arg1
-	|StringExpr 									action => _do_arg1
-
+Function ::=
+	NumericFunction									action => _do_arg1
+	|StringFunction 								action => _do_arg1
+	|ListFunction 									action => _do_arg1
 
 PathExpr ::=
 	singlePath										action => _do_singlePath
@@ -76,7 +76,7 @@ indexPath ::=
 IndexArray ::=  '[' IndexExprs ']'					action => _do_index
 
 
-IndexExprs ::= IndexExpr* 			separator => <comma>
+IndexExprs ::= IndexExpr+ 			separator => <comma>
 
 IndexExpr ::=
 	IntegerExpr										action => _do_index_single
@@ -86,6 +86,7 @@ rangeExpr ::=
 	IntegerExpr '..' IntegerExpr 					action => _do_index_range
 	|IntegerExpr '...' 								action => _do_startRange
 	| '...' IntegerExpr								action => _do_endRange
+	| '...' 										action => _do_allRange
 
 
 Filter ::= 	
@@ -101,11 +102,11 @@ IntegerExpr ::=
 	| '(' IntegerExpr ')' 									action => _do_group
 	|| '-' ArithmeticIntegerExpr 							action => _do_unaryOperator
 	 | '+' ArithmeticIntegerExpr 							action => _do_unaryOperator
-	|| ArithmeticIntegerExpr '*' ArithmeticIntegerExpr		action => _do_binaryOperator
-	 | ArithmeticIntegerExpr '/' ArithmeticIntegerExpr		action => _do_binaryOperator
-	 | ArithmeticIntegerExpr '%' ArithmeticIntegerExpr		action => _do_binaryOperator
-	|| ArithmeticIntegerExpr '+' ArithmeticIntegerExpr		action => _do_binaryOperator
-	 | ArithmeticIntegerExpr '-' ArithmeticIntegerExpr		action => _do_binaryOperator
+	|| ArithmeticIntegerExpr '*' ArithmeticIntegerExpr		action => _do_binaryOperation
+	 | ArithmeticIntegerExpr '/' ArithmeticIntegerExpr		action => _do_binaryOperation
+	 | ArithmeticIntegerExpr '%' ArithmeticIntegerExpr		action => _do_binaryOperation
+	|| ArithmeticIntegerExpr '+' ArithmeticIntegerExpr		action => _do_binaryOperation
+	 | ArithmeticIntegerExpr '-' ArithmeticIntegerExpr		action => _do_binaryOperation
 
 
 NumericExpr ::=
@@ -117,11 +118,11 @@ ArithmeticExpr ::=
 	| '(' NumericExpr ')' 									action => _do_group
 	|| '-' ArithmeticExpr 									action => _do_unaryOperator
 	 | '+' ArithmeticExpr 									action => _do_unaryOperator
-	|| ArithmeticExpr '*' ArithmeticExpr					action => _do_binaryOperator
-	 | ArithmeticExpr '/' ArithmeticExpr					action => _do_binaryOperator
-	 | ArithmeticExpr '%' ArithmeticExpr					action => _do_binaryOperator
-	|| ArithmeticExpr '+' ArithmeticExpr					action => _do_binaryOperator
-	 | ArithmeticExpr '-' ArithmeticExpr					action => _do_binaryOperator
+	|| ArithmeticExpr '*' ArithmeticExpr					action => _do_binaryOperation
+	 | ArithmeticExpr '/' ArithmeticExpr					action => _do_binaryOperation
+	 | ArithmeticExpr '%' ArithmeticExpr					action => _do_binaryOperation
+	|| ArithmeticExpr '+' ArithmeticExpr					action => _do_binaryOperation
+	 | ArithmeticExpr '-' ArithmeticExpr					action => _do_binaryOperation
 
 LogicalExpr ::=
 	compareExpr												action => _do_arg1
@@ -129,33 +130,33 @@ LogicalExpr ::=
 
 compareExpr ::=	
 	PathExpr 												action => _do_exists
-	|| NumericExpr '<' NumericExpr							action => _do_binaryOperator
-	 | NumericExpr '<=' NumericExpr							action => _do_binaryOperator
-	 | NumericExpr '>' NumericExpr							action => _do_binaryOperator
-	 | NumericExpr '>=' NumericExpr							action => _do_binaryOperator
-	 | StringExpr 'lt' StringExpr							action => _do_binaryOperator
-	 | StringExpr 'le' StringExpr							action => _do_binaryOperator
-	 | StringExpr 'gt' StringExpr							action => _do_binaryOperator
-	 | StringExpr 'ge' StringExpr							action => _do_binaryOperator
-	 | StringExpr '~' RegularExpr							action => _do_binaryOperator
-	 | StringExpr '!~' RegularExpr							action => _do_binaryOperator
-	 | NumericExpr '==' NumericExpr							action => _do_binaryOperator
-	 | NumericExpr '!=' NumericExpr							action => _do_binaryOperator
-	 | StringExpr 'eq' StringExpr							action => _do_binaryOperator
-	 | StringExpr 'ne' StringExpr							action => _do_binaryOperator
-	|| compareExpr 'and' LogicalExpr						action => _do_binaryOperator
-	|| compareExpr 'or' LogicalExpr							action => _do_binaryOperator
+	|| NumericExpr '<' NumericExpr							action => _do_binaryOperation
+	 | NumericExpr '<=' NumericExpr							action => _do_binaryOperation
+	 | NumericExpr '>' NumericExpr							action => _do_binaryOperation
+	 | NumericExpr '>=' NumericExpr							action => _do_binaryOperation
+	 | StringExpr 'lt' StringExpr							action => _do_binaryOperation
+	 | StringExpr 'le' StringExpr							action => _do_binaryOperation
+	 | StringExpr 'gt' StringExpr							action => _do_binaryOperation
+	 | StringExpr 'ge' StringExpr							action => _do_binaryOperation
+	 | StringExpr '~' RegularExpr							action => _do_binaryOperation
+	 | StringExpr '!~' RegularExpr							action => _do_binaryOperation
+	 | NumericExpr '==' NumericExpr							action => _do_binaryOperation
+	 | NumericExpr '!=' NumericExpr							action => _do_binaryOperation
+	 | StringExpr 'eq' StringExpr							action => _do_binaryOperation
+	 | StringExpr 'ne' StringExpr							action => _do_binaryOperation
+	|| compareExpr 'and' LogicalExpr						action => _do_binaryOperation
+	|| compareExpr 'or' LogicalExpr							action => _do_binaryOperation
 
 #operator match, not match, in, intersect, union,
 
 StringExpr ::=
 	STRING 													action => _do_arg1
  	| StringFunction 										action => _do_arg1
- 	|| StringExpr '||' StringExpr  							action => _do_binaryOperator
+ 	|| StringExpr '||' StringExpr  							action => _do_binaryOperation
 
 LogicalFunction ::=
 	'not' '(' LogicalExpr ')'			 					action => _do_func
-	| 'isRef' '(' PathArgs ')'			 					action => _do_func
+	| 'isRef' '('  PathArgs  ')'			 					action => _do_func
 	| 'isScalar' '(' PathArgs ')'			 				action => _do_func
 	| 'isArray' '(' PathArgs ')'			 				action => _do_func
 	| 'isHash' '(' PathArgs ')'			 					action => _do_func
@@ -168,24 +169,36 @@ StringFunction ::=
 NameFunction ::= 
 	'name' '(' PathArgs ')'				 					action => _do_func
 
-PathArgs ::= PathExpr*				separator => <comma>    action => _do_arg1
+PathArgs ::= 
+	PathExpr						  						action => _do_arg1
+	|EMPTY													action => _do_arg1
+
+EMPTY ::=
 
 ValueFunction ::= 
 	'value' '(' PathArgs ')'				 				action => _do_func
 
 CountFunction ::= 
-	'count' '(' PathArgs ')'				 				action => _do_func
+	'count' '(' PathExpr ')'				 				action => _do_func
 
 SumFunction ::= 
-	'sum' '(' PathArgs ')'				 					action => _do_func
+	'sum' '(' PathExpr ')'				 					action => _do_func
+
+SumProductFunction ::= 
+	'sumproduct' '(' PathExpr ',' PathExpr ')'				action => _do_funcw2args
 
 NumericFunction ::=
 	CountFunction											action => _do_arg1
 	|ValueFunction											action => _do_arg1
 	|SumFunction											action => _do_arg1
+	|SumProductFunction										action => _do_arg1
 
 IntegerFunction ::=
 	CountFunction											action => _do_arg1
+
+ListFunction ::=
+	'names' '(' PathArgs ')'    		 					action => _do_func
+	| 'values' '(' PathArgs ')'    		 					action => _do_func
 
 
  NUMBER ::= UNUMBER 										action => _do_arg1
@@ -204,8 +217,6 @@ unumber
 uint            
 	~ digits
 
-
- 
 digits 
 	~ [\d]+
  
@@ -264,31 +275,17 @@ WS ~ [\s]+
 END_OF_SOURCE
 });
 
+
 my $reader = Marpa::R2::Scanless::R->new({
 	grammar => $grammar,
 	trace_terminals => 0,
 });
 
+sub _do_arg1{ return $_[1]};
+sub _do_arg2{ return $_[2]};
 
-#sub new { return {}; }
-
-sub _do_condition{
-	$_[1]
-}
-# sub _do_compare{
-# 	return {action => q|compare|, what => $_[1]}
-# }
-sub _do_getPath{
-	return {oper => q|get|, path => $_[1]}	
-}
-sub _do__operationSetPathUpdate{
-	return {oper => q|set|, type => $_[2], path => $_[1]}	
-}
-sub _do__operationSetPathWithValue{
-	return {oper => q|assignvalue|, type => $_[2], path => $_[1], value => $_[3]}	
-}
-sub _do__operationSetPathFromPath{
-	return {oper => q|assignfrompath|, type => $_[2], path => $_[1], fromPath => $_[3]}	
+sub _do_path{
+	return {path => $_[1]}	
 }
 sub _do_re{
 	my $re = $_[1];
@@ -301,8 +298,11 @@ sub _do_string {
     return $s;
 }
 sub _do_func{
-	my $args =	@_[3..$#_-1];
-	return {oper => [$_[1], $args ? $args : []]}
+	my $args =	$_[3] || [];
+	return {oper => [$_[1], $args]}
+}
+sub _do_funcw2args{
+	return {oper => [$_[1], $_[3],$_[5]]}
 }
 sub _do_join{
 	return join '', @_[1..$#_];
@@ -313,7 +313,7 @@ sub _do_group{
 sub _do_unaryOperator{
 	return {oper => [@_[1,2]]}
 }
-sub _do_binaryOperator{
+sub _do_binaryOperation{
 	my $oper = 	[$_[2]];
 	my $args = 	[@_[1,3]];
 	foreach my $i (0..$#$args){
@@ -333,44 +333,40 @@ sub _do_exists{
 }
 sub _do_stepFilterSubpath(){
 	my ($step, $filter, $subpath) = @_[1..3];
-	warn q|arg is not a hash ref| unless ref $step eq 'HASH'; 
+	carp q|arg is not a hash ref| unless ref $step eq q|HASH|; 
 	@{$step}{qw|filter subpath|} = ($filter,$subpath);
 	return $step;
 }
 sub _do_stepFilter(){
 	my ($step, $filter) = @_[1,2];
-	warn q|arg is not a hash ref| unless ref $step eq 'HASH'; 
+	carp q|arg is not a hash ref| unless ref $step eq q|HASH|; 
 	$step->{filter} = $filter;
 	return $step;
 }
 sub _do_stepSubpath{
 	my ($step,$subpath) = @_[1,2];
-	warn q|arg is not a hash ref| unless ref $step eq 'HASH'; 
+	carp q|arg is not a hash ref| unless ref $step eq q|HASH|; 
 	$step->{subpath} = $subpath;
 	return $step;
 }
 sub _do_indexFilterSubpath(){
 	my ($index, $filter, $subpath) = @_[1..3];
-	warn q|arg is not a hash ref| unless ref $index eq 'HASH'; 
+	carp q|arg is not a hash ref| unless ref $index eq q|HASH|; 
 	@{$index}{qw|filter subpath|} = ($filter,$subpath);
 	return $index;
 }
 sub _do_indexFilter(){
 	my ($index, $filter) = @_[1,2];
-	warn q|arg is not a hash ref| unless ref $index eq 'HASH'; 
+	carp q|arg is not a hash ref| unless ref $index eq q|HASH|; 
 	$index->{filter} = $filter;
 	return $index;
 }
 sub _do_indexSubpath{
 	my ($index,$subpath) = @_[1,2];
-	warn q|arg is not a hash ref| unless ref $index eq 'HASH'; 
+	carp q|arg is not a hash ref| unless ref $index eq q|HASH|; 
 	$index->{subpath} = $subpath;
 	return $index;
 }
-
-
-sub _do_arg1{ return $_[1]};
-sub _do_arg2{ return $_[2]};
 sub _do_pushArgs2array{
 	my ($a,$b) = @_[1,3];
 	my @array = (@$a,$b);
@@ -400,6 +396,9 @@ sub _do_startRange{
 sub _do_endRange{
 	{to => $_[2]}
 }
+sub _do_allRange{
+	{all => 1}
+}
 sub _do_keyword{
 	my $k = $_[1];
 	return {step => $k};
@@ -409,8 +408,22 @@ sub _do_wildcard{
 	my $k = $_[1];
 	return {wildcard => $k};
 }
+######################################################end of rules######################################################3
 
 my @context = ();
+my $operatorBy;
+my $indexesProc;
+my $keysProc;
+
+sub _operation($){
+	my $operData = $_[0];
+	return undef unless defined $operData and ref $operData eq q|HASH| and exists $operData->{oper};
+	my @params = @{$operData->{oper}};
+	my $oper = $params[0];
+	return undef unless exists $operatorBy->{$oper};
+	my @args = @params[1..$#params];
+	return $operatorBy->{$oper}->(@args);  
+}
 sub _arithmeticOper(&$$;@){
 		my ($oper,$x,$y,@e) = @_;
 		$x = _operation($x) if ref $x;
@@ -428,8 +441,7 @@ sub _logicalOper(&$$){
 		$y = _operation($y) if ref $y and ref $y ne q|Regexp|;
 		return $oper->($x,$y)
 }
-my $filtersProc;
-$filtersProc = {
+$operatorBy = {
 	'eq' => sub($$){
 		return _logicalOper(sub {$_[0] eq $_[1]}, $_[0], $_[1]);
 	},
@@ -500,12 +512,12 @@ $filtersProc = {
 		return map {$_->{step}} _getSubObjectsOrCurrent(@_);
 	},
 	name => sub{
-		my @r = $filtersProc->{names}->(@_);
+		my @r = $operatorBy->{names}->(@_);
 		return $r[0] if defined $r[0];
 		return q||; 
 	},
 	value => sub(){
-		my @r = $filtersProc->{values}->(@_);
+		my @r = $operatorBy->{values}->(@_);
 		return $r[0] if defined $r[0];
 		return q||; 
 	},
@@ -542,39 +554,50 @@ $filtersProc = {
 	},
 	not => sub{
 		return !_operation($_[0]);
-	}
+	},
+	sum => sub{
+		my @r = _getSubObjectsOrCurrent($_[0]);
+		my @s = grep{ref $_->{data} eq q|SCALAR| and looks_like_number(${$_->{data}})} @r; #ignore entry if it is not a scalar
+		my $s = 0;
+		$s += ${$_->{data}} foreach (@s);
+		return $s;	
+	},
+	sumproduct => sub{
+		my @r = _getSubObjectsOrCurrent($_[0]);
+		my @s = _getSubObjectsOrCurrent($_[1]);
+		my $size = $#r < $#s ? $#r: $#s;
+		my $s = 0;
+		foreach (0..$size){
+			$s += ${$r[$_]->{data}} * ${$s[$_]->{data}} 
+				if ref $r[$_]->{data} eq q|SCALAR| 
+				and ref $s[$_]->{data} eq q|SCALAR|
+				and looks_like_number(${$r[$_]->{data}})
+				and looks_like_number(${$s[$_]->{data}}) 
+		}
+		return $s;	
+	},
 };
 sub _getSubObjectsOrCurrent{
 	my $paths = $_[0];
 	my @r = ();
 	return ($context[$#context]) if scalar @$paths == 0;
 	foreach my $path (@$paths){
-		my @objs = _getObjectSet(${$context[$#context]->{data}},$path);
+		my @objs = _getObjectSubset(${$context[$#context]->{data}},$path);
 		foreach my $obj (@objs){
 			push @r, $obj;
 		}	
 	}
 	return @r;
 }
-sub _operation($){
-	my $operData = $_[0];
-	return undef unless defined $operData and ref $operData eq "HASH" and exists $operData->{oper};
-	my @params = @{$operData->{oper}};
-	my $oper = $params[0];
-	return undef unless exists $filtersProc->{$oper};
-	my @args = @params[1..$#params];
-	return $filtersProc->{$oper}->(@args);  
-}
 sub _check{
 	my ($filter) = @_;
-	return 1 unless defined $filter; #no filter always returns true
+	return 1 unless defined $filter; #no filter, always returns true
 	foreach (@$filter){
 		return 0 unless _operation($_)
 	}
 	return 1;	#true
 }
 
-my $indexesProc;
 $indexesProc = {
 	index => sub{
 		my ($data, $index, $subpath,$filter) = @_;
@@ -587,7 +610,7 @@ $indexesProc = {
 			return if defined $filter and !_check($filter); 
 			push @r, 
 				defined $subpath ? 
-					_getObjectSet($data->[$index],$subpath)
+					_getObjectSubset($data->[$index],$subpath)
 					:{data => \$data->[$index], step => $index, context => [@context]}
 		}->();
 		pop @context;
@@ -625,10 +648,16 @@ $indexesProc = {
 			foreach (@indexes);
 		return @r;	
 	},
-
+	all => sub{
+		my ($data, undef, $subpath,$filter) = @_;
+		my @indexes = (0..$#$data);
+		my @r = ();
+		push @r, $indexesProc->{index}->($data,$_,$subpath,$filter)
+			foreach (@indexes);
+		return @r;	
+	}
 };
 
-my $keysProc;
 $keysProc = {
 	step => sub{
 		my ($data, $step, $subpath,$filter) = @_;
@@ -641,7 +670,7 @@ $keysProc = {
 			return if defined $filter and !_check($filter); 
 			push @r, 
 				defined $subpath ? 
-					_getObjectSet($data->{$step}, $subpath)
+					_getObjectSubset($data->{$step}, $subpath)
 					: {data => \$data->{$step}, step => $step, context => [@context]};
 		}->();
 		pop @context;
@@ -651,12 +680,12 @@ $keysProc = {
 		my ($data, undef, $subpath,$filter) = @_;
 		my @r = ();
 		push @r, $keysProc->{step}->($data, $_, $subpath,$filter)
-			foreach (keys %$data);
+			foreach (sort keys %$data);
 		return @r;
 	}
 };
 
-sub _getObjectSet{
+sub _getObjectSubset{
 	my ($data,$path) = @_;
 	return () unless ref $path eq q|HASH|;
 
@@ -672,73 +701,95 @@ sub _getObjectSet{
 			push @r, $indexesProc->{$_}->($data,$entry->{$_},$path->{subpath},$path->{filter})
 				foreach (grep {exists $indexesProc->{$_}} keys %$entry); 	#just in case use grep to filter out not supported indexes types
 		}
+	}else{
+		#ignore
+		#warn q|Data arg is not a HASH ref or ARRAY ref|;
 	}
 	return @r;
 }
 
-my $method = {
-	get => sub{
-		my ($expression,$data) = @_;
-		return _getObjects($data, @{$expression->{path}});	
-	},
-	assignvalue => sub{
-		my ($expression,$data) = @_;
-		my @r = _getObjects($data, @{$expression->{path}});
-		do {${$_->{data}} = $expression->{value}} foreach (@r);
-		return @r;	
-	},
-	assignfrompath => sub {
-		my ($expression,$data) = @_;
-		my @r = _getObjects($data, @{$expression->{path}});
-		my @values = map {${$_->{data}}} _getObjects($data, @{$expression->{fromPath}});
-		${$_->{data}} = shift @values foreach (@r);
-		return @r;			
-	}
-};
-
-
-sub new {
-  my $package = shift;
-  return bless({}, $package);
+sub _getObjects{
+		return map {_getObjectSubset($_[0],$_)}  (@_[1..$#_]);
 }
 
-sub compile{
+#########################################public methods ###################################################################
+
+sub new{
 	my ($self,$q) = @_; 
+	return undef unless $q;
 	$reader->read(\$q);
-	$self->{query} = $reader->value;	
+	my $qp = $reader->value;
+ 	return bless {query => ${$qp}}, $self;
 }
+
+
 sub execute{
 		my ($self,$data) = @_;
-		return _getObjectSet($_[1],$self->{query});
+		return undef unless defined $self->{query} and (defined $self->{query}->{oper} or defined $self->{query}->{path});
+		push @context, {data  => \$data};
+		print "struct ", Dumper $self->{query};
+		my @r = defined $self->{query}->{oper} ? 
+			map {\$_} (_operation($self->{query}))								#if an operation	
+			: map {$_->{data}} _getObjects($data, @{$self->{query}->{path}}); 	#else is a path
+		pop @context;
+		return Data::pQuery::Util->new(@r);
 }
 
+ # End of Data::pQuery
 
-1; # End of Data::pQuery
+package Data::pQuery::Util;
+use Data::Dumper;
+
+sub new{
+	print "new", Dumper \@_;
+	my ($self,@results) = @_;
+	return bless {results=>[@results]}, $self;
+}
+
+sub getrefs{
+	my $self = shift;
+	return @{$self->{results}};
+}
+sub getvalues{
+	my $self = shift;
+	#print "getvalues ", 
+	return map {$$_} @{$self->{results}};
+}
+1;
 __END__
 
 =head1 SYNOPSIS
 
-Quick summary of what the module does.
-
-Perhaps a little code snippet.
+How to use it.
 
     use Data::pQuery;
 
-    my $foo = Data::pQuery->new();
-    ...
+	my $pq = Data::pQuery->new('a.b');
+	my $data = {a => { b => 'bb'}, c => 'cc'};
+	my $results = $pq->execute();
+	my @values = $results->getvalues();
+	print "$values[0]\n";						#outputs 'bb'
+	my @refs = $results->getrefs();
+	${$refs[0]} = 'new value';
+	print $data->{a}->{b};						#outputs 'new value'
 
-=head1 EXPORT
 
-A list of functions that can be exported.  You can delete this section
-if you don't export anything, such as for a purely object-oriented module.
+=head1 Data::pQuery methods
 
-=head1 SUBROUTINES/METHODS
 
-=head2 execute
+=head2 new(pQuery)
+Parse a pQuery string and returns a new Data::pQuery Object;
 
-=head2 new
+=head2 execute($data)
+Receives a hash or array reference as argument, execute the pQuery on it and then returns the results in new  Data::pQuery::Util. 
 
-=head2 compile
+=head1 Data::pQuery::util methods
+
+=head2 getrefs()
+Returns a list o references for each matched data-object;
+
+=head2 getvalues()
+Returns a list of values for each matched data-object;
 
 =head1 AUTHOR
 
@@ -749,8 +800,6 @@ Isidro Vila Verde, C<< <jvverde at gmail.com> >>
 Please report any bugs or feature requests to C<bug-data-pquery at rt.cpan.org>, or through
 the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Data-pQuery>.  I will be notified, and then you'll
 automatically be notified of progress on your bug as I make changes.
-
-
 
 
 =head1 SUPPORT
