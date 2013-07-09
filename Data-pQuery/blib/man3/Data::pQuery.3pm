@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "Data::pQuery 3"
-.TH Data::pQuery 3 "2013-07-08" "perl v5.14.2" "User Contributed Perl Documentation"
+.TH Data::pQuery 3 "2013-07-09" "perl v5.14.2" "User Contributed Perl Documentation"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -132,7 +132,7 @@
 .SH "NAME"
 Data::pQuery \- a xpath like processor for json like data\-objects (hashes and arrays)! 
 It looks for data\-objects which match the pQuery expression and returns a list
-of references (or content) of each matched data\-object
+with matched data\-objects
 .SH "VERSION"
 .IX Header "VERSION"
 Version 0.02
@@ -141,16 +141,16 @@ Version 0.02
 How to use it.
 .PP
 .Vb 1
-\&    use Data::pQuery;
+\&        use Data::pQuery;
 \&
 \&        my $pquery = Data::pQuery\->new(\*(Aqa.b\*(Aq);
 \&        my $data = {a => { b => \*(Aqbb\*(Aq}, c => \*(Aqcc\*(Aq};
-\&        my $results = $pqquery\->execute($data);
+\&        my $results = $pquery\->execute($data);
 \&        my @values = $results\->getvalues();
-\&        print "$values[0]\en";                                           #outputs \*(Aqbb\*(Aq
+\&        print $values[0];                               #outputs \*(Aqbb\*(Aq
 \&        my @refs = $results\->getrefs();
 \&        ${$refs[0]} = \*(Aqnew value\*(Aq;
-\&        print $data\->{a}\->{b};                                          #outputs \*(Aqnew value\*(Aq
+\&        print $data\->{a}\->{b};                          #outputs \*(Aqnew value\*(Aq
 .Ve
 .SH "Data::pQuery methods"
 .IX Header "Data::pQuery methods"

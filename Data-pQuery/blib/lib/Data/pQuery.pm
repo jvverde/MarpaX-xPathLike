@@ -17,7 +17,7 @@ our $VERSION = '0.02';
 
 Data::pQuery - a xpath like processor for json like data-objects (hashes and arrays)! 
 It looks for data-objects which match the pQuery expression and returns a list
-of references (or content) of each matched data-object  
+with matched data-objects  
 
 =head1 VERSION
 
@@ -275,11 +275,6 @@ WS ~ [\s]+
 END_OF_SOURCE
 });
 
-
-my $reader = Marpa::R2::Scanless::R->new({
-	grammar => $grammar,
-	trace_terminals => 0,
-});
 
 sub _do_arg1{ return $_[1]};
 sub _do_arg2{ return $_[2]};
@@ -688,7 +683,6 @@ $keysProc = {
 sub _getObjectSubset{
 	my ($data,$path) = @_;
 	return () unless ref $path eq q|HASH|;
-
 	my @r = ();
 	if (ref $data eq q|HASH|){
 		my @keys = grep{exists $path->{$_}} keys %$keysProc;
@@ -711,37 +705,72 @@ sub _getObjectSubset{
 sub _getObjects{
 		return map {_getObjectSubset($_[0],$_)}  (@_[1..$#_]);
 }
-
 #########################################public methods ###################################################################
+sub execute{
+	my ($self,$data,$query) = @_;
+	return undef unless ref $data eq q|HASH| or ref $data eq q|ARRAY|; 
+	return undef unless defined $query and (defined $query->{oper} or defined $query->{path});
+	push @context, {data  => \$data};
+	#print "struct ", Dumper $self->{query};
+	my @r = defined $query->{oper} ? 
+		map {\$_} (_operation($query))								#if an operation	
+		: map {$_->{data}} _getObjects($data, @{$query->{path}}); 	#else is a path
+	pop @context;
+	return Data::pQuery::Util->new(@r);
+}
 
-sub new{
+sub new {} 				#The Marpa::R2 needs it
+sub compile{
 	my ($self,$q) = @_; 
 	return undef unless $q;
+	my $reader = Marpa::R2::Scanless::R->new({
+		grammar => $grammar,
+		trace_terminals => 0,
+	});
 	$reader->read(\$q);
 	my $qp = $reader->value;
- 	return bless {query => ${$qp}}, $self;
+	return Data::pQuery::Processor->new(${$qp})
+}
+
+sub process{
+	my ($self,$data) = @_;
+	return Data::pQuery::Compiler->new($data)
+}
+
+package Data::pQuery::Compiler;
+use Data::Dumper;
+sub new{
+	my ($self,$data) = @_;
+	return undef unless defined $data and (ref $data eq q|HASH| or ref $data eq q|ARRAY|); 
+	return bless {data=>$data}, $self;
+}
+
+sub compile{
+	my ($self,$pQueryString) = @_;
+	my $c = Data::pQuery->compile($pQueryString);
+	return $c->process($self->{data});	
 }
 
 
-sub execute{
-		my ($self,$data) = @_;
-		return undef unless defined $self->{query} and (defined $self->{query}->{oper} or defined $self->{query}->{path});
-		push @context, {data  => \$data};
-		#print "struct ", Dumper $self->{query};
-		my @r = defined $self->{query}->{oper} ? 
-			map {\$_} (_operation($self->{query}))								#if an operation	
-			: map {$_->{data}} _getObjects($data, @{$self->{query}->{path}}); 	#else is a path
-		pop @context;
-		return Data::pQuery::Util->new(@r);
+package Data::pQuery::Processor;
+use Data::Dumper;
+
+sub new{
+	my ($self,$pQuery) = @_;
+	return undef unless defined $pQuery and (defined $pQuery->{oper} or defined $pQuery->{path});
+	return bless {pQuery=>$pQuery}, $self;
 }
 
- # End of Data::pQuery
+sub process{
+	my ($self,$data) = @_;
+	return Data::pQuery->execute($data,$self->{pQuery});
+}
+
 
 package Data::pQuery::Util;
 use Data::Dumper;
 
-sub new{
-	#print "new", Dumper \@_;
+sub new {
 	my ($self,@results) = @_;
 	return bless {results=>[@results]}, $self;
 }
@@ -752,7 +781,6 @@ sub getrefs{
 }
 sub getvalues{
 	my $self = shift;
-	#print "getvalues ", 
 	return map {$$_} @{$self->{results}};
 }
 1;
@@ -762,16 +790,17 @@ __END__
 
 How to use it.
 
-    use Data::pQuery;
+	use Data::pQuery;
 
 	my $pquery = Data::pQuery->new('a.b');
 	my $data = {a => { b => 'bb'}, c => 'cc'};
-	my $results = $pqquery->execute($data);
+	my $results = $pquery->execute($data);
 	my @values = $results->getvalues();
-	print "$values[0]\n";						#outputs 'bb'
+	print $values[0];                               #outputs 'bb'
 	my @refs = $results->getrefs();
 	${$refs[0]} = 'new value';
-	print $data->{a}->{b};						#outputs 'new value'
+	print $data->{a}->{b};                          #outputs 'new value'
+
 
 
 =head1 Data::pQuery methods
