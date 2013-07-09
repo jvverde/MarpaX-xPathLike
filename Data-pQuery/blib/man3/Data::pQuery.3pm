@@ -155,24 +155,52 @@ How to use it.
 .Ve
 .SH "Data::pQuery methods"
 .IX Header "Data::pQuery methods"
-.SS "new(pQuery) Used only internally!!! Do nothing;"
-.IX Subsection "new(pQuery) Used only internally!!! Do nothing;"
-.SS "compile(pQueryString) Receives a pQuery string compile it and return a Data::pQuery::Processor object"
-.IX Subsection "compile(pQueryString) Receives a pQuery string compile it and return a Data::pQuery::Processor object"
+.SS "new(pQuery)"
+.IX Subsection "new(pQuery)"
+Used only internally!!! Do nothing;
+.SS "compile(pQueryString)"
+.IX Subsection "compile(pQueryString)"
+.Vb 3
+\&        my $query = Data::pQuery\->compile(\*(Aq*\*(Aq);
+\&        my @values1 = $query\->process({fruit => \*(Aqbananas\*(Aq})\->getvalues();
+\&        # @values1 = (bananas)
+\&
+\&        my @values2 = $query\->process({
+\&                fruit => \*(Aqbananas\*(Aq, 
+\&                vegetables => \*(Aqorions\*(Aq
+\&        })\->getvalues();
+\&        # @values2 = (bananas, orions)
+\&        
+\&        my @values3 = $query\->process({
+\&                food => {fruit => \*(Aqbananas\*(Aq}
+\&        })\->getvalues();
+\&        # @values3 = ({fruit => \*(Aqbananas\*(Aq})
+.Ve
+.PP
+Receives a pQuery string compile it and return a Data::pQuery::Processor object
 .SS "process(dataRef) Receives a hash or array reference and return a Data::pQuery::Compiler object."
 .IX Subsection "process(dataRef) Receives a hash or array reference and return a Data::pQuery::Compiler object."
 .SH "Data::pQuery::Processor methods"
 .IX Header "Data::pQuery::Processor methods"
-.SS "new Used only internally!!!"
-.IX Subsection "new Used only internally!!!"
-.SS "process(data) Query data and returns a Data::pQuery::util object"
-.IX Subsection "process(data) Query data and returns a Data::pQuery::util object"
+.ie n .SS "process(data) my $process = Data::pQuery\->process({ food => { fruit => 'bananas', vegetables => 'unions' }, drinks => { wine => 'Porto', water => 'Evian' } }); my @values1 = $process\->compile('*.*')\->\fIgetvalues()\fP; print @values1; # Evian,Porto,bananas,unions"
+.el .SS "process(data) my \f(CW$process\fP = Data::pQuery\->process({ food => { fruit => 'bananas', vegetables => 'unions' }, drinks => { wine => 'Porto', water => 'Evian' } }); my \f(CW@values1\fP = \f(CW$process\fP\->compile('*.*')\->\fIgetvalues()\fP; print \f(CW@values1\fP; # Evian,Porto,bananas,unions"
+.IX Subsection "process(data) my $process = Data::pQuery->process({ food => { fruit => 'bananas', vegetables => 'unions' }, drinks => { wine => 'Porto', water => 'Evian' } }); my @values1 = $process->compile('*.*')->getvalues(); print @values1; # Evian,Porto,bananas,unions"
+.Vb 2
+\&        my @values2 = $process\->compile(\*(Aq*.wine\*(Aq)\->getvalues();
+\&        print @values2; # Porto
+\&
+\&        my @values3 = $process\->compile(\*(Aq*{fruit}.*\*(Aq)\->getvalues();
+\&        print @values3; # bananas,unions
+\&
+\&        my @values4 = $process\->compile(\*(Aq*.*{value() ~ /an/}\*(Aq)\->getvalues();
+\&        print @values4; # Evian,bananas
+.Ve
+.PP
+Query data and returns a Data::pQuery::util object
 .SH "Data::pQuery::Compiler methods"
 .IX Header "Data::pQuery::Compiler methods"
-.SS "new Used only internally!!!"
-.IX Subsection "new Used only internally!!!"
-.SS "compile(pQueryString) Compile a pQuery string, query data and returns a Data::pQuery::util object"
-.IX Subsection "compile(pQueryString) Compile a pQuery string, query data and returns a Data::pQuery::util object"
+.SS "compile(pQueryString)dd Compile a pQuery string, query data and returns a Data::pQuery::util object"
+.IX Subsection "compile(pQueryString)dd Compile a pQuery string, query data and returns a Data::pQuery::util object"
 .SH "Data::pQuery::util methods"
 .IX Header "Data::pQuery::util methods"
 .SS "\fIgetrefs()\fP Returns a list o references for each matched data-object;"

@@ -33,9 +33,27 @@ How to use it.
 
 
 ## new(pQuery)
+
 Used only internally!!! Do nothing;
 
 ## compile(pQueryString)
+
+	my $query = Data::pQuery->compile('*');
+	my @values1 = $query->process({fruit => 'bananas'})->getvalues();
+	# @values1 = (bananas)
+
+	my @values2 = $query->process({
+		fruit => 'bananas', 
+		vegetables => 'orions'
+	})->getvalues();
+	# @values2 = (bananas, orions)
+	
+
+	my @values3 = $query->process({
+		food => {fruit => 'bananas'}
+	})->getvalues();
+	# @values3 = ({fruit => 'bananas'})
+
 Receives a pQuery string compile it and return a Data::pQuery::Processor object
 
 ## process(dataRef)
@@ -45,20 +63,37 @@ Receives a hash or array reference and return a Data::pQuery::Compiler object.
 
 # Data::pQuery::Processor methods
 
-## new
-Used only internally!!!
-
 ## process(data)
+	my $process = Data::pQuery->process({
+	        food => {
+	                fruit => 'bananas',
+	                vegetables => 'unions'
+	        },
+	        drinks => {
+	                wine => 'Porto',
+	                water => 'Evian'
+	        }
+	});
+	my @values1 = $process->compile('\*.\*')->getvalues();
+	print @values1; \# Evian,Porto,bananas,unions
+
+	my @values2 = $process->compile('*.wine')->getvalues();
+	print @values2; # Porto
+
+	my @values3 = $process->compile('*{fruit}.*')->getvalues();
+	print @values3; # bananas,unions
+
+	my @values4 = $process->compile('*.*{value() ~ /an/}')->getvalues();
+	print @values4; # Evian,bananas
+	
+
 Query data and returns a Data::pQuery::util object
 
 
 
 # Data::pQuery::Compiler methods
 
-## new
-Used only internally!!!
-
-## compile(pQueryString)
+## compile(pQueryString)dd
 Compile a pQuery string, query data and returns a Data::pQuery::util object
 
 
