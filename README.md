@@ -124,7 +124,8 @@ automatically be notified of progress on your bug as I make changes.
 You can find documentation for this module with the perldoc command.
 
     perldoc Data::pQuery
-=cut
+
+
 
 - RT: CPAN's request tracker (report bugs here)
 

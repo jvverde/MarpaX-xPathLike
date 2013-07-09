@@ -904,7 +904,7 @@ automatically be notified of progress on your bug as I make changes.
 You can find documentation for this module with the perldoc command.
 
     perldoc Data::pQuery
-=cut
+
 
 =begin tmp
 You can also look for information at:

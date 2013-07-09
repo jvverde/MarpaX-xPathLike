@@ -96,7 +96,6 @@ SUPPORT
     You can find documentation for this module with the perldoc command.
 
         perldoc Data::pQuery
-    =cut
 
 LICENSE AND COPYRIGHT
     Copyright 2013 Isidro Vila Verde.
