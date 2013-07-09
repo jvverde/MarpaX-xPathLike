@@ -143,21 +143,36 @@ How to use it.
 .Vb 1
 \&        use Data::pQuery;
 \&
-\&        my $pquery = Data::pQuery\->new(\*(Aqa.b\*(Aq);
-\&        my $data = {a => { b => \*(Aqbb\*(Aq}, c => \*(Aqcc\*(Aq};
-\&        my $results = $pquery\->execute($data);
+\&        ($\e,$,) = ("\en",",");
+\&        my $query = Data::pQuery\->compile(\*(Aqa.*\*(Aq);
+\&        my $data = {a => { b => \*(Aqbb\*(Aq, c => \*(Aqcc\*(Aq}, aa => \*(Aqaa\*(Aq};
+\&        my $results = $query\->process($data);
 \&        my @values = $results\->getvalues();
-\&        print $values[0];                               #outputs \*(Aqbb\*(Aq
+\&        print @values;                          #outputs \*(Aqbb,cc\*(Aq
 \&        my @refs = $results\->getrefs();
 \&        ${$refs[0]} = \*(Aqnew value\*(Aq;
-\&        print $data\->{a}\->{b};                          #outputs \*(Aqnew value\*(Aq
+\&        print $data\->{a}\->{b};                  #outputs \*(Aqnew value\*(Aq
 .Ve
 .SH "Data::pQuery methods"
 .IX Header "Data::pQuery methods"
-.SS "new(pQuery) Parse a pQuery string and returns a new Data::pQuery Object;"
-.IX Subsection "new(pQuery) Parse a pQuery string and returns a new Data::pQuery Object;"
-.SS "execute($data) Receives a hash or array reference as argument, execute the pQuery on it and then returns the results in new  Data::pQuery::Util."
-.IX Subsection "execute($data) Receives a hash or array reference as argument, execute the pQuery on it and then returns the results in new  Data::pQuery::Util."
+.SS "new(pQuery) Used only internally!!! Do nothing;"
+.IX Subsection "new(pQuery) Used only internally!!! Do nothing;"
+.SS "compile(pQueryString) Receives a pQuery string compile it and return a Data::pQuery::Processor object"
+.IX Subsection "compile(pQueryString) Receives a pQuery string compile it and return a Data::pQuery::Processor object"
+.SS "process(dataRef) Receives a hash or array reference and return a Data::pQuery::Compiler object."
+.IX Subsection "process(dataRef) Receives a hash or array reference and return a Data::pQuery::Compiler object."
+.SH "Data::pQuery::Processor methods"
+.IX Header "Data::pQuery::Processor methods"
+.SS "new Used only internally!!!"
+.IX Subsection "new Used only internally!!!"
+.SS "process(data) Query data and returns a Data::pQuery::util object"
+.IX Subsection "process(data) Query data and returns a Data::pQuery::util object"
+.SH "Data::pQuery::Compiler methods"
+.IX Header "Data::pQuery::Compiler methods"
+.SS "new Used only internally!!!"
+.IX Subsection "new Used only internally!!!"
+.SS "compile(pQueryString) Compile a pQuery string, query data and returns a Data::pQuery::util object"
+.IX Subsection "compile(pQueryString) Compile a pQuery string, query data and returns a Data::pQuery::util object"
 .SH "Data::pQuery::util methods"
 .IX Header "Data::pQuery::util methods"
 .SS "\fIgetrefs()\fP Returns a list o references for each matched data-object;"

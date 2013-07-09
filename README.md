@@ -2,7 +2,7 @@
 
 Data::pQuery - a xpath like processor for json like data-objects (hashes and arrays)! 
 It looks for data-objects which match the pQuery expression and returns a list
-of references (or content) of each matched data-object  
+with matched data-objects  
 
 # VERSION
 
@@ -14,14 +14,15 @@ How to use it.
 
 	use Data::pQuery;
 
-	my $pquery = Data::pQuery->new('a.b');
-	my $data = {a => { b => 'bb'}, c => 'cc'};
-	my $results = $pquery->execute($data);
+	($\,$,) = ("\n",",");
+	my $query = Data::pQuery->compile('a.*');
+	my $data = {a => { b => 'bb', c => 'cc'}, aa => 'aa'};
+	my $results = $query->process($data);
 	my @values = $results->getvalues();
-	print $values[0];                               #outputs 'bb'
+	print @values;                          #outputs 'bb,cc'
 	my @refs = $results->getrefs();
 	${$refs[0]} = 'new value';
-	print $data->{a}->{b};                          #outputs 'new value'
+	print $data->{a}->{b};                  #outputs 'new value'
 
 
 
@@ -32,10 +33,35 @@ How to use it.
 
 
 ## new(pQuery)
-Parse a pQuery string and returns a new Data::pQuery Object;
+Used only internally!!! Do nothing;
 
-## execute($data)
-Receives a hash or array reference as argument, execute the pQuery on it and then returns the results in new  Data::pQuery::Util. 
+## compile(pQueryString)
+Receives a pQuery string compile it and return a Data::pQuery::Processor object
+
+## process(dataRef)
+Receives a hash or array reference and return a Data::pQuery::Compiler object. 
+
+
+
+# Data::pQuery::Processor methods
+
+## new
+Used only internally!!!
+
+## process(data)
+Query data and returns a Data::pQuery::util object
+
+
+
+# Data::pQuery::Compiler methods
+
+## new
+Used only internally!!!
+
+## compile(pQueryString)
+Compile a pQuery string, query data and returns a Data::pQuery::util object
+
+
 
 # Data::pQuery::util methods
 
