@@ -57,13 +57,6 @@ Used only internally!!! Do nothing;
 Receives a pQuery string compile it and return a Data::pQuery::Processor object
 
 ## process(dataRef)
-Receives a hash or array reference and return a Data::pQuery::Compiler object. 
-
-
-
-# Data::pQuery::Processor methods
-
-## process(data)
 	my $process = Data::pQuery->process({
 	        food => {
 	                fruit => 'bananas',
@@ -79,13 +72,24 @@ Receives a hash or array reference and return a Data::pQuery::Compiler object.
 
 	my @values2 = $process->compile('*.wine')->getvalues();
 	print @values2; # Porto
+	
 
+	#using a filter {condition}.  
 	my @values3 = $process->compile('*{fruit}.*')->getvalues();
 	print @values3; # bananas,unions
+	
 
+	#using another filter
 	my @values4 = $process->compile('*.*{value() ~ /an/}')->getvalues();
 	print @values4; # Evian,bananas
-	
+
+Receives a hash or array reference and return a Data::pQuery::Compiler object. 
+
+
+
+# Data::pQuery::Processor methods
+
+## process(data)
 
 Query data and returns a Data::pQuery::util object
 
