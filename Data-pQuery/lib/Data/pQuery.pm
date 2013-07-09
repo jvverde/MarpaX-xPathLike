@@ -825,7 +825,7 @@ Used only internally!!! Do nothing;
 		vegetables => 'orions'
 	})->getvalues();
 	# @values2 = (bananas, orions)
-	
+
 	my @values3 = $query->process({
 		food => {fruit => 'bananas'}
 	})->getvalues();
@@ -849,11 +849,11 @@ Receives a pQuery string compile it and return a Data::pQuery::Processor object
 
 	my @values2 = $process->compile('*.wine')->getvalues();
 	print @values2; # Porto
-	
+
 	#using a filter {condition}.  
 	my @values3 = $process->compile('*{fruit}.*')->getvalues();
 	print @values3; # bananas,unions
-	
+
 	#using another filter
 	my @values4 = $process->compile('*.*{value() ~ /an/}')->getvalues();
 	print @values4; # Evian,bananas
