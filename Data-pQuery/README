@@ -45,18 +45,19 @@ Data::pQuery methods
     object
 
   process(dataRef)
-        my $process = Data::pQuery->process({
-                food => {
-                        fruit => 'bananas',
-                        vegetables => 'unions'
-                },
-                drinks => {
-                        wine => 'Porto',
-                        water => 'Evian'
-                }
-        });
-        my @values1 = $process->compile('*.*')->getvalues();
-        print @values1; # Evian,Porto,bananas,unions
+            my $process = Data::pQuery->process({
+                    food => {
+                            fruit => 'bananas',
+                            vegetables => 'unions'
+                    },
+                    drinks => {
+                            wine => 'Porto',
+                            water => 'Evian'
+                    }
+            });
+            my @values1 = $process->compile('*.*')->getvalues();
+            print @values1; # Evian,Porto,bananas,unions
+
             my @values2 = $process->compile('*.wine')->getvalues();
             print @values2; # Porto
 
@@ -73,11 +74,13 @@ Data::pQuery methods
 
 Data::pQuery::Processor methods
   process(data)
-    Query data and returns a Data::pQuery::util object
+    Executes the query over data and returns a Data::pQuery::util object
 
 Data::pQuery::Compiler methods
   compile(pQueryString)dd
-Compile a pQuery string, query data and returns a Data::pQuery::util object
+    Compile a pQuery string, query the data and returns a Data::pQuery::util
+    object
+
 Data::pQuery::util methods
   getrefs()
 Returns a list o references for each matched data-object;
@@ -87,32 +90,14 @@ AUTHOR
     Isidro Vila Verde, `<jvverde at gmail.com>'
 
 BUGS
-    Please report any bugs or feature requests to `bug-data-pquery at
-    rt.cpan.org', or through the web interface at
-    http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Data-pQuery. I will be
-    notified, and then you'll automatically be notified of progress on your
-    bug as I make changes.
+    Send email to `<jvverde at gmail.com>' with subject Data::pQuery
 
 SUPPORT
     You can find documentation for this module with the perldoc command.
 
         perldoc Data::pQuery
+    =cut
 
-    You can also look for information at:
-
-    * RT: CPAN's request tracker (report bugs here)
-        http://rt.cpan.org/NoAuth/Bugs.html?Dist=Data-pQuery
-
-    * AnnoCPAN: Annotated CPAN documentation
-        http://annocpan.org/dist/Data-pQuery
-
-    * CPAN Ratings
-        http://cpanratings.perl.org/d/Data-pQuery
-
-    * Search CPAN
-        http://search.cpan.org/dist/Data-pQuery/
-
-ACKNOWLEDGEMENTS
 LICENSE AND COPYRIGHT
     Copyright 2013 Isidro Vila Verde.
 

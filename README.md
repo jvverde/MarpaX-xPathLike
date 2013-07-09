@@ -56,6 +56,7 @@ Used only internally!!! Do nothing;
 Receives a pQuery string compile it and return a Data::pQuery::Processor object
 
 ## process(dataRef)
+
 	my $process = Data::pQuery->process({
 	        food => {
 	                fruit => 'bananas',
@@ -66,8 +67,8 @@ Receives a pQuery string compile it and return a Data::pQuery::Processor object
 	                water => 'Evian'
 	        }
 	});
-	my @values1 = $process->compile('\*.\*')->getvalues();
-	print @values1; \# Evian,Porto,bananas,unions
+	my @values1 = $process->compile('*.*')->getvalues();
+	print @values1; # Evian,Porto,bananas,unions
 
 	my @values2 = $process->compile('*.wine')->getvalues();
 	print @values2; # Porto
@@ -88,16 +89,15 @@ Receives a hash or array reference and return a Data::pQuery::Compiler object.
 
 ## process(data)
 
-Query data and returns a Data::pQuery::util object
+Executes the query over data and returns a Data::pQuery::util object
 
 
 
 # Data::pQuery::Compiler methods
 
 ## compile(pQueryString)dd
-Compile a pQuery string, query data and returns a Data::pQuery::util object
 
-
+Compile a pQuery string, query the data and returns a Data::pQuery::util object
 
 # Data::pQuery::util methods
 
@@ -113,21 +113,18 @@ Isidro Vila Verde, `<jvverde at gmail.com>`
 
 # BUGS
 
+Send email to `<jvverde at gmail.com>` with subject Data::pQuery
+
 Please report any bugs or feature requests to `bug-data-pquery at rt.cpan.org`, or through
 the web interface at [http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Data-pQuery](http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Data-pQuery).  I will be notified, and then you'll
 automatically be notified of progress on your bug as I make changes.
-
-
 
 # SUPPORT
 
 You can find documentation for this module with the perldoc command.
 
     perldoc Data::pQuery
-
-
-
-You can also look for information at:
+=cut
 
 - RT: CPAN's request tracker (report bugs here)
 
@@ -148,8 +145,6 @@ You can also look for information at:
 
 
 # ACKNOWLEDGEMENTS
-
-
 
 # LICENSE AND COPYRIGHT
 

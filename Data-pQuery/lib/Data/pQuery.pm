@@ -834,6 +834,7 @@ Used only internally!!! Do nothing;
 Receives a pQuery string compile it and return a Data::pQuery::Processor object
 
 =head2 process(dataRef)
+
 	my $process = Data::pQuery->process({
 	        food => {
 	                fruit => 'bananas',
@@ -865,14 +866,14 @@ Receives a hash or array reference and return a Data::pQuery::Compiler object.
 
 =head2 process(data)
 
-Query data and returns a Data::pQuery::util object
+Executes the query over data and returns a Data::pQuery::util object
 
 
 =head1 Data::pQuery::Compiler methods
 
 =head2 compile(pQueryString)dd
-Compile a pQuery string, query data and returns a Data::pQuery::util object
 
+Compile a pQuery string, query the data and returns a Data::pQuery::util object
 
 =head1 Data::pQuery::util methods
 
@@ -888,18 +889,24 @@ Isidro Vila Verde, C<< <jvverde at gmail.com> >>
 
 =head1 BUGS
 
+Send email to C<< <jvverde at gmail.com> >> with subject Data::pQuery
+
+=begin futuro
+
 Please report any bugs or feature requests to C<bug-data-pquery at rt.cpan.org>, or through
 the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Data-pQuery>.  I will be notified, and then you'll
 automatically be notified of progress on your bug as I make changes.
 
+=end futuro
 
 =head1 SUPPORT
 
 You can find documentation for this module with the perldoc command.
 
     perldoc Data::pQuery
+=cut
 
-
+=begin tmp
 You can also look for information at:
 
 =over 4
@@ -925,6 +932,7 @@ L<http://search.cpan.org/dist/Data-pQuery/>
 
 =head1 ACKNOWLEDGEMENTS
 
+=end tmp
 
 =head1 LICENSE AND COPYRIGHT
 
