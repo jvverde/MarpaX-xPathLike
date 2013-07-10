@@ -1,8 +1,6 @@
 # NAME
 
 Data::pQuery - a xpath like processor for json like data-objects (hashes and arrays)! 
-It looks for data-objects which match the pQuery expression and returns a list
-with matched data-objects  
 
 # VERSION
 
@@ -16,48 +14,56 @@ How to use it.
 
 	($\,$,) = ("\n",",");
 	my $query = Data::pQuery->compile('a.*');
-	my $data = {a => { b => 'bb', c => 'cc'}, aa => 'aa'};
-	my $results = $query->process($data);
+	my $data = {
+	        a => {
+	                b => 'bb',
+	                c => 'cc'
+	        },
+	        aa => 'aa'
+	};
+	my $results = $query->data($data);
 	my @values = $results->getvalues();
 	print @values;                          #outputs 'bb,cc'
-	my @refs = $results->getrefs();
-	${$refs[0]} = 'new value';
+	my $ref = $results->getref();
+	$$ref = 'new value';
 	print $data->{a}->{b};                  #outputs 'new value'
 
 
 
+# methods
+
+The Data::pQuery just provides two 
+
+## Data::pQuery methods
 
 
-# Data::pQuery methods
 
-
-
-## new(pQuery)
+### new(pQuery)
 
 Used only internally!!! Do nothing;
 
-## compile(pQueryString)
+### compile(pQueryString)
 
 	my $query = Data::pQuery->compile('*');
-	my @values1 = $query->process({fruit => 'bananas'})->getvalues();
+	my @values1 = $query->data({fruit => 'bananas'})->getvalues();
 	# @values1 = (bananas)
 
-	my @values2 = $query->process({
+	my @values2 = $query->data({
 		fruit => 'bananas', 
 		vegetables => 'orions'
 	})->getvalues();
 	# @values2 = (bananas, orions)
 
-	my @values3 = $query->process({
+	my @values3 = $query->data({
 		food => {fruit => 'bananas'}
 	})->getvalues();
 	# @values3 = ({fruit => 'bananas'})
 
-Receives a pQuery string compile it and return a Data::pQuery::Processor object
+Receives a pQuery string compile it and return a Data::pQuery::Data object
 
-## process(dataRef)
+### data(dataRef)
 
-	my $process = Data::pQuery->process({
+	my $data = Data::pQuery->data({
 	        food => {
 	                fruit => 'bananas',
 	                vegetables => 'unions'
@@ -67,45 +73,333 @@ Receives a pQuery string compile it and return a Data::pQuery::Processor object
 	                water => 'Evian'
 	        }
 	});
-	my @values1 = $process->compile('*.*')->getvalues();
+	my @values1 = $data->query('*.*')->getvalues();
 	print @values1; # Evian,Porto,bananas,unions
 
-	my @values2 = $process->compile('*.wine')->getvalues();
+	my @values2 = $data->query('*.wine')->getvalues();
 	print @values2; # Porto
 
 	#using a filter {condition}.  
-	my @values3 = $process->compile('*{fruit}.*')->getvalues();
+	my @values3 = $data->query('*{fruit}.*')->getvalues();
 	print @values3; # bananas,unions
 
 	#using another filter
-	my @values4 = $process->compile('*.*{value() ~ /an/}')->getvalues();
+	my @values4 = $data->query('*.*{value() ~ /an/}')->getvalues();
 	print @values4; # Evian,bananas
 
-Receives a hash or array reference and return a Data::pQuery::Compiler object. 
+	#using a variable length path (**) and a filter
+	my @values5 = $data->query('**{isScalar()}')->getvalues();
+	print @values5;#Evian,Porto,bananas,unions
+                  
 
 
 
-# Data::pQuery::Processor methods
-
-## process(data)
-
-Executes the query over data and returns a Data::pQuery::util object
+Receives a hash or array reference and return a Data::pQuery::Compile object. 
 
 
 
-# Data::pQuery::Compiler methods
+## Data::pQuery::Data methods
 
-## compile(pQueryString)dd
+### data(data)
+
+Executes the query over data and returns a Data::pQuery::Results object
+
+
+
+## Data::pQuery::Compiler methods
+
+### query(pQueryString)dd
 
 Compile a pQuery string, query the data and returns a Data::pQuery::util object
 
-# Data::pQuery::util methods
+## Data::pQuery::Results methods
 
-## getrefs()
-Returns a list o references for each matched data-object;
+### getrefs()
+Returns a list os references for each matched data-object;
 
-## getvalues()
+### getref()
+Returns a reference for first matched data-object;
+
+### getvalues()
 Returns a list of values for each matched data-object;
+
+### getvalue()
+Returns the value of first matched data-object;
+
+# pQuery sintax
+	
+
+A pQuery expression is a function or a path. 
+
+## pQuery Path
+
+A path is a sequence of steps. A step represent a hash's key name or an array 
+index. 
+A array index is represented inside square brackets.
+Two succesive key names are separated by a dot.
+A wildcard (\*) means any key name and a double wildcard (\*\*) means any key name
+or any index under current object. 
+Every step could be filter out by a logical expression inside a curly bracket. 
+A logical expression is any combination of comparison expressions, path 
+expressions, or logical functions, combined with operatores 'and' and 'or'
+
+## pQuery grammar
+
+	:start ::= Start
+
+	Start	::= OperExp									
+
+	OperExp ::=
+		PathExpr 										
+		|Function 										
+
+	Function ::=
+		NumericFunction									
+		|StringFunction 								
+		|ListFunction 									
+
+	PathExpr ::=
+		singlePath										
+		| PathExpr '|' singlePath						
+
+	singlePath ::=	
+		stepPath 										
+		|indexPath 										
+
+	stepPath ::=
+		step Filter subPathExpr 						
+		| step Filter 									
+		| step subPathExpr 								
+		| step											
+
+	step ::= 
+		keyword 										
+		| wildcard 										
+		| dwildcard 									
+
+	subPathExpr ::= 
+		'.' stepPath 									
+		|indexPath 										
+
+	indexPath ::=
+		IndexArray Filter subPathExpr 					
+		| IndexArray Filter 							
+		| IndexArray subPathExpr 						
+		| IndexArray										
+
+
+
+	IndexArray ::=  '[' IndexExprs ']'					
+
+
+
+	IndexExprs ::= IndexExpr+ 			
+
+	IndexExpr ::=
+		IntegerExpr										
+		| rangeExpr										
+
+	rangeExpr ::= 
+		IntegerExpr '..' IntegerExpr 					
+		|IntegerExpr '...' 								
+		| '...' IntegerExpr								
+		| '...' 										
+
+
+
+	Filter ::= 	
+		'{' LogicalExpr '}' 							
+		| '{' LogicalExpr '}' Filter 					
+
+	IntegerExpr ::=
+	  ArithmeticIntegerExpr										
+
+	 ArithmeticIntegerExpr ::=
+	 	INT 													
+		| IntegerFunction										
+		| '(' IntegerExpr ')' 									
+		|| '-' ArithmeticIntegerExpr 							
+		 | '+' ArithmeticIntegerExpr 							
+		|| ArithmeticIntegerExpr '*' ArithmeticIntegerExpr		
+		 | ArithmeticIntegerExpr '/' ArithmeticIntegerExpr		
+		 | ArithmeticIntegerExpr '%' ArithmeticIntegerExpr		
+		|| ArithmeticIntegerExpr '+' ArithmeticIntegerExpr		
+		 | ArithmeticIntegerExpr '-' ArithmeticIntegerExpr		
+
+
+
+	NumericExpr ::=
+	  ArithmeticExpr 											
+
+	ArithmeticExpr ::=
+		NUMBER 													
+		| NumericFunction										
+		| '(' NumericExpr ')' 									
+		|| '-' ArithmeticExpr 									
+		 | '+' ArithmeticExpr 									
+		|| ArithmeticExpr '*' ArithmeticExpr					
+		 | ArithmeticExpr '/' ArithmeticExpr					
+		 | ArithmeticExpr '%' ArithmeticExpr					
+		|| ArithmeticExpr '+' ArithmeticExpr					
+		 | ArithmeticExpr '-' ArithmeticExpr					
+
+	LogicalExpr ::=
+		compareExpr												
+		|LogicalFunction										
+
+	compareExpr ::=	
+		PathExpr 												
+		|| NumericExpr '<' NumericExpr							
+		 | NumericExpr '<=' NumericExpr							
+		 | NumericExpr '>' NumericExpr							
+		 | NumericExpr '>=' NumericExpr							
+		 | StringExpr 'lt' StringExpr							
+		 | StringExpr 'le' StringExpr							
+		 | StringExpr 'gt' StringExpr							
+		 | StringExpr 'ge' StringExpr							
+		 | StringExpr '~' RegularExpr							
+		 | StringExpr '!~' RegularExpr							
+		 | NumericExpr '==' NumericExpr							
+		 | NumericExpr '!=' NumericExpr							
+		 | StringExpr 'eq' StringExpr							
+		 | StringExpr 'ne' StringExpr							
+		|| compareExpr 'and' LogicalExpr						
+		|| compareExpr 'or' LogicalExpr							
+
+	#operator match, not match, in, intersect, union,
+
+	StringExpr ::=
+		STRING 													
+	 	| StringFunction 										
+	 	|| StringExpr '||' StringExpr  							
+
+	LogicalFunction ::=
+		'not' '(' LogicalExpr ')'			 					
+		| 'isRef' '('  PathArgs  ')'			 					
+		| 'isScalar' '(' PathArgs ')'			 				
+		| 'isArray' '(' PathArgs ')'			 				
+		| 'isHash' '(' PathArgs ')'			 					
+		| 'isCode' '(' PathArgs ')'								
+
+	StringFunction ::=
+		NameFunction											
+		| ValueFunction											
+
+	NameFunction ::= 
+		'name' '(' PathArgs ')'				 					
+
+	PathArgs ::= 
+		PathExpr						  						
+		|EMPTY													
+
+	EMPTY ::=
+
+	ValueFunction ::= 
+		'value' '(' PathArgs ')'				 				
+
+	CountFunction ::= 
+		'count' '(' PathExpr ')'				 				
+
+	SumFunction ::= 
+		'sum' '(' PathExpr ')'				 					
+
+	SumProductFunction ::= 
+		'sumproduct' '(' PathExpr ',' PathExpr ')'				
+
+	NumericFunction ::=
+		CountFunction											
+		|ValueFunction											
+		|SumFunction											
+		|SumProductFunction										
+
+	IntegerFunction ::=
+		CountFunction											
+
+	ListFunction ::=
+		'names' '(' PathArgs ')'    		 					
+		| 'values' '(' PathArgs ')'    		 					
+
+
+
+	 NUMBER ::= UNUMBER 										
+	 	| '-' UNUMBER 											
+	 	| '+' UNUMBER 											
+
+	UNUMBER  
+		~ unumber       
+
+	unumber	
+		~ uint
+		| uint frac
+		| uint exp
+		| uint frac exp
+	 
+
+	uint            
+		~ digits
+
+	digits 
+		~ [\d]+
+	 
+
+	frac
+		~ '.' digits
+	 
+
+	exp
+		~ e digits
+	 
+
+	e
+		~ 'e'
+		| 'e+'
+		| 'e-'
+		| 'E'
+		| 'E+'
+		| 'E-'
+
+	INT ::= 
+		UINT 											
+		| '+' UINT  									
+		| '-' UINT  									
+
+	UINT
+		~digits
+
+	STRING       ::= lstring               				
+	RegularExpr ::= regularstring						
+	regularstring ~ delimiter re delimiter				
+
+	delimiter ~ [/]
+
+	re ~ char*
+
+	char ~ [^/\\]
+	 	| '\' '/'
+	 	| '\\'
+
+
+
+	lstring        ~ quote in_string quote
+	quote          ~ ["]
+	 
+
+	in_string      ~ in_string_char*
+	 
+
+	in_string_char  ~ [^"\\]
+		| '\' '"'
+		| '\\'
+
+	comma ~ ','
+
+	wildcard ~ [*]
+	dwildcard ~ [*][*]
+
+	keyword ~ [a-zA-Z\N{U+A1}-\N{U+10FFFF}]+
+
+	:discard ~ WS
+	WS ~ [\s]+
 
 # AUTHOR
 
@@ -114,6 +408,8 @@ Isidro Vila Verde, `<jvverde at gmail.com>`
 # BUGS
 
 Send email to `<jvverde at gmail.com>` with subject Data::pQuery
+
+
 
 Please report any bugs or feature requests to `bug-data-pquery at rt.cpan.org`, or through
 the web interface at [http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Data-pQuery](http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Data-pQuery).  I will be notified, and then you'll
@@ -146,6 +442,8 @@ You can find documentation for this module with the perldoc command.
 
 
 # ACKNOWLEDGEMENTS
+
+
 
 # LICENSE AND COPYRIGHT
 

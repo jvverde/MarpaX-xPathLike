@@ -30,3 +30,5 @@ print @values3; #bananas,unions
 my @values4 = $data->query('*.*{value() ~ /an/}')->getvalues();
 print @values4;# Evian,bananas
 
+my @values5 = $data->query('**{isScalar()}')->getvalues();
+print @values5;#Evian,Porto,bananas,unions

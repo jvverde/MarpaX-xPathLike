@@ -129,11 +129,8 @@
 .\" way too many mistakes in technical documents.
 .if n .ad l
 .nh
-.SH "INTRODUCTION"
-.IX Header "INTRODUCTION"
-Data::pQuery \- a xpath like processor for json like data-objects (hashes and arrays)! 
-It looks for data-objects which match the pQuery expression and returns a list
-with matched data-objects
+.SH "NAME"
+Data::pQuery \- a xpath like processor for json like data\-objects (hashes and arrays)!
 .SH "VERSION"
 .IX Header "VERSION"
 Version 0.02
@@ -146,16 +143,23 @@ How to use it.
 \&
 \&        ($\e,$,) = ("\en",",");
 \&        my $query = Data::pQuery\->compile(\*(Aqa.*\*(Aq);
-\&        my $data = {a => { b => \*(Aqbb\*(Aq, c => \*(Aqcc\*(Aq}, aa => \*(Aqaa\*(Aq};
-\&        my $results = $query\->process($data);
+\&        my $data = {
+\&                a => {
+\&                        b => \*(Aqbb\*(Aq,
+\&                        c => \*(Aqcc\*(Aq
+\&                },
+\&                aa => \*(Aqaa\*(Aq
+\&        };
+\&        my $results = $query\->data($data);
 \&        my @values = $results\->getvalues();
 \&        print @values;                          #outputs \*(Aqbb,cc\*(Aq
-\&        my @refs = $results\->getrefs();
-\&        ${$refs[0]} = \*(Aqnew value\*(Aq;
+\&        my $ref = $results\->getref();
+\&        $$ref = \*(Aqnew value\*(Aq;
 \&        print $data\->{a}\->{b};                  #outputs \*(Aqnew value\*(Aq
 .Ve
 .SH "methods"
 .IX Header "methods"
+The Data::pQuery just provides two
 .SS "Data::pQuery methods"
 .IX Subsection "Data::pQuery methods"
 \fInew(pQuery)\fR
@@ -168,28 +172,28 @@ Used only internally!!! Do nothing;
 .PP
 .Vb 3
 \&        my $query = Data::pQuery\->compile(\*(Aq*\*(Aq);
-\&        my @values1 = $query\->process({fruit => \*(Aqbananas\*(Aq})\->getvalues();
+\&        my @values1 = $query\->data({fruit => \*(Aqbananas\*(Aq})\->getvalues();
 \&        # @values1 = (bananas)
 \&
-\&        my @values2 = $query\->process({
+\&        my @values2 = $query\->data({
 \&                fruit => \*(Aqbananas\*(Aq, 
 \&                vegetables => \*(Aqorions\*(Aq
 \&        })\->getvalues();
 \&        # @values2 = (bananas, orions)
 \&
-\&        my @values3 = $query\->process({
+\&        my @values3 = $query\->data({
 \&                food => {fruit => \*(Aqbananas\*(Aq}
 \&        })\->getvalues();
 \&        # @values3 = ({fruit => \*(Aqbananas\*(Aq})
 .Ve
 .PP
-Receives a pQuery string compile it and return a Data::pQuery::Processor object
+Receives a pQuery string compile it and return a Data::pQuery::Data object
 .PP
-\fIprocess(dataRef)\fR
-.IX Subsection "process(dataRef)"
+\fIdata(dataRef)\fR
+.IX Subsection "data(dataRef)"
 .PP
 .Vb 12
-\&        my $process = Data::pQuery\->process({
+\&        my $data = Data::pQuery\->data({
 \&                food => {
 \&                        fruit => \*(Aqbananas\*(Aq,
 \&                        vegetables => \*(Aqunions\*(Aq
@@ -199,52 +203,311 @@ Receives a pQuery string compile it and return a Data::pQuery::Processor object
 \&                        water => \*(AqEvian\*(Aq
 \&                }
 \&        });
-\&        my @values1 = $process\->compile(\*(Aq*.*\*(Aq)\->getvalues();
+\&        my @values1 = $data\->query(\*(Aq*.*\*(Aq)\->getvalues();
 \&        print @values1; # Evian,Porto,bananas,unions
 \&
-\&        my @values2 = $process\->compile(\*(Aq*.wine\*(Aq)\->getvalues();
+\&        my @values2 = $data\->query(\*(Aq*.wine\*(Aq)\->getvalues();
 \&        print @values2; # Porto
 \&
 \&        #using a filter {condition}.  
-\&        my @values3 = $process\->compile(\*(Aq*{fruit}.*\*(Aq)\->getvalues();
+\&        my @values3 = $data\->query(\*(Aq*{fruit}.*\*(Aq)\->getvalues();
 \&        print @values3; # bananas,unions
 \&
 \&        #using another filter
-\&        my @values4 = $process\->compile(\*(Aq*.*{value() ~ /an/}\*(Aq)\->getvalues();
+\&        my @values4 = $data\->query(\*(Aq*.*{value() ~ /an/}\*(Aq)\->getvalues();
 \&        print @values4; # Evian,bananas
+\&
+\&        #using a variable length path (**) and a filter
+\&        my @values5 = $data\->query(\*(Aq**{isScalar()}\*(Aq)\->getvalues();
+\&        print @values5;#Evian,Porto,bananas,unions
 .Ve
 .PP
-Receives a hash or array reference and return a Data::pQuery::Compiler object.
-.SS "Data::pQuery::Processor methods"
-.IX Subsection "Data::pQuery::Processor methods"
-\fIprocess(data)\fR
-.IX Subsection "process(data)"
+Receives a hash or array reference and return a Data::pQuery::Compile object.
+.SS "Data::pQuery::Data methods"
+.IX Subsection "Data::pQuery::Data methods"
+\fIdata(data)\fR
+.IX Subsection "data(data)"
 .PP
-Executes the query over data and returns a Data::pQuery::util object
+Executes the query over data and returns a Data::pQuery::Results object
 .SS "Data::pQuery::Compiler methods"
 .IX Subsection "Data::pQuery::Compiler methods"
-\fIcompile(pQueryString)dd\fR
-.IX Subsection "compile(pQueryString)dd"
+\fIquery(pQueryString)dd\fR
+.IX Subsection "query(pQueryString)dd"
 .PP
 Compile a pQuery string, query the data and returns a Data::pQuery::util object
-.SS "Data::pQuery::util methods"
-.IX Subsection "Data::pQuery::util methods"
-\fI\fIgetrefs()\fI Returns a list o references for each matched data-object;\fR
-.IX Subsection "getrefs() Returns a list o references for each matched data-object;"
+.SS "Data::pQuery::Results methods"
+.IX Subsection "Data::pQuery::Results methods"
+\fI\fIgetrefs()\fI Returns a list os references for each matched data-object;\fR
+.IX Subsection "getrefs() Returns a list os references for each matched data-object;"
+.PP
+\fI\fIgetref()\fI Returns a reference for first matched data-object;\fR
+.IX Subsection "getref() Returns a reference for first matched data-object;"
 .PP
 \fI\fIgetvalues()\fI Returns a list of values for each matched data-object;\fR
 .IX Subsection "getvalues() Returns a list of values for each matched data-object;"
+.PP
+\fI\fIgetvalue()\fI Returns the value of first matched data-object;\fR
+.IX Subsection "getvalue() Returns the value of first matched data-object;"
 .SH "pQuery sintax"
 .IX Header "pQuery sintax"
 A pQuery expression is a function or a path.
-.PP
-A path is a sequence of steps. A step represent a hash's key name or an array index. 
+.SS "pQuery Path"
+.IX Subsection "pQuery Path"
+A path is a sequence of steps. A step represent a hash's key name or an array 
+index. 
 A array index is represented inside square brackets.
 Two succesive key names are separated by a dot.
-.PP
-.Vb 2
-\&        food.vegetables \-\- select the value of hash entry vegetables of a hash entry food 
-\&        food[1].vegetables \-\- select the value of hash entry vegetables of second index of array food
+A wildcard (*) means any key name and a double wildcard (**) means any key name
+or any index under current object. 
+Every step could be filter out by a logical expression inside a curly bracket. 
+A logical expression is any combination of comparison expressions, path 
+expressions, or logical functions, combined with operatores 'and' and 'or'
+.SS "pQuery grammar"
+.IX Subsection "pQuery grammar"
+.Vb 1
+\&        :start ::= Start
+\&
+\&        Start   ::= OperExp                                                                     
+\&
+\&        OperExp ::=
+\&                PathExpr                                                                                
+\&                |Function                                                                               
+\&
+\&        Function ::=
+\&                NumericFunction                                                                 
+\&                |StringFunction                                                                 
+\&                |ListFunction                                                                   
+\&
+\&        PathExpr ::=
+\&                singlePath                                                                              
+\&                | PathExpr \*(Aq|\*(Aq singlePath                                               
+\&
+\&        singlePath ::=  
+\&                stepPath                                                                                
+\&                |indexPath                                                                              
+\&
+\&        stepPath ::=
+\&                step Filter subPathExpr                                                 
+\&                | step Filter                                                                   
+\&                | step subPathExpr                                                              
+\&                | step                                                                                  
+\&
+\&        step ::= 
+\&                keyword                                                                                 
+\&                | wildcard                                                                              
+\&                | dwildcard                                                                     
+\&
+\&        subPathExpr ::= 
+\&                \*(Aq.\*(Aq stepPath                                                                    
+\&                |indexPath                                                                              
+\&
+\&        indexPath ::=
+\&                IndexArray Filter subPathExpr                                   
+\&                | IndexArray Filter                                                     
+\&                | IndexArray subPathExpr                                                
+\&                | IndexArray                                                                            
+\&
+\&
+\&        IndexArray ::=  \*(Aq[\*(Aq IndexExprs \*(Aq]\*(Aq                                      
+\&
+\&
+\&        IndexExprs ::= IndexExpr+                       
+\&
+\&        IndexExpr ::=
+\&                IntegerExpr                                                                             
+\&                | rangeExpr                                                                             
+\&
+\&        rangeExpr ::= 
+\&                IntegerExpr \*(Aq..\*(Aq IntegerExpr                                    
+\&                |IntegerExpr \*(Aq...\*(Aq                                                              
+\&                | \*(Aq...\*(Aq IntegerExpr                                                             
+\&                | \*(Aq...\*(Aq                                                                                 
+\&
+\&
+\&        Filter ::=      
+\&                \*(Aq{\*(Aq LogicalExpr \*(Aq}\*(Aq                                                     
+\&                | \*(Aq{\*(Aq LogicalExpr \*(Aq}\*(Aq Filter                                    
+\&
+\&        IntegerExpr ::=
+\&          ArithmeticIntegerExpr                                                                         
+\&
+\&         ArithmeticIntegerExpr ::=
+\&                INT                                                                                                     
+\&                | IntegerFunction                                                                               
+\&                | \*(Aq(\*(Aq IntegerExpr \*(Aq)\*(Aq                                                                   
+\&                || \*(Aq\-\*(Aq ArithmeticIntegerExpr                                                    
+\&                 | \*(Aq+\*(Aq ArithmeticIntegerExpr                                                    
+\&                || ArithmeticIntegerExpr \*(Aq*\*(Aq ArithmeticIntegerExpr              
+\&                 | ArithmeticIntegerExpr \*(Aq/\*(Aq ArithmeticIntegerExpr              
+\&                 | ArithmeticIntegerExpr \*(Aq%\*(Aq ArithmeticIntegerExpr              
+\&                || ArithmeticIntegerExpr \*(Aq+\*(Aq ArithmeticIntegerExpr              
+\&                 | ArithmeticIntegerExpr \*(Aq\-\*(Aq ArithmeticIntegerExpr              
+\&
+\&
+\&        NumericExpr ::=
+\&          ArithmeticExpr                                                                                        
+\&
+\&        ArithmeticExpr ::=
+\&                NUMBER                                                                                                  
+\&                | NumericFunction                                                                               
+\&                | \*(Aq(\*(Aq NumericExpr \*(Aq)\*(Aq                                                                   
+\&                || \*(Aq\-\*(Aq ArithmeticExpr                                                                   
+\&                 | \*(Aq+\*(Aq ArithmeticExpr                                                                   
+\&                || ArithmeticExpr \*(Aq*\*(Aq ArithmeticExpr                                    
+\&                 | ArithmeticExpr \*(Aq/\*(Aq ArithmeticExpr                                    
+\&                 | ArithmeticExpr \*(Aq%\*(Aq ArithmeticExpr                                    
+\&                || ArithmeticExpr \*(Aq+\*(Aq ArithmeticExpr                                    
+\&                 | ArithmeticExpr \*(Aq\-\*(Aq ArithmeticExpr                                    
+\&
+\&        LogicalExpr ::=
+\&                compareExpr                                                                                             
+\&                |LogicalFunction                                                                                
+\&
+\&        compareExpr ::= 
+\&                PathExpr                                                                                                
+\&                || NumericExpr \*(Aq<\*(Aq NumericExpr                                                  
+\&                 | NumericExpr \*(Aq<=\*(Aq NumericExpr                                                 
+\&                 | NumericExpr \*(Aq>\*(Aq NumericExpr                                                  
+\&                 | NumericExpr \*(Aq>=\*(Aq NumericExpr                                                 
+\&                 | StringExpr \*(Aqlt\*(Aq StringExpr                                                   
+\&                 | StringExpr \*(Aqle\*(Aq StringExpr                                                   
+\&                 | StringExpr \*(Aqgt\*(Aq StringExpr                                                   
+\&                 | StringExpr \*(Aqge\*(Aq StringExpr                                                   
+\&                 | StringExpr \*(Aq~\*(Aq RegularExpr                                                   
+\&                 | StringExpr \*(Aq!~\*(Aq RegularExpr                                                  
+\&                 | NumericExpr \*(Aq==\*(Aq NumericExpr                                                 
+\&                 | NumericExpr \*(Aq!=\*(Aq NumericExpr                                                 
+\&                 | StringExpr \*(Aqeq\*(Aq StringExpr                                                   
+\&                 | StringExpr \*(Aqne\*(Aq StringExpr                                                   
+\&                || compareExpr \*(Aqand\*(Aq LogicalExpr                                                
+\&                || compareExpr \*(Aqor\*(Aq LogicalExpr                                                 
+\&
+\&        #operator match, not match, in, intersect, union,
+\&
+\&        StringExpr ::=
+\&                STRING                                                                                                  
+\&                | StringFunction                                                                                
+\&                || StringExpr \*(Aq||\*(Aq StringExpr                                                   
+\&
+\&        LogicalFunction ::=
+\&                \*(Aqnot\*(Aq \*(Aq(\*(Aq LogicalExpr \*(Aq)\*(Aq                                                               
+\&                | \*(AqisRef\*(Aq \*(Aq(\*(Aq  PathArgs  \*(Aq)\*(Aq                                                            
+\&                | \*(AqisScalar\*(Aq \*(Aq(\*(Aq PathArgs \*(Aq)\*(Aq                                                   
+\&                | \*(AqisArray\*(Aq \*(Aq(\*(Aq PathArgs \*(Aq)\*(Aq                                                    
+\&                | \*(AqisHash\*(Aq \*(Aq(\*(Aq PathArgs \*(Aq)\*(Aq                                                             
+\&                | \*(AqisCode\*(Aq \*(Aq(\*(Aq PathArgs \*(Aq)\*(Aq                                                             
+\&
+\&        StringFunction ::=
+\&                NameFunction                                                                                    
+\&                | ValueFunction                                                                                 
+\&
+\&        NameFunction ::= 
+\&                \*(Aqname\*(Aq \*(Aq(\*(Aq PathArgs \*(Aq)\*(Aq                                                                 
+\&
+\&        PathArgs ::= 
+\&                PathExpr                                                                                                
+\&                |EMPTY                                                                                                  
+\&
+\&        EMPTY ::=
+\&
+\&        ValueFunction ::= 
+\&                \*(Aqvalue\*(Aq \*(Aq(\*(Aq PathArgs \*(Aq)\*(Aq                                                                
+\&
+\&        CountFunction ::= 
+\&                \*(Aqcount\*(Aq \*(Aq(\*(Aq PathExpr \*(Aq)\*(Aq                                                                
+\&
+\&        SumFunction ::= 
+\&                \*(Aqsum\*(Aq \*(Aq(\*(Aq PathExpr \*(Aq)\*(Aq                                                                  
+\&
+\&        SumProductFunction ::= 
+\&                \*(Aqsumproduct\*(Aq \*(Aq(\*(Aq PathExpr \*(Aq,\*(Aq PathExpr \*(Aq)\*(Aq                              
+\&
+\&        NumericFunction ::=
+\&                CountFunction                                                                                   
+\&                |ValueFunction                                                                                  
+\&                |SumFunction                                                                                    
+\&                |SumProductFunction                                                                             
+\&
+\&        IntegerFunction ::=
+\&                CountFunction                                                                                   
+\&
+\&        ListFunction ::=
+\&                \*(Aqnames\*(Aq \*(Aq(\*(Aq PathArgs \*(Aq)\*(Aq                                                        
+\&                | \*(Aqvalues\*(Aq \*(Aq(\*(Aq PathArgs \*(Aq)\*(Aq                                                     
+\&
+\&
+\&         NUMBER ::= UNUMBER                                                                             
+\&                | \*(Aq\-\*(Aq UNUMBER                                                                                   
+\&                | \*(Aq+\*(Aq UNUMBER                                                                                   
+\&
+\&        UNUMBER  
+\&                ~ unumber       
+\&
+\&        unumber 
+\&                ~ uint
+\&                | uint frac
+\&                | uint exp
+\&                | uint frac exp
+\&         
+\&        uint            
+\&                ~ digits
+\&
+\&        digits 
+\&                ~ [\ed]+
+\&         
+\&        frac
+\&                ~ \*(Aq.\*(Aq digits
+\&         
+\&        exp
+\&                ~ e digits
+\&         
+\&        e
+\&                ~ \*(Aqe\*(Aq
+\&                | \*(Aqe+\*(Aq
+\&                | \*(Aqe\-\*(Aq
+\&                | \*(AqE\*(Aq
+\&                | \*(AqE+\*(Aq
+\&                | \*(AqE\-\*(Aq
+\&
+\&        INT ::= 
+\&                UINT                                                                                    
+\&                | \*(Aq+\*(Aq UINT                                                                      
+\&                | \*(Aq\-\*(Aq UINT                                                                      
+\&
+\&        UINT
+\&                ~digits
+\&
+\&        STRING       ::= lstring                                        
+\&        RegularExpr ::= regularstring                                           
+\&        regularstring ~ delimiter re delimiter                          
+\&
+\&        delimiter ~ [/]
+\&
+\&        re ~ char*
+\&
+\&        char ~ [^/\e\e]
+\&                | \*(Aq\e\*(Aq \*(Aq/\*(Aq
+\&                | \*(Aq\e\e\*(Aq
+\&
+\&
+\&        lstring        ~ quote in_string quote
+\&        quote          ~ ["]
+\&         
+\&        in_string      ~ in_string_char*
+\&         
+\&        in_string_char  ~ [^"\e\e]
+\&                | \*(Aq\e\*(Aq \*(Aq"\*(Aq
+\&                | \*(Aq\e\e\*(Aq
+\&
+\&        comma ~ \*(Aq,\*(Aq
+\&
+\&        wildcard ~ [*]
+\&        dwildcard ~ [*][*]
+\&
+\&        keyword ~ [a\-zA\-Z\eN{U+A1}\-\eN{U+10FFFF}]+
+\&
+\&        :discard ~ WS
+\&        WS ~ [\es]+
 .Ve
 .SH "AUTHOR"
 .IX Header "AUTHOR"
@@ -298,9 +561,3 @@ Disclaimer of Warranty: \s-1THE\s0 \s-1PACKAGE\s0 \s-1IS\s0 \s-1PROVIDED\s0 \s-1
 \&\s-1CONTRIBUTOR\s0 \s-1WILL\s0 \s-1BE\s0 \s-1LIABLE\s0 \s-1FOR\s0 \s-1ANY\s0 \s-1DIRECT\s0, \s-1INDIRECT\s0, \s-1INCIDENTAL\s0, \s-1OR\s0
 \&\s-1CONSEQUENTIAL\s0 \s-1DAMAGES\s0 \s-1ARISING\s0 \s-1IN\s0 \s-1ANY\s0 \s-1WAY\s0 \s-1OUT\s0 \s-1OF\s0 \s-1THE\s0 \s-1USE\s0 \s-1OF\s0 \s-1THE\s0 \s-1PACKAGE\s0,
 \&\s-1EVEN\s0 \s-1IF\s0 \s-1ADVISED\s0 \s-1OF\s0 \s-1THE\s0 \s-1POSSIBILITY\s0 \s-1OF\s0 \s-1SUCH\s0 \s-1DAMAGE\s0.
-.SH "POD ERRORS"
-.IX Header "POD ERRORS"
-Hey! \fBThe above document had some coding errors, which are explained below:\fR
-.IP "Around line 927:" 4
-.IX Item "Around line 927:"
-Unknown directive: =head
