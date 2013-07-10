@@ -851,10 +851,9 @@ with matched data-objects.
 
 =head1 METHODS
 
-The Data::pQuery just provides two methods
+The Data::pQuery just provides two methods, compile and data
 
 =head2 Data::pQuery methods
-
 
 =head3 new(pQuery)
 
@@ -862,7 +861,8 @@ Used only internally!!! Do nothing;
 
 =head3 compile(pQueryString)
 
-	my $query = Data::pQuery->compile('*');
+	my $query = Data::pQuery->compile('*'); 			#compile the query
+	
 	my @values1 = $query->data({fruit => 'bananas'})->getvalues();
 	# @values1 = (bananas)
 

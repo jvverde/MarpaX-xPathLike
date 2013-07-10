@@ -35,11 +35,9 @@ with matched data-objects.
 
 # METHODS
 
-The Data::pQuery just provides two methods
+The Data::pQuery just provides two methods, compile and data
 
 ## Data::pQuery methods
-
-
 
 ### new(pQuery)
 
@@ -47,7 +45,9 @@ Used only internally!!! Do nothing;
 
 ### compile(pQueryString)
 
-	my $query = Data::pQuery->compile('*');
+	my $query = Data::pQuery->compile('*'); 			#compile the query
+	
+
 	my @values1 = $query->data({fruit => 'bananas'})->getvalues();
 	# @values1 = (bananas)
 
