@@ -133,7 +133,7 @@ Returns the value of first matched data-object;
 
 A pQuery expression is a function or a path. 
 
-## pQuery Path
+## pQuery Path Expressions
 
 A path is a sequence of steps. A step represent a hash's key name or an array 
 index. 
@@ -142,6 +142,46 @@ A array index is represented inside square brackets.
 
 Two succesive key names are separated by a dot.
 
+	my $d = {
+	        food => {
+	                fruit => q|bananas|,
+	                vegetables => [qw|potatoes  carrots tomatoes onions|]
+	        }
+	};
+	my $data = Data::pQuery->data($d);
+
+	my $food = $data->query('food')->getref();
+	$$food->{drinks} = q|no drinks|;
+
+	my $fruit = $data->query('food.fruit')->getref();
+	$$fruit = 'pears';
+
+	my $vegetables = $data->query('food.vegetables')->getref();
+	push @$$vegetables, q|garlic|;
+
+	my $vegetable = $data->query('food.vegetables[1]')->getref();
+	$$vegetable = q|spinach|;
+
+	print Dumper $d;
+
+The above code will produce the result
+
+	$VAR1 = {
+	          'food' => {
+	                      'drinks' => 'no drinks',
+	                      'fruit' => 'pears',
+	                      'vegetables' => [
+	                                        'potatoes',
+	                                        'spinach',
+	                                        'tomatoes',
+	                                        'onions',
+	                                        'garlic'
+	                                      ]
+	                    }
+	        };
+
+
+
 A wildcard (\*) means any key name and a double wildcard (\*\*) means any key name
 or any index under current object. 
 
@@ -149,6 +189,10 @@ Every step could be filter out by a logical expression inside a curly bracket.
 
 A logical expression is any combination of comparison expressions, path 
 expressions, or logical functions, combined with operators 'and' and 'or'
+
+
+
+
 
 ### Comparison expressions
 
@@ -159,23 +203,25 @@ operator to compare strings expressions.
 
 #### Numeric comparison operators
 
-- NumericExpr '<' NumericExpr	
-- NumericExpr '<=' NumericExpr							
-- NumericExpr '>' NumericExpr							
-- NumericExpr '>=' NumericExpr
-- NumericExpr '==' NumericExpr							
-- NumericExpr '!=' NumericExpr							
+- NumericExpr < NumericExpr	
+- NumericExpr <= NumericExpr							
+- NumericExpr > NumericExpr							
+- NumericExpr >= NumericExpr
+- NumericExpr == NumericExpr							
+- NumericExpr != NumericExpr							
 
 #### String comparison operators
 
-- StringExpr 'lt' StringExpr							
-- StringExpr 'le' StringExpr							
-- StringExpr 'gt' StringExpr							
-- StringExpr 'ge' StringExpr							
-- StringExpr '~' RegularExpr							
-- StringExpr '!~' RegularExpr							
-- StringExpr 'eq' StringExpr							
-- StringExpr 'ne' StringExpr	
+- StringExpr lt StringExpr							
+- StringExpr le StringExpr							
+- StringExpr gt StringExpr							
+- StringExpr ge StringExpr							
+- StringExpr ~ RegularExpr							
+- StringExpr !~ RegularExpr							
+- StringExpr eq StringExpr							
+- StringExpr ne StringExpr	
+
+## pQuery Functions 
 
 ## pQuery grammar
 

@@ -253,14 +253,56 @@ Compile a pQuery string, query the data and returns a Data::pQuery::Results obje
 .SH "pQuery sintax"
 .IX Header "pQuery sintax"
 A pQuery expression is a function or a path.
-.SS "pQuery Path"
-.IX Subsection "pQuery Path"
+.SS "pQuery Path Expressions"
+.IX Subsection "pQuery Path Expressions"
 A path is a sequence of steps. A step represent a hash's key name or an array 
 index.
 .PP
 A array index is represented inside square brackets.
 .PP
 Two succesive key names are separated by a dot.
+.PP
+.Vb 7
+\&        my $d = {
+\&                food => {
+\&                        fruit => q|bananas|,
+\&                        vegetables => [qw|potatoes  carrots tomatoes onions|]
+\&                }
+\&        };
+\&        my $data = Data::pQuery\->data($d);
+\&
+\&        my $food = $data\->query(\*(Aqfood\*(Aq)\->getref();
+\&        $$food\->{drinks} = q|no drinks|;
+\&
+\&        my $fruit = $data\->query(\*(Aqfood.fruit\*(Aq)\->getref();
+\&        $$fruit = \*(Aqpears\*(Aq;
+\&
+\&        my $vegetables = $data\->query(\*(Aqfood.vegetables\*(Aq)\->getref();
+\&        push @$$vegetables, q|garlic|;
+\&
+\&        my $vegetable = $data\->query(\*(Aqfood.vegetables[1]\*(Aq)\->getref();
+\&        $$vegetable = q|spinach|;
+\&
+\&        print Dumper $d;
+.Ve
+.PP
+The above code will produce the result
+.PP
+.Vb 10
+\&        $VAR1 = {
+\&                  \*(Aqfood\*(Aq => {
+\&                              \*(Aqdrinks\*(Aq => \*(Aqno drinks\*(Aq,
+\&                              \*(Aqfruit\*(Aq => \*(Aqpears\*(Aq,
+\&                              \*(Aqvegetables\*(Aq => [
+\&                                                \*(Aqpotatoes\*(Aq,
+\&                                                \*(Aqspinach\*(Aq,
+\&                                                \*(Aqtomatoes\*(Aq,
+\&                                                \*(Aqonions\*(Aq,
+\&                                                \*(Aqgarlic\*(Aq
+\&                                              ]
+\&                            }
+\&                };
+.Ve
 .PP
 A wildcard (*) means any key name and a double wildcard (**) means any key name
 or any index under current object.
@@ -280,41 +322,43 @@ operator to compare strings expressions.
 .PP
 Numeric comparison operators
 .IX Subsection "Numeric comparison operators"
-.IP "NumericExpr '<' NumericExpr" 4
-.IX Item "NumericExpr '<' NumericExpr"
+.IP "NumericExpr < NumericExpr" 8
+.IX Item "NumericExpr < NumericExpr"
 .PD 0
-.IP "NumericExpr '<=' NumericExpr" 4
-.IX Item "NumericExpr '<=' NumericExpr"
-.IP "NumericExpr '>' NumericExpr" 4
-.IX Item "NumericExpr '>' NumericExpr"
-.IP "NumericExpr '>=' NumericExpr" 4
-.IX Item "NumericExpr '>=' NumericExpr"
-.IP "NumericExpr '==' NumericExpr" 4
-.IX Item "NumericExpr '==' NumericExpr"
-.IP "NumericExpr '!=' NumericExpr" 4
-.IX Item "NumericExpr '!=' NumericExpr"
+.IP "NumericExpr <= NumericExpr" 8
+.IX Item "NumericExpr <= NumericExpr"
+.IP "NumericExpr > NumericExpr" 8
+.IX Item "NumericExpr > NumericExpr"
+.IP "NumericExpr >= NumericExpr" 8
+.IX Item "NumericExpr >= NumericExpr"
+.IP "NumericExpr == NumericExpr" 8
+.IX Item "NumericExpr == NumericExpr"
+.IP "NumericExpr != NumericExpr" 8
+.IX Item "NumericExpr != NumericExpr"
 .PD
 .PP
 String comparison operators
 .IX Subsection "String comparison operators"
-.IP "StringExpr 'lt' StringExpr" 4
-.IX Item "StringExpr 'lt' StringExpr"
+.IP "StringExpr lt StringExpr" 8
+.IX Item "StringExpr lt StringExpr"
 .PD 0
-.IP "StringExpr 'le' StringExpr" 4
-.IX Item "StringExpr 'le' StringExpr"
-.IP "StringExpr 'gt' StringExpr" 4
-.IX Item "StringExpr 'gt' StringExpr"
-.IP "StringExpr 'ge' StringExpr" 4
-.IX Item "StringExpr 'ge' StringExpr"
-.IP "StringExpr '~' RegularExpr" 4
-.IX Item "StringExpr '~' RegularExpr"
-.IP "StringExpr '!~' RegularExpr" 4
-.IX Item "StringExpr '!~' RegularExpr"
-.IP "StringExpr 'eq' StringExpr" 4
-.IX Item "StringExpr 'eq' StringExpr"
-.IP "StringExpr 'ne' StringExpr" 4
-.IX Item "StringExpr 'ne' StringExpr"
+.IP "StringExpr le StringExpr" 8
+.IX Item "StringExpr le StringExpr"
+.IP "StringExpr gt StringExpr" 8
+.IX Item "StringExpr gt StringExpr"
+.IP "StringExpr ge StringExpr" 8
+.IX Item "StringExpr ge StringExpr"
+.IP "StringExpr ~ RegularExpr" 8
+.IX Item "StringExpr ~ RegularExpr"
+.IP "StringExpr !~ RegularExpr" 8
+.IX Item "StringExpr !~ RegularExpr"
+.IP "StringExpr eq StringExpr" 8
+.IX Item "StringExpr eq StringExpr"
+.IP "StringExpr ne StringExpr" 8
+.IX Item "StringExpr ne StringExpr"
 .PD
+.SS "pQuery Functions"
+.IX Subsection "pQuery Functions"
 .SS "pQuery grammar"
 .IX Subsection "pQuery grammar"
 Marpa::R2 is used to parse the pQuery expression. Bellow is the complete grammar
@@ -613,18 +657,3 @@ Disclaimer of Warranty: \s-1THE\s0 \s-1PACKAGE\s0 \s-1IS\s0 \s-1PROVIDED\s0 \s-1
 \&\s-1CONTRIBUTOR\s0 \s-1WILL\s0 \s-1BE\s0 \s-1LIABLE\s0 \s-1FOR\s0 \s-1ANY\s0 \s-1DIRECT\s0, \s-1INDIRECT\s0, \s-1INCIDENTAL\s0, \s-1OR\s0
 \&\s-1CONSEQUENTIAL\s0 \s-1DAMAGES\s0 \s-1ARISING\s0 \s-1IN\s0 \s-1ANY\s0 \s-1WAY\s0 \s-1OUT\s0 \s-1OF\s0 \s-1THE\s0 \s-1USE\s0 \s-1OF\s0 \s-1THE\s0 \s-1PACKAGE\s0,
 \&\s-1EVEN\s0 \s-1IF\s0 \s-1ADVISED\s0 \s-1OF\s0 \s-1THE\s0 \s-1POSSIBILITY\s0 \s-1OF\s0 \s-1SUCH\s0 \s-1DAMAGE\s0.
-.SH "POD ERRORS"
-.IX Header "POD ERRORS"
-Hey! \fBThe above document had some coding errors, which are explained below:\fR
-.IP "Around line 970:" 4
-.IX Item "Around line 970:"
-Unknown directive: =over8
-.IP "Around line 972:" 4
-.IX Item "Around line 972:"
-\&'=item' outside of any '=over'
-.IP "Around line 988:" 4
-.IX Item "Around line 988:"
-Unknown directive: =over8
-.IP "Around line 990:" 4
-.IX Item "Around line 990:"
-\&'=item' outside of any '=over'

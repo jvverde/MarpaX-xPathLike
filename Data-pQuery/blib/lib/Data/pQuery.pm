@@ -941,7 +941,7 @@ Returns the value of first matched data-object;
 	
 A pQuery expression is a function or a path. 
 
-=head2 pQuery Path
+=head2 pQuery Path Expressions
 
 A path is a sequence of steps. A step represent a hash's key name or an array 
 index. 
@@ -950,6 +950,45 @@ A array index is represented inside square brackets.
 
 Two succesive key names are separated by a dot.
 
+	my $d = {
+	        food => {
+	                fruit => q|bananas|,
+	                vegetables => [qw|potatoes  carrots tomatoes onions|]
+	        }
+	};
+	my $data = Data::pQuery->data($d);
+
+	my $food = $data->query('food')->getref();
+	$$food->{drinks} = q|no drinks|;
+
+	my $fruit = $data->query('food.fruit')->getref();
+	$$fruit = 'pears';
+
+	my $vegetables = $data->query('food.vegetables')->getref();
+	push @$$vegetables, q|garlic|;
+
+	my $vegetable = $data->query('food.vegetables[1]')->getref();
+	$$vegetable = q|spinach|;
+
+	print Dumper $d;
+
+The above code will produce the result
+
+	$VAR1 = {
+	          'food' => {
+	                      'drinks' => 'no drinks',
+	                      'fruit' => 'pears',
+	                      'vegetables' => [
+	                                        'potatoes',
+	                                        'spinach',
+	                                        'tomatoes',
+	                                        'onions',
+	                                        'garlic'
+	                                      ]
+	                    }
+	        };
+
+
 A wildcard (*) means any key name and a double wildcard (**) means any key name
 or any index under current object. 
 
@@ -957,6 +996,8 @@ Every step could be filter out by a logical expression inside a curly bracket.
 
 A logical expression is any combination of comparison expressions, path 
 expressions, or logical functions, combined with operators 'and' and 'or'
+
+
 
 =head3 Comparison expressions
 
@@ -967,43 +1008,45 @@ operator to compare strings expressions.
 
 =head4 Numeric comparison operators
 
-=over8
+=over 8
 
-=item 	NumericExpr '<' NumericExpr	
+=item 	NumericExpr < NumericExpr	
 
-=item   NumericExpr '<=' NumericExpr							
+=item   NumericExpr <= NumericExpr							
 
-=item	NumericExpr '>' NumericExpr							
+=item	NumericExpr > NumericExpr							
 
-=item 	NumericExpr '>=' NumericExpr
+=item 	NumericExpr >= NumericExpr
 
-=item	NumericExpr '==' NumericExpr							
+=item	NumericExpr == NumericExpr							
 
-=item 	NumericExpr '!=' NumericExpr							
+=item 	NumericExpr != NumericExpr							
 
 =back
 
 =head4 String comparison operators
 
-=over8 
+=over 8 
 
-=item	StringExpr 'lt' StringExpr							
+=item	StringExpr lt StringExpr							
 
-=item	StringExpr 'le' StringExpr							
+=item	StringExpr le StringExpr							
 
-=item	StringExpr 'gt' StringExpr							
+=item	StringExpr gt StringExpr							
 
-=item	StringExpr 'ge' StringExpr							
+=item	StringExpr ge StringExpr							
 
-=item	StringExpr '~' RegularExpr							
+=item	StringExpr ~ RegularExpr							
 
-=item	StringExpr '!~' RegularExpr							
+=item	StringExpr !~ RegularExpr							
 
-=item	StringExpr 'eq' StringExpr							
+=item	StringExpr eq StringExpr							
 
-=item	StringExpr 'ne' StringExpr	
+=item	StringExpr ne StringExpr	
 
 =back
+
+=head2 pQuery Functions 
 
 =head2 pQuery grammar
 
