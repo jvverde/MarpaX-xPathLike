@@ -124,15 +124,16 @@
 .\" ========================================================================
 .\"
 .IX Title "Data::pQuery 3"
-.TH Data::pQuery 3 "2013-07-09" "perl v5.14.2" "User Contributed Perl Documentation"
+.TH Data::pQuery 3 "2013-07-10" "perl v5.14.2" "User Contributed Perl Documentation"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
 .nh
-.SH "NAME"
-Data::pQuery \- a xpath like processor for json like data\-objects (hashes and arrays)! 
-It looks for data\-objects which match the pQuery expression and returns a list
-with matched data\-objects
+.SH "INTRODUCTION"
+.IX Header "INTRODUCTION"
+Data::pQuery \- a xpath like processor for json like data-objects (hashes and arrays)! 
+It looks for data-objects which match the pQuery expression and returns a list
+with matched data-objects
 .SH "VERSION"
 .IX Header "VERSION"
 Version 0.02
@@ -153,13 +154,18 @@ How to use it.
 \&        ${$refs[0]} = \*(Aqnew value\*(Aq;
 \&        print $data\->{a}\->{b};                  #outputs \*(Aqnew value\*(Aq
 .Ve
-.SH "Data::pQuery methods"
-.IX Header "Data::pQuery methods"
-.SS "new(pQuery)"
+.SH "methods"
+.IX Header "methods"
+.SS "Data::pQuery methods"
+.IX Subsection "Data::pQuery methods"
+\fInew(pQuery)\fR
 .IX Subsection "new(pQuery)"
+.PP
 Used only internally!!! Do nothing;
-.SS "compile(pQueryString)"
+.PP
+\fIcompile(pQueryString)\fR
 .IX Subsection "compile(pQueryString)"
+.PP
 .Vb 3
 \&        my $query = Data::pQuery\->compile(\*(Aq*\*(Aq);
 \&        my @values1 = $query\->process({fruit => \*(Aqbananas\*(Aq})\->getvalues();
@@ -178,8 +184,10 @@ Used only internally!!! Do nothing;
 .Ve
 .PP
 Receives a pQuery string compile it and return a Data::pQuery::Processor object
-.SS "process(dataRef)"
+.PP
+\fIprocess(dataRef)\fR
 .IX Subsection "process(dataRef)"
+.PP
 .Vb 12
 \&        my $process = Data::pQuery\->process({
 \&                food => {
@@ -207,22 +215,37 @@ Receives a pQuery string compile it and return a Data::pQuery::Processor object
 .Ve
 .PP
 Receives a hash or array reference and return a Data::pQuery::Compiler object.
-.SH "Data::pQuery::Processor methods"
-.IX Header "Data::pQuery::Processor methods"
-.SS "process(data)"
+.SS "Data::pQuery::Processor methods"
+.IX Subsection "Data::pQuery::Processor methods"
+\fIprocess(data)\fR
 .IX Subsection "process(data)"
+.PP
 Executes the query over data and returns a Data::pQuery::util object
-.SH "Data::pQuery::Compiler methods"
-.IX Header "Data::pQuery::Compiler methods"
-.SS "compile(pQueryString)dd"
+.SS "Data::pQuery::Compiler methods"
+.IX Subsection "Data::pQuery::Compiler methods"
+\fIcompile(pQueryString)dd\fR
 .IX Subsection "compile(pQueryString)dd"
+.PP
 Compile a pQuery string, query the data and returns a Data::pQuery::util object
-.SH "Data::pQuery::util methods"
-.IX Header "Data::pQuery::util methods"
-.SS "\fIgetrefs()\fP Returns a list o references for each matched data-object;"
+.SS "Data::pQuery::util methods"
+.IX Subsection "Data::pQuery::util methods"
+\fI\fIgetrefs()\fI Returns a list o references for each matched data-object;\fR
 .IX Subsection "getrefs() Returns a list o references for each matched data-object;"
-.SS "\fIgetvalues()\fP Returns a list of values for each matched data-object;"
+.PP
+\fI\fIgetvalues()\fI Returns a list of values for each matched data-object;\fR
 .IX Subsection "getvalues() Returns a list of values for each matched data-object;"
+.SH "pQuery sintax"
+.IX Header "pQuery sintax"
+A pQuery expression is a function or a path.
+.PP
+A path is a sequence of steps. A step represent a hash's key name or an array index. 
+A array index is represented inside square brackets.
+Two succesive key names are separated by a dot.
+.PP
+.Vb 2
+\&        food.vegetables \-\- select the value of hash entry vegetables of a hash entry food 
+\&        food[1].vegetables \-\- select the value of hash entry vegetables of second index of array food
+.Ve
 .SH "AUTHOR"
 .IX Header "AUTHOR"
 Isidro Vila Verde, \f(CW\*(C`<jvverde at gmail.com>\*(C'\fR
@@ -275,3 +298,9 @@ Disclaimer of Warranty: \s-1THE\s0 \s-1PACKAGE\s0 \s-1IS\s0 \s-1PROVIDED\s0 \s-1
 \&\s-1CONTRIBUTOR\s0 \s-1WILL\s0 \s-1BE\s0 \s-1LIABLE\s0 \s-1FOR\s0 \s-1ANY\s0 \s-1DIRECT\s0, \s-1INDIRECT\s0, \s-1INCIDENTAL\s0, \s-1OR\s0
 \&\s-1CONSEQUENTIAL\s0 \s-1DAMAGES\s0 \s-1ARISING\s0 \s-1IN\s0 \s-1ANY\s0 \s-1WAY\s0 \s-1OUT\s0 \s-1OF\s0 \s-1THE\s0 \s-1USE\s0 \s-1OF\s0 \s-1THE\s0 \s-1PACKAGE\s0,
 \&\s-1EVEN\s0 \s-1IF\s0 \s-1ADVISED\s0 \s-1OF\s0 \s-1THE\s0 \s-1POSSIBILITY\s0 \s-1OF\s0 \s-1SUCH\s0 \s-1DAMAGE\s0.
+.SH "POD ERRORS"
+.IX Header "POD ERRORS"
+Hey! \fBThe above document had some coding errors, which are explained below:\fR
+.IP "Around line 927:" 4
+.IX Item "Around line 927:"
+Unknown directive: =head

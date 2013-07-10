@@ -5,7 +5,7 @@ use Data::Dumper;
 
 ($\,$,) = ("\n",",");
 
-my $process = Data::pQuery->process({
+my $data = Data::pQuery->data({
 	food => { 
 		fruit => 'bananas',
 		vegetables => 'unions'
@@ -15,18 +15,18 @@ my $process = Data::pQuery->process({
 		water => 'Evian'
 	}
 });
-my @values1 = $process->compile('*.*')->getvalues();
+my @values1 = $data->query('*.*')->getvalues();
 print @values1; # Evian,Porto,bananas,unions
 
-my @values2 = $process->compile('*.wine')->getvalues();
-print @values2;
-Porto
+my @values2 = $data->query('*.wine')->getvalues();
+print @values2; #Porto
 
-my @values3 = $process->compile('*{fruit}.*')->getvalues();
-print @values3;
-bananas,unions
+#using a filter, to get only first level entry which contains a fruit key
+my @values3 = $data->query('*{fruit}.*')->getvalues();
+print @values3; #bananas,unions
 
-my @values4 = $process->compile('*.*{value() ~ /an/}')->getvalues();
-print @values4;
-Evian,bananas
+#using another filter to return only elements which have the value matching 
+#a /an/ pattern
+my @values4 = $data->query('*.*{value() ~ /an/}')->getvalues();
+print @values4;# Evian,bananas
 

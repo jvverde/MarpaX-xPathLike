@@ -13,18 +13,6 @@ our @EXPORT = qw();
 
 our $VERSION = '0.02';
 
-=head1 NAME
-
-Data::pQuery - a xpath like processor for json like data-objects (hashes and arrays)! 
-It looks for data-objects which match the pQuery expression and returns a list
-with matched data-objects  
-
-=head1 VERSION
-
-Version 0.02
-
-=cut
-
 my $grammar = Marpa::R2::Scanless::G->new({
 	#default_action => '::first',
 	action_object	=> __PACKAGE__,
@@ -61,6 +49,7 @@ stepPath ::=
 step ::= 
 	keyword 										action => _do_keyword
 	| wildcard 										action => _do_wildcard
+	| dwildcard 									action => _do_dwildcard	
 
 subPathExpr ::= 
 	'.' stepPath 									action => _do_arg2
@@ -267,6 +256,8 @@ in_string_char  ~ [^"\\]
 comma ~ ','
 
 wildcard ~ [*]
+dwildcard ~ [*][*]
+
 keyword ~ [a-zA-Z\N{U+A1}-\N{U+10FFFF}]+
 
 :discard ~ WS
@@ -402,6 +393,10 @@ sub _do_keyword{
 sub _do_wildcard{
 	my $k = $_[1];
 	return {wildcard => $k};
+}
+sub _do_dwildcard{
+	my $k = $_[1];
+	return {dwildcard => $k};
 }
 ######################################################end of rules######################################################3
 
@@ -677,15 +672,35 @@ $keysProc = {
 		push @r, $keysProc->{step}->($data, $_, $subpath,$filter)
 			foreach (sort keys %$data);
 		return @r;
-	}
+	},
+	dwildcard => sub{
+		my ($data, undef, $subpath,$filter) = @_;
+		return descendent($data,$subpath,$filter);		
+	} 
 };
-
+sub descendent{
+	my ($data,$subpath,$filter) = @_;
+	my @r = ();
+	if (defined $data and ref $data eq q|HASH|){
+		foreach (sort keys %$data){
+			push @r, $keysProc->{step}->($data, $_, $subpath,$filter);
+			push @r, descendent($data->{$_},$subpath,$filter);		
+		}
+	}
+	if (defined $data and ref $data eq q|ARRAY|){
+		foreach (0..$#$data){
+			push @r, $indexesProc->{index}->($data,$_,$subpath,$filter);
+			push @r, descendent($data->[$_],$subpath,$filter);
+		}
+	};
+	return @r;
+}
 sub _getObjectSubset{
 	my ($data,$path) = @_;
 	return () unless ref $path eq q|HASH|;
 	my @r = ();
-	if (ref $data eq q|HASH|){
-		my @keys = grep{exists $path->{$_}} keys %$keysProc;
+	if (ref $data eq q|HASH| or ref $data eq q|ARRAY| and exists $path->{dwildcard}){
+		my @keys = grep{exists $path->{$_}} keys %$keysProc; 								#$#keys = 1 always but let it to be generic
 		push @r, $keysProc->{$_}->($data, $path->{$_}, $path->{subpath}, $path->{filter})
 			foreach (@keys);
 	}elsif(ref $data eq q|ARRAY|){
@@ -717,7 +732,7 @@ sub _execute{
 		map {\$_} (_operation($query))								#if an operation	
 		: map {$_->{data}} _getObjects($data, @{$query->{path}}); 	#else is a path
 	pop @context;
-	return Data::pQuery::Util->new(@r);
+	return Data::pQuery::Results->new(@r);
 }
 
 #########################################public methods ###################################################################
@@ -731,10 +746,11 @@ sub compile{
 	});
 	$reader->read(\$q);
 	my $qp = $reader->value;
-	return Data::pQuery::Processor->new(${$qp})
+	#print Dumper $qp;
+	return Data::pQuery::Data->new(${$qp})
 }
 
-sub process{
+sub data{
 	my ($self,$data) = @_;
 	return Data::pQuery::Compiler->new($data)
 }
@@ -747,14 +763,14 @@ sub new{
 	return bless {data=>$data}, $self;
 }
 
-sub compile{
+sub query{
 	my ($self,$pQueryString) = @_;
 	my $c = Data::pQuery->compile($pQueryString);
-	return $c->process($self->{data});	
+	return $c->data($self->{data});	
 }
 
 
-package Data::pQuery::Processor;
+package Data::pQuery::Data;
 use Data::Dumper;
 
 sub new{
@@ -763,13 +779,13 @@ sub new{
 	return bless {pQuery=>$pQuery}, $self;
 }
 
-sub process{
+sub data{
 	my ($self,$data) = @_;
 	return Data::pQuery->_execute($data,$self->{pQuery});
 }
 
 
-package Data::pQuery::Util;
+package Data::pQuery::Results;
 use Data::Dumper;
 
 sub new {
@@ -781,13 +797,31 @@ sub getrefs{
 	my $self = shift;
 	return @{$self->{results}};
 }
+sub getref{
+	my $self = shift;
+	return $self->{results}->[0];
+}
 sub getvalues{
 	my $self = shift;
 	return map {$$_} @{$self->{results}};
 }
+sub getvalue{
+	my $self = shift;
+	return ${$self->{results}->[0]};
+}
 
 1;
 __END__
+
+=head1 INTRODUCTION
+
+Data::pQuery - a xpath like processor for json like data-objects (hashes and arrays)! 
+It looks for data-objects which match the pQuery expression and returns a list
+with matched data-objects  
+
+=head1 VERSION
+
+Version 0.02
 
 =head1 SYNOPSIS
 
@@ -807,14 +841,17 @@ How to use it.
 
 
 
-=head1 Data::pQuery methods
+=head1 methods
 
 
-=head2 new(pQuery)
+=head2 Data::pQuery methods
+
+
+=head3 new(pQuery)
 
 Used only internally!!! Do nothing;
 
-=head2 compile(pQueryString)
+=head3 compile(pQueryString)
 
 	my $query = Data::pQuery->compile('*');
 	my @values1 = $query->process({fruit => 'bananas'})->getvalues();
@@ -833,7 +870,7 @@ Used only internally!!! Do nothing;
 
 Receives a pQuery string compile it and return a Data::pQuery::Processor object
 
-=head2 process(dataRef)
+=head3 process(dataRef)
 
 	my $process = Data::pQuery->process({
 	        food => {
@@ -862,26 +899,40 @@ Receives a pQuery string compile it and return a Data::pQuery::Processor object
 Receives a hash or array reference and return a Data::pQuery::Compiler object. 
 
 
-=head1 Data::pQuery::Processor methods
+=head2 Data::pQuery::Processor methods
 
-=head2 process(data)
+=head3 process(data)
 
 Executes the query over data and returns a Data::pQuery::util object
 
 
-=head1 Data::pQuery::Compiler methods
+=head2 Data::pQuery::Compiler methods
 
-=head2 compile(pQueryString)dd
+=head3 compile(pQueryString)dd
 
 Compile a pQuery string, query the data and returns a Data::pQuery::util object
 
-=head1 Data::pQuery::util methods
+=head2 Data::pQuery::util methods
 
-=head2 getrefs()
+=head3 getrefs()
 Returns a list o references for each matched data-object;
 
-=head2 getvalues()
+=head3 getvalues()
 Returns a list of values for each matched data-object;
+
+=head1 pQuery sintax
+	
+A pQuery expression is a function or a path. 
+
+=head 2 pQuery Path
+
+A path is a sequence of steps. A step represent a hash's key name or an array index. 
+A array index is represented inside square brackets.
+Two succesive key names are separated by a dot.
+
+	food.vegetables -- select the value of hash entry vegetables of a hash entry food 
+	food[1].vegetables -- select the value of hash entry vegetables of second index of array food
+
 
 =head1 AUTHOR
 
@@ -890,6 +941,7 @@ Isidro Vila Verde, C<< <jvverde at gmail.com> >>
 =head1 BUGS
 
 Send email to C<< <jvverde at gmail.com> >> with subject Data::pQuery
+
 
 =begin futuro
 
@@ -933,6 +985,7 @@ L<http://search.cpan.org/dist/Data-pQuery/>
 =head1 ACKNOWLEDGEMENTS
 
 =end tmp
+
 
 =head1 LICENSE AND COPYRIGHT
 
