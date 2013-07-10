@@ -592,7 +592,7 @@ $indexesProc = {
 	index => sub{
 		my ($data, $index, $subpath,$filter) = @_;
 		$index += $#$data + 1 if $index < 0;
-		return () unless $data->[$index];
+		return () if $index < 0 or $index > $#$data;
 		my @r = ();	
 		#$subpath->{currentObj} = $data->[$index] if defined $subpath;
 		push @context, {step => $index, data  => \$data->[$index], type => q|index|};
@@ -611,8 +611,7 @@ $indexesProc = {
 		my ($start, $stop) = @{$range};
 		$start += $#$data + 1 if $start < 0;
 		$stop += $#$data + 1 if $stop < 0;
-		$stop = $#$data if $stop > $#$data;
-		my @indexes = $start <= $stop ?
+		my @indexes = grep {$_ >=0 and $_ <= $#$data } $start <= $stop ?
 			($start..$stop)
 			: reverse ($stop..$start);
 		my @r = ();
@@ -623,6 +622,7 @@ $indexesProc = {
 	from => sub{
 		my ($data, $from, $subpath,$filter) = @_;
 		$from += $#$data + 1 if $from < 0;
+		$from = 0 if $from < 0;
 		my @indexes = ($from..$#$data);
 		my @r = ();
 		push @r, $indexesProc->{index}->($data,$_,$subpath,$filter)
@@ -632,6 +632,7 @@ $indexesProc = {
 	to => sub{
 		my ($data, $to, $subpath,$filter) = @_;	
 		$to += $#$data + 1 if $to < 0;
+		$to = $#$data if $to > $#$data;
 		my @indexes = (0..$to);
 		my @r = ();
 		push @r, $indexesProc->{index}->($data,$_,$subpath,$filter)
@@ -843,6 +844,10 @@ How to use it.
 	$$ref = 'new value';
 	print $data->{a}->{b};                  #outputs 'new value'
 
+=head1 DESCRIPTION
+
+It looks for data-objects which match the pQuery expression and returns a list
+with matched data-objects.
 
 =head1 METHODS
 
@@ -873,7 +878,7 @@ Used only internally!!! Do nothing;
 	# @values3 = ({fruit => 'bananas'})
 
 Receives a pQuery string compile it and return a Data::pQuery::Data object.
-We should prefer this method if we want to run the same query over several data-objects.
+This is the prefered method to run the same query over several data-objects.
 
 =head3 data(dataRef)
 
@@ -907,7 +912,7 @@ We should prefer this method if we want to run the same query over several data-
                   
 
 Receives a hash or array reference and return a Data::pQuery::Compile object. 
-We should prefer this method if we want to run the several queries over same data-objects.
+This is the prefered method to run several query over same data-objects.
 
 
 =head2 Data::pQuery::Data methods
@@ -990,7 +995,91 @@ The above code will produce the result
 
 
 A wildcard (*) means any key name and a double wildcard (**) means any key name
-or any index under current object. 
+or any index nested inside current data-object. 
+
+	my $d = {
+	        food => {
+	                fruit => q|bananas|,
+	                vegetables => [qw|potatoes  carrots|]
+	        },
+	        wine => 'Porto'
+	};
+	my $data = Data::pQuery->data($d);
+
+	my @all = $data->query('*')->getvalues();
+	print "all\t", Dumper \@all;
+
+	my @deepall = $data->query('**')->getvalues();
+	print "deepall\t", Dumper \@deepall;
+
+The above code will produce the following result
+
+	all	$VAR1 = [
+	          {
+	            'fruit' => 'bananas',
+	            'vegetables' => [
+	                              'potatoes',
+	                              'carrots'
+	                            ]
+	          },
+	          'Porto'
+	        ];
+	deepall	$VAR1 = [
+	          {
+	            'fruit' => 'bananas',
+	            'vegetables' => [
+	                              'potatoes',
+	                              'carrots'
+	                            ]
+	          },
+	          'bananas',
+	          [
+	            'potatoes',
+	            'carrots'
+	          ],
+	          'potatoes',
+	          'carrots',
+	          'Porto'
+	        ];
+
+The arrays can be index by one or more indexes separated by a comma.
+
+The indexes can be negative which will be interpreted as reverse index. 
+The -1 indexes last array position, -2 indexes second last and so one.  
+
+It's possible to index a range by specifying the limits separated by a 
+dotdot sequence. 
+If first limit is greater than last the result will be returned in reverse 
+order. 
+If left limit is replaced by a dot it means from first index.
+If right limit is replaced by a dot it means until last index.
+Its' also possible to index any combination of ranges and indexes separated
+by commas
+
+	my $data = Data::pQuery->data({
+	        fruit => [qw|bananas apples oranges pears|],
+	        vegetables => [qw|potatoes carrots tomatoes onions|]
+	});
+
+	print $data->query('*[2]')->getvalues();            #oranges,tomatoes
+	print $data->query('*[-1]')->getvalues();           #pears,onions
+	print $data->query('fruit[0,2]')->getvalues();      #bananas,oranges
+	print $data->query('fruit[2,0]')->getvalues();      #oranges,bananas
+	print $data->query('fruit[2...]')->getvalues();     #oranges,pears
+	print $data->query('fruit[...1]')->getvalues();     #bananas,apples
+	print $data->query('fruit[1..2]')->getvalues();     #apples,oranges
+	print $data->query('fruit[2..1]')->getvalues();     #oranges,apples
+	print $data->query('fruit[...]')->getvalues();      #bananas,apples,oranges,pears
+	print $data->query('fruit[1..-1]')->getvalues();    #apples,oranges,pears
+	print $data->query('fruit[-1..1]')->getvalues();    #pears,oranges,apples
+	print $data->query('fruit[-1...]')->getvalues();    #pears
+	print $data->query('fruit[3..9]')->getvalues();     #pears
+	print $data->query('fruit[-1..9]')->getvalues();    #pears
+	print $data->query('fruit[-1..-9]')->getvalues();   #pears,oranges,apples,bananas 
+	print $data->query('fruit[0,2..3]')->getvalues();   #bananas,oranges,pears 
+	print $data->query('fruit[...1,3...]')->getvalues();#bananas,apples,pears 
+
+
 
 Every step could be filter out by a logical expression inside a curly bracket. 
 
