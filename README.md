@@ -185,6 +185,51 @@ The above code will produce the result
 A wildcard (\*) means any key name and a double wildcard (\*\*) means any key name
 or any index under current object. 
 
+	my $d = {
+	        food => {
+	                fruit => q|bananas|,
+	                vegetables => [qw|potatoes  carrots|]
+	        },
+	        wine => 'Porto'
+	};
+	my $data = Data::pQuery->data($d);
+
+	my @all = $data->query('*')->getvalues();
+	print "all\t", Dumper \@all;
+
+	my @deepall = $data->query('**')->getvalues();
+	print "deepall\t", Dumper \@deepall;
+
+The above code will produce the following result
+
+	all	$VAR1 = [
+	          {
+	            'fruit' => 'bananas',
+	            'vegetables' => [
+	                              'potatoes',
+	                              'carrots'
+	                            ]
+	          },
+	          'Porto'
+	        ];
+	deepall	$VAR1 = [
+	          {
+	            'fruit' => 'bananas',
+	            'vegetables' => [
+	                              'potatoes',
+	                              'carrots'
+	                            ]
+	          },
+	          'bananas',
+	          [
+	            'potatoes',
+	            'carrots'
+	          ],
+	          'potatoes',
+	          'carrots',
+	          'Porto'
+	        ];
+
 Every step could be filter out by a logical expression inside a curly bracket. 
 
 A logical expression is any combination of comparison expressions, path 
