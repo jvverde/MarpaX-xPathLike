@@ -157,9 +157,9 @@ How to use it.
 \&        $$ref = \*(Aqnew value\*(Aq;
 \&        print $data\->{a}\->{b};                  #outputs \*(Aqnew value\*(Aq
 .Ve
-.SH "methods"
-.IX Header "methods"
-The Data::pQuery just provides two
+.SH "METHODS"
+.IX Header "METHODS"
+The Data::pQuery just provides two methods
 .SS "Data::pQuery methods"
 .IX Subsection "Data::pQuery methods"
 \fInew(pQuery)\fR
@@ -187,7 +187,8 @@ Used only internally!!! Do nothing;
 \&        # @values3 = ({fruit => \*(Aqbananas\*(Aq})
 .Ve
 .PP
-Receives a pQuery string compile it and return a Data::pQuery::Data object
+Receives a pQuery string compile it and return a Data::pQuery::Data object.
+We should prefer this method if we want to run the same query over several data-objects.
 .PP
 \fIdata(dataRef)\fR
 .IX Subsection "data(dataRef)"
@@ -222,7 +223,8 @@ Receives a pQuery string compile it and return a Data::pQuery::Data object
 \&        print @values5;#Evian,Porto,bananas,unions
 .Ve
 .PP
-Receives a hash or array reference and return a Data::pQuery::Compile object.
+Receives a hash or array reference and return a Data::pQuery::Compile object. 
+We should prefer this method if we want to run the several queries over same data-objects.
 .SS "Data::pQuery::Data methods"
 .IX Subsection "Data::pQuery::Data methods"
 \fIdata(data)\fR
@@ -231,10 +233,10 @@ Receives a hash or array reference and return a Data::pQuery::Compile object.
 Executes the query over data and returns a Data::pQuery::Results object
 .SS "Data::pQuery::Compiler methods"
 .IX Subsection "Data::pQuery::Compiler methods"
-\fIquery(pQueryString)dd\fR
-.IX Subsection "query(pQueryString)dd"
+\fIquery(pQueryString)\fR
+.IX Subsection "query(pQueryString)"
 .PP
-Compile a pQuery string, query the data and returns a Data::pQuery::util object
+Compile a pQuery string, query the data and returns a Data::pQuery::Results object
 .SS "Data::pQuery::Results methods"
 .IX Subsection "Data::pQuery::Results methods"
 \fI\fIgetrefs()\fI Returns a list os references for each matched data-object;\fR
@@ -254,16 +256,69 @@ A pQuery expression is a function or a path.
 .SS "pQuery Path"
 .IX Subsection "pQuery Path"
 A path is a sequence of steps. A step represent a hash's key name or an array 
-index. 
+index.
+.PP
 A array index is represented inside square brackets.
+.PP
 Two succesive key names are separated by a dot.
+.PP
 A wildcard (*) means any key name and a double wildcard (**) means any key name
-or any index under current object. 
-Every step could be filter out by a logical expression inside a curly bracket. 
+or any index under current object.
+.PP
+Every step could be filter out by a logical expression inside a curly bracket.
+.PP
 A logical expression is any combination of comparison expressions, path 
-expressions, or logical functions, combined with operatores 'and' and 'or'
+expressions, or logical functions, combined with operators 'and' and 'or'
+.PP
+\fIComparison expressions\fR
+.IX Subsection "Comparison expressions"
+.PP
+A comparison expression can compare two strings expressions or two numeric 
+expressions. Its impossible to compare a string expression with a numeric 
+expression. Nothing is cast! It is also impossible to use numeric comparison
+operator to compare strings expressions.
+.PP
+Numeric comparison operators
+.IX Subsection "Numeric comparison operators"
+.IP "NumericExpr '<' NumericExpr" 4
+.IX Item "NumericExpr '<' NumericExpr"
+.PD 0
+.IP "NumericExpr '<=' NumericExpr" 4
+.IX Item "NumericExpr '<=' NumericExpr"
+.IP "NumericExpr '>' NumericExpr" 4
+.IX Item "NumericExpr '>' NumericExpr"
+.IP "NumericExpr '>=' NumericExpr" 4
+.IX Item "NumericExpr '>=' NumericExpr"
+.IP "NumericExpr '==' NumericExpr" 4
+.IX Item "NumericExpr '==' NumericExpr"
+.IP "NumericExpr '!=' NumericExpr" 4
+.IX Item "NumericExpr '!=' NumericExpr"
+.PD
+.PP
+String comparison operators
+.IX Subsection "String comparison operators"
+.IP "StringExpr 'lt' StringExpr" 4
+.IX Item "StringExpr 'lt' StringExpr"
+.PD 0
+.IP "StringExpr 'le' StringExpr" 4
+.IX Item "StringExpr 'le' StringExpr"
+.IP "StringExpr 'gt' StringExpr" 4
+.IX Item "StringExpr 'gt' StringExpr"
+.IP "StringExpr 'ge' StringExpr" 4
+.IX Item "StringExpr 'ge' StringExpr"
+.IP "StringExpr '~' RegularExpr" 4
+.IX Item "StringExpr '~' RegularExpr"
+.IP "StringExpr '!~' RegularExpr" 4
+.IX Item "StringExpr '!~' RegularExpr"
+.IP "StringExpr 'eq' StringExpr" 4
+.IX Item "StringExpr 'eq' StringExpr"
+.IP "StringExpr 'ne' StringExpr" 4
+.IX Item "StringExpr 'ne' StringExpr"
+.PD
 .SS "pQuery grammar"
 .IX Subsection "pQuery grammar"
+Marpa::R2 is used to parse the pQuery expression. Bellow is the complete grammar
+.PP
 .Vb 1
 \&        :start ::= Start
 \&
@@ -307,9 +362,7 @@ expressions, or logical functions, combined with operatores 'and' and 'or'
 \&                | IndexArray subPathExpr                                                
 \&                | IndexArray                                                                            
 \&
-\&
 \&        IndexArray ::=  \*(Aq[\*(Aq IndexExprs \*(Aq]\*(Aq                                      
-\&
 \&
 \&        IndexExprs ::= IndexExpr+                       
 \&
@@ -322,7 +375,6 @@ expressions, or logical functions, combined with operatores 'and' and 'or'
 \&                |IntegerExpr \*(Aq...\*(Aq                                                              
 \&                | \*(Aq...\*(Aq IntegerExpr                                                             
 \&                | \*(Aq...\*(Aq                                                                                 
-\&
 \&
 \&        Filter ::=      
 \&                \*(Aq{\*(Aq LogicalExpr \*(Aq}\*(Aq                                                     
@@ -561,3 +613,18 @@ Disclaimer of Warranty: \s-1THE\s0 \s-1PACKAGE\s0 \s-1IS\s0 \s-1PROVIDED\s0 \s-1
 \&\s-1CONTRIBUTOR\s0 \s-1WILL\s0 \s-1BE\s0 \s-1LIABLE\s0 \s-1FOR\s0 \s-1ANY\s0 \s-1DIRECT\s0, \s-1INDIRECT\s0, \s-1INCIDENTAL\s0, \s-1OR\s0
 \&\s-1CONSEQUENTIAL\s0 \s-1DAMAGES\s0 \s-1ARISING\s0 \s-1IN\s0 \s-1ANY\s0 \s-1WAY\s0 \s-1OUT\s0 \s-1OF\s0 \s-1THE\s0 \s-1USE\s0 \s-1OF\s0 \s-1THE\s0 \s-1PACKAGE\s0,
 \&\s-1EVEN\s0 \s-1IF\s0 \s-1ADVISED\s0 \s-1OF\s0 \s-1THE\s0 \s-1POSSIBILITY\s0 \s-1OF\s0 \s-1SUCH\s0 \s-1DAMAGE\s0.
+.SH "POD ERRORS"
+.IX Header "POD ERRORS"
+Hey! \fBThe above document had some coding errors, which are explained below:\fR
+.IP "Around line 970:" 4
+.IX Item "Around line 970:"
+Unknown directive: =over8
+.IP "Around line 972:" 4
+.IX Item "Around line 972:"
+\&'=item' outside of any '=over'
+.IP "Around line 988:" 4
+.IX Item "Around line 988:"
+Unknown directive: =over8
+.IP "Around line 990:" 4
+.IX Item "Around line 990:"
+\&'=item' outside of any '=over'

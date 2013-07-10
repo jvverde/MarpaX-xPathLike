@@ -844,9 +844,9 @@ How to use it.
 	print $data->{a}->{b};                  #outputs 'new value'
 
 
-=head1 methods
+=head1 METHODS
 
-The Data::pQuery just provides two 
+The Data::pQuery just provides two methods
 
 =head2 Data::pQuery methods
 
@@ -872,7 +872,8 @@ Used only internally!!! Do nothing;
 	})->getvalues();
 	# @values3 = ({fruit => 'bananas'})
 
-Receives a pQuery string compile it and return a Data::pQuery::Data object
+Receives a pQuery string compile it and return a Data::pQuery::Data object.
+We should prefer this method if we want to run the same query over several data-objects.
 
 =head3 data(dataRef)
 
@@ -906,6 +907,7 @@ Receives a pQuery string compile it and return a Data::pQuery::Data object
                   
 
 Receives a hash or array reference and return a Data::pQuery::Compile object. 
+We should prefer this method if we want to run the several queries over same data-objects.
 
 
 =head2 Data::pQuery::Data methods
@@ -917,9 +919,9 @@ Executes the query over data and returns a Data::pQuery::Results object
 
 =head2 Data::pQuery::Compiler methods
 
-=head3 query(pQueryString)dd
+=head3 query(pQueryString)
 
-Compile a pQuery string, query the data and returns a Data::pQuery::util object
+Compile a pQuery string, query the data and returns a Data::pQuery::Results object
 
 =head2 Data::pQuery::Results methods
 
@@ -943,15 +945,69 @@ A pQuery expression is a function or a path.
 
 A path is a sequence of steps. A step represent a hash's key name or an array 
 index. 
+
 A array index is represented inside square brackets.
+
 Two succesive key names are separated by a dot.
+
 A wildcard (*) means any key name and a double wildcard (**) means any key name
 or any index under current object. 
+
 Every step could be filter out by a logical expression inside a curly bracket. 
+
 A logical expression is any combination of comparison expressions, path 
-expressions, or logical functions, combined with operatores 'and' and 'or'
+expressions, or logical functions, combined with operators 'and' and 'or'
+
+=head3 Comparison expressions
+
+A comparison expression can compare two strings expressions or two numeric 
+expressions. Its impossible to compare a string expression with a numeric 
+expression. Nothing is cast! It is also impossible to use numeric comparison
+operator to compare strings expressions.
+
+=head4 Numeric comparison operators
+
+=over8
+
+=item 	NumericExpr '<' NumericExpr	
+
+=item   NumericExpr '<=' NumericExpr							
+
+=item	NumericExpr '>' NumericExpr							
+
+=item 	NumericExpr '>=' NumericExpr
+
+=item	NumericExpr '==' NumericExpr							
+
+=item 	NumericExpr '!=' NumericExpr							
+
+=back
+
+=head4 String comparison operators
+
+=over8 
+
+=item	StringExpr 'lt' StringExpr							
+
+=item	StringExpr 'le' StringExpr							
+
+=item	StringExpr 'gt' StringExpr							
+
+=item	StringExpr 'ge' StringExpr							
+
+=item	StringExpr '~' RegularExpr							
+
+=item	StringExpr '!~' RegularExpr							
+
+=item	StringExpr 'eq' StringExpr							
+
+=item	StringExpr 'ne' StringExpr	
+
+=back
 
 =head2 pQuery grammar
+
+Marpa::R2 is used to parse the pQuery expression. Bellow is the complete grammar
 
 	:start ::= Start
 
@@ -995,9 +1051,7 @@ expressions, or logical functions, combined with operatores 'and' and 'or'
 		| IndexArray subPathExpr 						
 		| IndexArray										
 
-
 	IndexArray ::=  '[' IndexExprs ']'					
-
 
 	IndexExprs ::= IndexExpr+ 			
 
@@ -1010,7 +1064,6 @@ expressions, or logical functions, combined with operatores 'and' and 'or'
 		|IntegerExpr '...' 								
 		| '...' IntegerExpr								
 		| '...' 										
-
 
 	Filter ::= 	
 		'{' LogicalExpr '}' 							

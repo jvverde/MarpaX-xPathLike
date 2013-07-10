@@ -30,9 +30,9 @@ How to use it.
 
 
 
-# methods
+# METHODS
 
-The Data::pQuery just provides two 
+The Data::pQuery just provides two methods
 
 ## Data::pQuery methods
 
@@ -59,7 +59,8 @@ Used only internally!!! Do nothing;
 	})->getvalues();
 	# @values3 = ({fruit => 'bananas'})
 
-Receives a pQuery string compile it and return a Data::pQuery::Data object
+Receives a pQuery string compile it and return a Data::pQuery::Data object.
+We should prefer this method if we want to run the same query over several data-objects.
 
 ### data(dataRef)
 
@@ -95,6 +96,7 @@ Receives a pQuery string compile it and return a Data::pQuery::Data object
 
 
 Receives a hash or array reference and return a Data::pQuery::Compile object. 
+We should prefer this method if we want to run the several queries over same data-objects.
 
 
 
@@ -108,9 +110,9 @@ Executes the query over data and returns a Data::pQuery::Results object
 
 ## Data::pQuery::Compiler methods
 
-### query(pQueryString)dd
+### query(pQueryString)
 
-Compile a pQuery string, query the data and returns a Data::pQuery::util object
+Compile a pQuery string, query the data and returns a Data::pQuery::Results object
 
 ## Data::pQuery::Results methods
 
@@ -135,15 +137,49 @@ A pQuery expression is a function or a path.
 
 A path is a sequence of steps. A step represent a hash's key name or an array 
 index. 
+
 A array index is represented inside square brackets.
+
 Two succesive key names are separated by a dot.
+
 A wildcard (\*) means any key name and a double wildcard (\*\*) means any key name
 or any index under current object. 
+
 Every step could be filter out by a logical expression inside a curly bracket. 
+
 A logical expression is any combination of comparison expressions, path 
-expressions, or logical functions, combined with operatores 'and' and 'or'
+expressions, or logical functions, combined with operators 'and' and 'or'
+
+### Comparison expressions
+
+A comparison expression can compare two strings expressions or two numeric 
+expressions. Its impossible to compare a string expression with a numeric 
+expression. Nothing is cast! It is also impossible to use numeric comparison
+operator to compare strings expressions.
+
+#### Numeric comparison operators
+
+- NumericExpr '<' NumericExpr	
+- NumericExpr '<=' NumericExpr							
+- NumericExpr '>' NumericExpr							
+- NumericExpr '>=' NumericExpr
+- NumericExpr '==' NumericExpr							
+- NumericExpr '!=' NumericExpr							
+
+#### String comparison operators
+
+- StringExpr 'lt' StringExpr							
+- StringExpr 'le' StringExpr							
+- StringExpr 'gt' StringExpr							
+- StringExpr 'ge' StringExpr							
+- StringExpr '~' RegularExpr							
+- StringExpr '!~' RegularExpr							
+- StringExpr 'eq' StringExpr							
+- StringExpr 'ne' StringExpr	
 
 ## pQuery grammar
+
+Marpa::R2 is used to parse the pQuery expression. Bellow is the complete grammar
 
 	:start ::= Start
 
@@ -187,11 +223,7 @@ expressions, or logical functions, combined with operatores 'and' and 'or'
 		| IndexArray subPathExpr 						
 		| IndexArray										
 
-
-
 	IndexArray ::=  '[' IndexExprs ']'					
-
-
 
 	IndexExprs ::= IndexExpr+ 			
 
@@ -204,8 +236,6 @@ expressions, or logical functions, combined with operatores 'and' and 'or'
 		|IntegerExpr '...' 								
 		| '...' IntegerExpr								
 		| '...' 										
-
-
 
 	Filter ::= 	
 		'{' LogicalExpr '}' 							
