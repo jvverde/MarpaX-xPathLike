@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "Data::pQuery 3"
-.TH Data::pQuery 3 "2013-07-11" "perl v5.14.2" "User Contributed Perl Documentation"
+.TH Data::pQuery 3 "2013-07-13" "perl v5.14.2" "User Contributed Perl Documentation"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -163,7 +163,7 @@ It looks for data-objects which match the pQuery expression and returns a list
 with matched data-objects.
 .SH "METHODS"
 .IX Header "METHODS"
-The Data::pQuery just provides two methods
+The Data::pQuery just provides two methods, compile and data
 .SS "Data::pQuery methods"
 .IX Subsection "Data::pQuery methods"
 \fInew(pQuery)\fR
@@ -174,8 +174,9 @@ Used only internally!!! Do nothing;
 \fIcompile(pQueryString)\fR
 .IX Subsection "compile(pQueryString)"
 .PP
-.Vb 3
-\&        my $query = Data::pQuery\->compile(\*(Aq*\*(Aq);
+.Vb 1
+\&        my $query = Data::pQuery\->compile(\*(Aq*\*(Aq);                         #compile the query
+\&        
 \&        my @values1 = $query\->data({fruit => \*(Aqbananas\*(Aq})\->getvalues();
 \&        # @values1 = (bananas)
 \&

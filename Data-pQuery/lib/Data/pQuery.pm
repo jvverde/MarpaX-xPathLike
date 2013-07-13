@@ -1,4 +1,6 @@
 package Data::pQuery;
+use utf8;
+use open ":std", ":encoding(UTF-8)";
 use 5.006;
 use strict;
 use Carp;
@@ -6,6 +8,7 @@ use warnings FATAL => 'all';
 use Marpa::R2;
 use Data::Dumper;
 use Scalar::Util qw{looks_like_number};
+
 
 require Exporter;
 our @ISA = qw(Exporter);
@@ -47,7 +50,7 @@ stepPath ::=
 	| step											action => _do_arg1
 
 step ::= 
-	keyword 										action => _do_keyword
+	keyname 										action => _do_keyname
 	| wildcard 										action => _do_wildcard
 	| dwildcard 									action => _do_dwildcard	
 
@@ -145,7 +148,7 @@ StringExpr ::=
 
 LogicalFunction ::=
 	'not' '(' LogicalExpr ')'			 					action => _do_func
-	| 'isRef' '('  PathArgs  ')'			 					action => _do_func
+	| 'isRef' '('  PathArgs  ')'			 				action => _do_func
 	| 'isScalar' '(' PathArgs ')'			 				action => _do_func
 	| 'isArray' '(' PathArgs ')'			 				action => _do_func
 	| 'isHash' '(' PathArgs ')'			 					action => _do_func
@@ -232,41 +235,82 @@ UINT
 	~digits
 
 STRING       ::= lstring               				action => _do_string
-RegularExpr ::= regularstring						action => _do_re
-regularstring ~ delimiter re delimiter				
 
-delimiter ~ [/]
+lstring        
+	~ quote in_string quote
 
-re ~ char*
-
-char ~ [^/\\]
- 	| '\' '/'
- 	| '\\'
-
-
-lstring        ~ quote in_string quote
-quote          ~ ["]
+quote          
+	~ ["]
  
-in_string      ~ in_string_char*
+in_string      
+	~ in_string_char*
  
-in_string_char  ~ [^"\\]
+in_string_char  
+	~ [^"]
 	| '\' '"'
+
+RegularExpr ::= regularstring						action => _do_re
+
+regularstring 
+	~ delimiter re delimiter				
+
+delimiter 
+	~ [/]
+
+re
+	~ char*
+
+char 
+	~ [^/]
+ 	| '\' '/'
+
+
+wildcard 
+	~ [*]
+
+dwildcard 
+	~ [*][*]
+
+keyname ::= phrase				action => _do_unescape
+
+phrase 
+	~ word+
+
+word 
+	~ token
 	| '\\'
+	| '\('
+	| '\)'
+	| '\{'
+	| '\}'
+	| '\['
+	| '\]'
+	| '\*'
+	| '\|'
+	| '\.'
+	| '\' [\s]
 
-comma ~ ','
+token ~ [\N{U+21}-\N{U+27}\N{U+2B}-\N{U+2D}\N{U+2F}-\N{U+5A}\N{U+5E}-\N{U+7A}\N{U+7E}\N{U+A0}-\N{U+D7FF}\N{U+E000}-\N{U+10FFFF}]+
 
-wildcard ~ [*]
-dwildcard ~ [*][*]
 
-keyword ~ [a-zA-Z\N{U+A1}-\N{U+10FFFF}]+
+:discard 
+	~ WS
 
-:discard ~ WS
-WS ~ [\s]+
+WS 
+	~ [\s]+
+
+comma 
+	~ ','
 
 END_OF_SOURCE
 });
 
 
+sub _do_unescape{
+	my $arg = $_[1];
+	$arg =~ s/\\(.)/$1/g;
+	return $arg;
+}
 sub _do_arg1{ return $_[1]};
 sub _do_arg2{ return $_[2]};
 
@@ -275,12 +319,15 @@ sub _do_path{
 }
 sub _do_re{
 	my $re = $_[1];
+	$re =~ s/#([0-9]+)#/chr $1/ge; #recovery utf8 character
 	$re =~ s/^\/|\/$//g;
 	return qr/$re/;
 }
 sub _do_string {
-    my $s = $_[1]; 
+    my $s = $_[1];
+    $s =~ s/#([0-9]+)#/chr $1/ge; #recovery utf8 character 
     $s =~ s/^"|"$//g;
+    $s =~ s/\\("|\\)/$1/g;
     return $s;
 }
 sub _do_func{
@@ -385,8 +432,9 @@ sub _do_endRange{
 sub _do_allRange{
 	{all => 1}
 }
-sub _do_keyword{
+sub _do_keyname{
 	my $k = $_[1];
+	$k =~ s/#([0-9]+)#/chr $1/ge; #recovery utf8 character
 	return {step => $k};
 }
 
@@ -741,19 +789,23 @@ sub new {} 				#The Marpa::R2 needs it
 sub compile{
 	my ($self,$q) = @_; 
 	return undef unless $q;
+
 	my $reader = Marpa::R2::Scanless::R->new({
 		grammar => $grammar,
 		trace_terminals => 0,
 	});
+	$q =~ s/[#\N{U+A0}-\N{U+10FFFF}]/sprintf "#%d#", ord $&/ge; #code utf8 characters with sequece #utfcode#. Marpa problem? 
 	$reader->read(\$q);
 	my $qp = $reader->value;
-	#print Dumper $qp;
 	return Data::pQuery::Data->new(${$qp})
 }
 
 sub data{
 	my ($self,$data) = @_;
 	return Data::pQuery::Compiler->new($data)
+}
+
+sub DESTROY{
 }
 
 package Data::pQuery::Compiler;
@@ -768,6 +820,8 @@ sub query{
 	my ($self,$pQueryString) = @_;
 	my $c = Data::pQuery->compile($pQueryString);
 	return $c->data($self->{data});	
+}
+sub DESTROY{
 }
 
 
@@ -785,6 +839,8 @@ sub data{
 	return Data::pQuery->_execute($data,$self->{pQuery});
 }
 
+sub DESTROY{
+}
 
 package Data::pQuery::Results;
 use Data::Dumper;
@@ -808,6 +864,7 @@ sub getvalues{
 }
 sub getvalue{
 	my $self = shift;
+	return undef unless ref $self->{results}->[0];
 	return ${$self->{results}->[0]};
 }
 
