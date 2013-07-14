@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "Data::pQuery 3"
-.TH Data::pQuery 3 "2013-07-13" "perl v5.14.2" "User Contributed Perl Documentation"
+.TH Data::pQuery 3 "2013-07-14" "perl v5.14.2" "User Contributed Perl Documentation"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -471,10 +471,10 @@ Marpa::R2 is used to parse the pQuery expression. Bellow is the complete grammar
 \&                |ListFunction                                                                   
 \&
 \&        PathExpr ::=
-\&                singlePath                                                                              
-\&                | PathExpr \*(Aq|\*(Aq singlePath                                               
+\&                absolutePath                                                                            
+\&                | PathExpr \*(Aq|\*(Aq absolutePath                                             
 \&
-\&        singlePath ::=  
+\&        absolutePath ::=        
 \&                stepPath                                                                                
 \&                |indexPath                                                                              
 \&
@@ -504,33 +504,33 @@ Marpa::R2 is used to parse the pQuery expression. Bellow is the complete grammar
 \&        IndexExprs ::= IndexExpr+                       
 \&
 \&        IndexExpr ::=
-\&                IntegerExpr                                                                             
+\&                IntExpr                                                                         
 \&                | rangeExpr                                                                             
 \&
 \&        rangeExpr ::= 
-\&                IntegerExpr \*(Aq..\*(Aq IntegerExpr                                    
-\&                |IntegerExpr \*(Aq...\*(Aq                                                              
-\&                | \*(Aq...\*(Aq IntegerExpr                                                             
+\&                IntExpr \*(Aq..\*(Aq IntExpr                                    
+\&                |IntExpr \*(Aq...\*(Aq                                                          
+\&                | \*(Aq...\*(Aq IntExpr                                                         
 \&                | \*(Aq...\*(Aq                                                                                 
 \&
 \&        Filter ::=      
 \&                \*(Aq{\*(Aq LogicalExpr \*(Aq}\*(Aq                                                     
 \&                | \*(Aq{\*(Aq LogicalExpr \*(Aq}\*(Aq Filter                                    
 \&
-\&        IntegerExpr ::=
-\&          ArithmeticIntegerExpr                                                                         
+\&        IntExpr ::=
+\&          ArithmeticIntExpr                                                                             
 \&
-\&         ArithmeticIntegerExpr ::=
+\&         ArithmeticIntExpr ::=
 \&                INT                                                                                                     
 \&                | IntegerFunction                                                                               
-\&                | \*(Aq(\*(Aq IntegerExpr \*(Aq)\*(Aq                                                                   
-\&                || \*(Aq\-\*(Aq ArithmeticIntegerExpr                                                    
-\&                 | \*(Aq+\*(Aq ArithmeticIntegerExpr                                                    
-\&                || ArithmeticIntegerExpr \*(Aq*\*(Aq ArithmeticIntegerExpr              
-\&                 | ArithmeticIntegerExpr \*(Aq/\*(Aq ArithmeticIntegerExpr              
-\&                 | ArithmeticIntegerExpr \*(Aq%\*(Aq ArithmeticIntegerExpr              
-\&                || ArithmeticIntegerExpr \*(Aq+\*(Aq ArithmeticIntegerExpr              
-\&                 | ArithmeticIntegerExpr \*(Aq\-\*(Aq ArithmeticIntegerExpr              
+\&                | \*(Aq(\*(Aq IntExpr \*(Aq)\*(Aq                                                                       
+\&                || \*(Aq\-\*(Aq ArithmeticIntExpr                                                        
+\&                 | \*(Aq+\*(Aq ArithmeticIntExpr                                                        
+\&                || ArithmeticIntExpr \*(Aq*\*(Aq ArithmeticIntExpr              
+\&                 | ArithmeticIntExpr \*(Aq/\*(Aq ArithmeticIntExpr              
+\&                 | ArithmeticIntExpr \*(Aq%\*(Aq ArithmeticIntExpr              
+\&                || ArithmeticIntExpr \*(Aq+\*(Aq ArithmeticIntExpr              
+\&                 | ArithmeticIntExpr \*(Aq\-\*(Aq ArithmeticIntExpr              
 \&
 \&
 \&        NumericExpr ::=

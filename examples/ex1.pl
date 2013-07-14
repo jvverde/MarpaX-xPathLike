@@ -5,7 +5,7 @@ use Data::Dumper;
 
 ($\,$,) = ("\n",",");
 
-my $query = Data::pQuery->compile('*');
+my $query = Data::pQuery->compile('/*');
 my @values1 = $query->data({fruit => 'bananas'})->getvalues();
 print @values1;
 

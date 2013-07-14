@@ -3,7 +3,7 @@ use strict;
 use Data::pQuery;
 
 ($\,$,) = ("\n",",");
-my $query = Data::pQuery->compile('a.*');
+my $query = Data::pQuery->compile('/a/*');
 my $data = {
 	a => { 
 		b => 'bb', 

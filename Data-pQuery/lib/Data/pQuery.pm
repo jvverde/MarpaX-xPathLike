@@ -24,181 +24,188 @@ my $grammar = Marpa::R2::Scanless::G->new({
 :default ::= action => ::array
 :start ::= Start
 
-Start	::= OperExp									action => _do_arg1
+Start	::= OperExp															action => _do_arg1
 
 OperExp ::=
-	PathExpr 										action => _do_path
-	|Function 										action => _do_arg1
+	PathExpr 																		action => _do_path
+	|Function 																	action => _do_arg1
 
 Function ::=
-	NumericFunction									action => _do_arg1
-	|StringFunction 								action => _do_arg1
-	|ListFunction 									action => _do_arg1
+	NumericFunction															action => _do_arg1
+	| StringFunction 														action => _do_arg1
+	| ListFunction 															action => _do_arg1
 
 PathExpr ::=
-	singlePath										action => _do_singlePath
-	| PathExpr '|' singlePath						action => _do_pushArgs2array
+	absolutePath																action => _do_absolutePath
+	| relativePath															action => _do_relativePath
+	| PathExpr '|' PathExpr											action => _do_pushArgs2array
 
-singlePath ::=	
-	stepPath 										action => _do_arg1
-	|indexPath 										action => _do_arg1
+relativePath ::=	
+	stepPath 																		action => _do_arg1
+	| indexPath 																action => _do_arg1
+
+absolutePath ::=	
+	'/' stepPath 																action => _do_arg2
+	| indexPath 																action => _do_arg1
 
 stepPath ::=
-	step Filter subPathExpr 						action => _do_stepFilterSubpath
-	| step Filter 									action => _do_stepFilter
-	| step subPathExpr 								action => _do_stepSubpath
-	| step											action => _do_arg1
+	step Filter absolutePath 										action => _do_stepFilterSubpath
+	| step Filter 															action => _do_stepFilter
+	| step absolutePath 												action => _do_stepSubpath
+	| step																			action => _do_arg1
 
 step ::= 
-	keyname 										action => _do_keyname
-	| wildcard 										action => _do_wildcard
-	| dwildcard 									action => _do_dwildcard	
+	keyname 																		action => _do_keyname
+	| wildcard 																	action => _do_wildcard
+	| dwildcard 																action => _do_dwildcard	
 
-subPathExpr ::= 
-	'.' stepPath 									action => _do_arg2
-	|indexPath 										action => _do_arg1
+# subPathExpr ::= 
+# 	'/' stepPath 															action => _do_arg2
+# 	|indexPath 																action => _do_arg1
 
 indexPath ::=
-	IndexArray Filter subPathExpr 					action => _do_indexFilterSubpath	
-	| IndexArray Filter 							action => _do_indexFilter	
-	| IndexArray subPathExpr 						action => _do_indexSubpath		
-	| IndexArray									action => _do_arg1	
+	IndexArray Filter absolutePath 							action => _do_indexFilterSubpath	
+	| IndexArray Filter 												action => _do_indexFilter	
+	| IndexArray absolutePath 									action => _do_indexSubpath		
+	| IndexArray																action => _do_arg1	
 
 
-IndexArray ::=  '[' IndexExprs ']'					action => _do_index
+IndexArray ::=  '[' IndexExprs ']'						action => _do_index
 
 
 IndexExprs ::= IndexExpr+ 			separator => <comma>
 
 IndexExpr ::=
-	IntegerExpr										action => _do_index_single
-	| rangeExpr										action => _do_arg1
+	IntExpr																			action => _do_index_single
+	| rangeExpr																	action => _do_arg1
 
 rangeExpr ::= 
-	IntegerExpr '..' IntegerExpr 					action => _do_index_range
-	|IntegerExpr '...' 								action => _do_startRange
-	| '...' IntegerExpr								action => _do_endRange
-	| '...' 										action => _do_allRange
+	IntExpr '..' IntExpr 												action => _do_index_range
+	|IntExpr '..' 															action => _do_startRange
+	| '..' IntExpr															action => _do_endRange
+	| '..' 																			action => _do_allRange
 
 
 Filter ::= 	
-	'{' LogicalExpr '}' 							action => _do_filter
-	| '{' LogicalExpr '}' Filter 					action => _do_mergeFilters
+	'{' LogicalExpr '}' 												action => _do_filter
+	| '{' LogicalExpr '}' Filter 								action => _do_mergeFilters
 
-IntegerExpr ::=
-  ArithmeticIntegerExpr										action => _do_arg1
+IntExpr ::=
+  ArithmeticIntExpr														action => _do_arg1
 
- ArithmeticIntegerExpr ::=
- 	INT 													action => _do_arg1
-	| IntegerFunction										action => _do_arg1
-	| '(' IntegerExpr ')' 									action => _do_group
-	|| '-' ArithmeticIntegerExpr 							action => _do_unaryOperator
-	 | '+' ArithmeticIntegerExpr 							action => _do_unaryOperator
-	|| ArithmeticIntegerExpr '*' ArithmeticIntegerExpr		action => _do_binaryOperation
-	 | ArithmeticIntegerExpr '/' ArithmeticIntegerExpr		action => _do_binaryOperation
-	 | ArithmeticIntegerExpr '%' ArithmeticIntegerExpr		action => _do_binaryOperation
-	|| ArithmeticIntegerExpr '+' ArithmeticIntegerExpr		action => _do_binaryOperation
-	 | ArithmeticIntegerExpr '-' ArithmeticIntegerExpr		action => _do_binaryOperation
+ ArithmeticIntExpr ::=
+ 	INT 																				action => _do_arg1
+	| IntegerFunction														action => _do_arg1
+	| '(' IntExpr ')' 													action => _do_group
+	|| '-' ArithmeticIntExpr 										action => _do_unaryOperator
+	 | '+' ArithmeticIntExpr 										action => _do_unaryOperator
+	|| ArithmeticIntExpr '*' ArithmeticIntExpr	action => _do_binaryOperation
+	 | ArithmeticIntExpr '/' ArithmeticIntExpr	action => _do_binaryOperation
+	 | ArithmeticIntExpr '%' ArithmeticIntExpr	action => _do_binaryOperation
+	|| ArithmeticIntExpr '+' ArithmeticIntExpr	action => _do_binaryOperation
+	 | ArithmeticIntExpr '-' ArithmeticIntExpr	action => _do_binaryOperation
 
 
 NumericExpr ::=
-  ArithmeticExpr 											action => _do_arg1
+  ArithmeticExpr 															action => _do_arg1
 
 ArithmeticExpr ::=
-	NUMBER 													action => _do_arg1
-	| NumericFunction										action => _do_arg1
-	| '(' NumericExpr ')' 									action => _do_group
-	|| '-' ArithmeticExpr 									action => _do_unaryOperator
-	 | '+' ArithmeticExpr 									action => _do_unaryOperator
-	|| ArithmeticExpr '*' ArithmeticExpr					action => _do_binaryOperation
-	 | ArithmeticExpr '/' ArithmeticExpr					action => _do_binaryOperation
-	 | ArithmeticExpr '%' ArithmeticExpr					action => _do_binaryOperation
-	|| ArithmeticExpr '+' ArithmeticExpr					action => _do_binaryOperation
-	 | ArithmeticExpr '-' ArithmeticExpr					action => _do_binaryOperation
+	NUMBER 																			action => _do_arg1
+	| NumericFunction														action => _do_arg1
+	| '(' NumericExpr ')' 											action => _do_group
+	|| '-' ArithmeticExpr 											action => _do_unaryOperator
+	 | '+' ArithmeticExpr 											action => _do_unaryOperator
+	|| ArithmeticExpr '*' ArithmeticExpr				action => _do_binaryOperation
+	 | ArithmeticExpr '/' ArithmeticExpr				action => _do_binaryOperation
+	 | ArithmeticExpr '%' ArithmeticExpr				action => _do_binaryOperation
+	|| ArithmeticExpr '+' ArithmeticExpr				action => _do_binaryOperation
+	 | ArithmeticExpr '-' ArithmeticExpr				action => _do_binaryOperation
 
 LogicalExpr ::=
-	compareExpr												action => _do_arg1
-	|LogicalFunction										action => _do_arg1
+	compareExpr																	action => _do_arg1
+	|LogicalFunction														action => _do_arg1
 
 compareExpr ::=	
-	PathExpr 												action => _do_exists
+	PathExpr 																		action => _do_exists
 	|| NumericExpr '<' NumericExpr							action => _do_binaryOperation
 	 | NumericExpr '<=' NumericExpr							action => _do_binaryOperation
 	 | NumericExpr '>' NumericExpr							action => _do_binaryOperation
 	 | NumericExpr '>=' NumericExpr							action => _do_binaryOperation
-	 | StringExpr 'lt' StringExpr							action => _do_binaryOperation
-	 | StringExpr 'le' StringExpr							action => _do_binaryOperation
-	 | StringExpr 'gt' StringExpr							action => _do_binaryOperation
-	 | StringExpr 'ge' StringExpr							action => _do_binaryOperation
-	 | StringExpr '~' RegularExpr							action => _do_binaryOperation
+	 | StringExpr 'lt' StringExpr								action => _do_binaryOperation
+	 | StringExpr 'le' StringExpr								action => _do_binaryOperation
+	 | StringExpr 'gt' StringExpr								action => _do_binaryOperation
+	 | StringExpr 'ge' StringExpr								action => _do_binaryOperation
+	 | StringExpr '~' RegularExpr								action => _do_binaryOperation
 	 | StringExpr '!~' RegularExpr							action => _do_binaryOperation
 	 | NumericExpr '==' NumericExpr							action => _do_binaryOperation
 	 | NumericExpr '!=' NumericExpr							action => _do_binaryOperation
-	 | StringExpr 'eq' StringExpr							action => _do_binaryOperation
-	 | StringExpr 'ne' StringExpr							action => _do_binaryOperation
+	 | StringExpr 'eq' StringExpr								action => _do_binaryOperation
+	 | StringExpr 'ne' StringExpr								action => _do_binaryOperation
 	|| compareExpr 'and' LogicalExpr						action => _do_binaryOperation
 	|| compareExpr 'or' LogicalExpr							action => _do_binaryOperation
 
-#operator match, not match, in, intersect, union,
+#operator match, not match, in, intersect and union are missing
 
 StringExpr ::=
-	STRING 													action => _do_arg1
- 	| StringFunction 										action => _do_arg1
+	STRING 																			action => _do_arg1
+ 	| StringFunction 														action => _do_arg1
  	|| StringExpr '||' StringExpr  							action => _do_binaryOperation
 
+
+RegularExpr 
+	::= STRING																	action => _do_re
+
 LogicalFunction ::=
-	'not' '(' LogicalExpr ')'			 					action => _do_func
-	| 'isRef' '('  PathArgs  ')'			 				action => _do_func
-	| 'isScalar' '(' PathArgs ')'			 				action => _do_func
-	| 'isArray' '(' PathArgs ')'			 				action => _do_func
-	| 'isHash' '(' PathArgs ')'			 					action => _do_func
-	| 'isCode' '(' PathArgs ')'								action => _do_func
+	'not' '(' LogicalExpr ')'			 							action => _do_func
+	| 'isRef' '('  PathArgs  ')'			 					action => _do_func
+	| 'isScalar' '(' PathArgs ')'			 					action => _do_func
+	| 'isArray' '(' PathArgs ')'			 					action => _do_func
+	| 'isHash' '(' PathArgs ')'			 						action => _do_func
+	| 'isCode' '(' PathArgs ')'									action => _do_func
 
 StringFunction ::=
-	NameFunction											action => _do_arg1
-	| ValueFunction											action => _do_arg1
+	NameFunction																action => _do_arg1
+	| ValueFunction															action => _do_arg1
 
 NameFunction ::= 
-	'name' '(' PathArgs ')'				 					action => _do_func
+	'name' '(' PathArgs ')'				 							action => _do_func
 
 PathArgs ::= 
-	PathExpr						  						action => _do_arg1
-	|EMPTY													action => _do_arg1
+	PathExpr						  											action => _do_arg1
+	|EMPTY																			action => _do_arg1
 
 EMPTY ::=
 
 ValueFunction ::= 
-	'value' '(' PathArgs ')'				 				action => _do_func
+	'value' '(' PathArgs ')'				 						action => _do_func
 
 CountFunction ::= 
-	'count' '(' PathExpr ')'				 				action => _do_func
+	'count' '(' PathExpr ')'				 						action => _do_func
 
 SumFunction ::= 
-	'sum' '(' PathExpr ')'				 					action => _do_func
+	'sum' '(' PathExpr ')'				 							action => _do_func
 
 SumProductFunction ::= 
-	'sumproduct' '(' PathExpr ',' PathExpr ')'				action => _do_funcw2args
+	'sumproduct' '(' PathExpr ',' PathExpr ')'	action => _do_funcw2args
 
 NumericFunction ::=
-	CountFunction											action => _do_arg1
-	|ValueFunction											action => _do_arg1
-	|SumFunction											action => _do_arg1
-	|SumProductFunction										action => _do_arg1
+	CountFunction																action => _do_arg1
+	|ValueFunction															action => _do_arg1
+	|SumFunction																action => _do_arg1
+	|SumProductFunction													action => _do_arg1
 
 IntegerFunction ::=
-	CountFunction											action => _do_arg1
+	CountFunction																action => _do_arg1
 
 ListFunction ::=
-	'names' '(' PathArgs ')'    		 					action => _do_func
+	'names' '(' PathArgs ')'    		 						action => _do_func
 	| 'values' '(' PathArgs ')'    		 					action => _do_func
 
 
- NUMBER ::= UNUMBER 										action => _do_arg1
- 	| '-' UNUMBER 											action => _do_join
- 	| '+' UNUMBER 											action => _do_join
-
-UNUMBER  
-	~ unumber       
+ NUMBER ::= 
+ 	unumber 																		action => _do_arg1
+ 	| '-' unumber 															action => _do_join
+ 	| '+' unumber 															action => _do_join
 
 unumber	
 	~ uint
@@ -227,43 +234,37 @@ e
 	| 'E-'
 
 INT ::= 
-	UINT 											action => _do_arg1
-	| '+' UINT  									action => _do_join
-	| '-' UINT  									action => _do_join
+	UINT 																		action => _do_arg1
+	| '+' UINT  														action => _do_join	#avoid ambiguity
+	| '-' UINT  														action => _do_join	#avoid ambiguity
 
 UINT
 	~digits
 
-STRING       ::= lstring               				action => _do_string
+STRING ::= 
+	double_quoted               								action => _do_double_quoted
+	| single_quoted              								action => _do_single_quoted
 
-lstring        
-	~ quote in_string quote
 
-quote          
-	~ ["]
+single_quoted        
+	~ [''] single_quoted_chars ['']
+
+single_quoted_chars      
+ 	~ single_quoted_char*
  
-in_string      
-	~ in_string_char*
+single_quoted_char  
+	~ [^']
+	| '\' [']
+
+double_quoted        
+	~ ["] double_quoted_chars ["]
+
+double_quoted_chars      
+ 	~ double_quoted_char*
  
-in_string_char  
+double_quoted_char  
 	~ [^"]
 	| '\' '"'
-
-RegularExpr ::= regularstring						action => _do_re
-
-regularstring 
-	~ delimiter re delimiter				
-
-delimiter 
-	~ [/]
-
-re
-	~ char*
-
-char 
-	~ [^/]
- 	| '\' '/'
-
 
 wildcard 
 	~ [*]
@@ -271,26 +272,11 @@ wildcard
 dwildcard 
 	~ [*][*]
 
-keyname ::= phrase				action => _do_unescape
+keyname ::= 
+	token																				action => _do_token
+	| STRING            												action => _do_arg1
 
-phrase 
-	~ word+
-
-word 
-	~ token
-	| '\\'
-	| '\('
-	| '\)'
-	| '\{'
-	| '\}'
-	| '\['
-	| '\]'
-	| '\*'
-	| '\|'
-	| '\.'
-	| '\' [\s]
-
-token ~ [\N{U+21}-\N{U+27}\N{U+2B}-\N{U+2D}\N{U+2F}-\N{U+5A}\N{U+5E}-\N{U+7A}\N{U+7E}\N{U+A0}-\N{U+D7FF}\N{U+E000}-\N{U+10FFFF}]+
+token ~ [^./*,'"|\s\]\[\(\)\{\}\\+-]+
 
 
 :discard 
@@ -306,29 +292,38 @@ END_OF_SOURCE
 });
 
 
-sub _do_unescape{
-	my $arg = $_[1];
-	$arg =~ s/\\(.)/$1/g;
-	return $arg;
-}
 sub _do_arg1{ return $_[1]};
 sub _do_arg2{ return $_[2]};
 
 sub _do_path{
 	return {path => $_[1]}	
 }
-sub _do_re{
-	my $re = $_[1];
-	$re =~ s/#([0-9]+)#/chr $1/ge; #recovery utf8 character
-	$re =~ s/^\/|\/$//g;
-	return qr/$re/;
+sub _do_keyname{
+	my $k = $_[1];
+	return {step => $k};
 }
-sub _do_string {
+sub _do_token{
+	my $arg = $_[1];
+	$arg =~ s/#([0-9]+)#/chr $1/ge; #recovery utf8 character
+	return $arg;
+}
+sub _do_double_quoted {
     my $s = $_[1];
     $s =~ s/#([0-9]+)#/chr $1/ge; #recovery utf8 character 
     $s =~ s/^"|"$//g;
-    $s =~ s/\\("|\\)/$1/g;
+    $s =~ s/\\"/"/g;
     return $s;
+}
+sub _do_single_quoted {
+    my $s = $_[1];
+    $s =~ s/#([0-9]+)#/chr $1/ge; #recovery utf8 character 
+    $s =~ s/^'|'$//g;
+    $s =~ s/\\'/'/g;
+    return $s;
+}
+sub _do_re{
+	my $re = $_[1];
+	return qr/$re/;
 }
 sub _do_func{
 	my $args =	$_[3] || [];
@@ -405,7 +400,10 @@ sub _do_pushArgs2array{
 	my @array = (@$a,$b);
 	return \@array;
 }
-sub _do_singlePath{
+sub _do_absolutePath{
+	return [$_[1]];
+}
+sub _do_relativePath{
 	return [$_[1]];
 }
 sub _do_filter{ return [$_[2]]};
@@ -432,12 +430,6 @@ sub _do_endRange{
 sub _do_allRange{
 	{all => 1}
 }
-sub _do_keyname{
-	my $k = $_[1];
-	$k =~ s/#([0-9]+)#/chr $1/ge; #recovery utf8 character
-	return {step => $k};
-}
-
 sub _do_wildcard{
 	my $k = $_[1];
 	return {wildcard => $k};
@@ -797,6 +789,7 @@ sub compile{
 	$q =~ s/[#\N{U+A0}-\N{U+10FFFF}]/sprintf "#%d#", ord $&/ge; #code utf8 characters with sequece #utfcode#. Marpa problem? 
 	$reader->read(\$q);
 	my $qp = $reader->value;
+	#print $q, Dumper $qp;
 	return Data::pQuery::Data->new(${$qp})
 }
 
@@ -1212,10 +1205,10 @@ Marpa::R2 is used to parse the pQuery expression. Bellow is the complete grammar
 		|ListFunction 									
 
 	PathExpr ::=
-		singlePath										
-		| PathExpr '|' singlePath						
+		absolutePath										
+		| PathExpr '|' absolutePath						
 
-	singlePath ::=	
+	absolutePath ::=	
 		stepPath 										
 		|indexPath 										
 
@@ -1245,33 +1238,33 @@ Marpa::R2 is used to parse the pQuery expression. Bellow is the complete grammar
 	IndexExprs ::= IndexExpr+ 			
 
 	IndexExpr ::=
-		IntegerExpr										
+		IntExpr										
 		| rangeExpr										
 
 	rangeExpr ::= 
-		IntegerExpr '..' IntegerExpr 					
-		|IntegerExpr '...' 								
-		| '...' IntegerExpr								
+		IntExpr '..' IntExpr 					
+		|IntExpr '...' 								
+		| '...' IntExpr								
 		| '...' 										
 
 	Filter ::= 	
 		'{' LogicalExpr '}' 							
 		| '{' LogicalExpr '}' Filter 					
 
-	IntegerExpr ::=
-	  ArithmeticIntegerExpr										
+	IntExpr ::=
+	  ArithmeticIntExpr										
 
-	 ArithmeticIntegerExpr ::=
+	 ArithmeticIntExpr ::=
 	 	INT 													
 		| IntegerFunction										
-		| '(' IntegerExpr ')' 									
-		|| '-' ArithmeticIntegerExpr 							
-		 | '+' ArithmeticIntegerExpr 							
-		|| ArithmeticIntegerExpr '*' ArithmeticIntegerExpr		
-		 | ArithmeticIntegerExpr '/' ArithmeticIntegerExpr		
-		 | ArithmeticIntegerExpr '%' ArithmeticIntegerExpr		
-		|| ArithmeticIntegerExpr '+' ArithmeticIntegerExpr		
-		 | ArithmeticIntegerExpr '-' ArithmeticIntegerExpr		
+		| '(' IntExpr ')' 									
+		|| '-' ArithmeticIntExpr 							
+		 | '+' ArithmeticIntExpr 							
+		|| ArithmeticIntExpr '*' ArithmeticIntExpr		
+		 | ArithmeticIntExpr '/' ArithmeticIntExpr		
+		 | ArithmeticIntExpr '%' ArithmeticIntExpr		
+		|| ArithmeticIntExpr '+' ArithmeticIntExpr		
+		 | ArithmeticIntExpr '-' ArithmeticIntExpr		
 
 
 	NumericExpr ::=
