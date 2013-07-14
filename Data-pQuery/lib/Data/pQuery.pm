@@ -57,7 +57,8 @@ stepPath ::=
 step ::= 
 	keyname 																		action => _do_keyname
 	| wildcard 																	action => _do_wildcard
-	| dwildcard 																action => _do_dwildcard	
+	| dwildcard 																action => _do_dwildcard
+	|	'..'																			action => _do_dotdot			
 
 # subPathExpr ::= 
 # 	'/' stepPath 															action => _do_arg2
@@ -99,11 +100,11 @@ IntExpr ::=
 	| '(' IntExpr ')' 													action => _do_group
 	|| '-' ArithmeticIntExpr 										action => _do_unaryOperator
 	 | '+' ArithmeticIntExpr 										action => _do_unaryOperator
-	|| ArithmeticIntExpr '*' ArithmeticIntExpr	action => _do_binaryOperation
-	 | ArithmeticIntExpr '/' ArithmeticIntExpr	action => _do_binaryOperation
-	 | ArithmeticIntExpr '%' ArithmeticIntExpr	action => _do_binaryOperation
-	|| ArithmeticIntExpr '+' ArithmeticIntExpr	action => _do_binaryOperation
-	 | ArithmeticIntExpr '-' ArithmeticIntExpr	action => _do_binaryOperation
+	|| ArithmeticIntExpr '*' ArithmeticIntExpr  action => _do_binaryOperation
+	 | ArithmeticIntExpr '/' ArithmeticIntExpr  action => _do_binaryOperation
+	 | ArithmeticIntExpr '%' ArithmeticIntExpr  action => _do_binaryOperation
+	|| ArithmeticIntExpr '+' ArithmeticIntExpr  action => _do_binaryOperation
+	 | ArithmeticIntExpr '-' ArithmeticIntExpr  action => _do_binaryOperation
 
 
 NumericExpr ::=
@@ -295,9 +296,6 @@ END_OF_SOURCE
 sub _do_arg1{ return $_[1]};
 sub _do_arg2{ return $_[2]};
 
-sub _do_path{
-	return {path => $_[1]}	
-}
 sub _do_keyname{
 	my $k = $_[1];
 	return {step => $k};
@@ -395,16 +393,19 @@ sub _do_indexSubpath{
 	$index->{subpath} = $subpath;
 	return $index;
 }
+sub _do_path{
+	return {paths => $_[1]}	
+}
 sub _do_pushArgs2array{
 	my ($a,$b) = @_[1,3];
-	my @array = (@$a,$b);
+	my @array = (@$a,@$b);
 	return \@array;
 }
 sub _do_absolutePath{
-	return [$_[1]];
+	return [{absolute => 1, path => $_[1]}];
 }
 sub _do_relativePath{
-	return [$_[1]];
+	return [{relative => 1, path => $_[1]}];
 }
 sub _do_filter{ return [$_[2]]};
 sub _do_mergeFilters{
@@ -437,6 +438,10 @@ sub _do_wildcard{
 sub _do_dwildcard{
 	my $k = $_[1];
 	return {dwildcard => $k};
+}
+sub _do_dotdot{
+	my $k = $_[1];
+	return {q|..| => $k};	
 }
 ######################################################end of rules######################################################3
 
@@ -539,20 +544,20 @@ $operatorBy = {
 		return _arithmeticOper(sub {$_[0] % $_[1]}, $_[0], $_[1], @_[2..$#_]);
 	},
 	names => sub{
-		return map {$_->{step}} _getSubObjectsOrCurrent(@_);
+		return map {$_->{name}} _getSubObjectsOrCurrent(@_);
 	},
 	name => sub{
 		my @r = $operatorBy->{names}->(@_);
 		return $r[0] if defined $r[0];
 		return q||; 
 	},
+	values => sub{
+		return map {${$_->{data}}} _getSubObjectsOrCurrent(@_);
+	},
 	value => sub(){
 		my @r = $operatorBy->{values}->(@_);
 		return $r[0] if defined $r[0];
 		return q||; 
-	},
-	values => sub{
-		return map {${$_->{data}}} _getSubObjectsOrCurrent(@_);
 	},
 	isHash => sub{
 		my @r = grep {ref ${$_->{data}} eq q|HASH|} _getSubObjectsOrCurrent(@_);
@@ -607,18 +612,6 @@ $operatorBy = {
 		return $s;	
 	},
 };
-sub _getSubObjectsOrCurrent{
-	my $paths = $_[0];
-	my @r = ();
-	return ($context[$#context]) if scalar @$paths == 0;
-	foreach my $path (@$paths){
-		my @objs = _getObjectSubset(${$context[$#context]->{data}},$path);
-		foreach my $obj (@objs){
-			push @r, $obj;
-		}	
-	}
-	return @r;
-}
 sub _check{
 	my ($filter) = @_;
 	return 1 unless defined $filter; #no filter, always returns true
@@ -631,17 +624,16 @@ sub _check{
 $indexesProc = {
 	index => sub{
 		my ($data, $index, $subpath,$filter) = @_;
-		$index += $#$data + 1 if $index < 0;
-		return () if $index < 0 or $index > $#$data;
+		$index += $#$data + 1 if $index < 0;													# -1 == $#data => last index
+		return () if $index < 0 or $index > $#$data;									# check bounds limits
 		my @r = ();	
-		#$subpath->{currentObj} = $data->[$index] if defined $subpath;
-		push @context, {step => $index, data  => \$data->[$index], type => q|index|};
+		push @context, {name => $index, data  => \$data->[$index]};
 		sub{
 			return if defined $filter and !_check($filter); 
 			push @r, 
 				defined $subpath ? 
 					_getObjectSubset($data->[$index],$subpath)
-					:{data => \$data->[$index], step => $index, context => [@context]}
+					: $context[$#context];
 		}->();
 		pop @context;
 		return @r;
@@ -696,13 +688,13 @@ $keysProc = {
 
 		my @r = ();
 		#$subpath->{currentObj} = $data->{$step} if defined $subpath;
-		push @context, {step => $step, data  => \$data->{$step}, type => q|key|};
+		push @context, {name => $step, data  => \$data->{$step}};
 		sub{	
 			return if defined $filter and !_check($filter); 
 			push @r, 
 				defined $subpath ? 
 					_getObjectSubset($data->{$step}, $subpath)
-					: {data => \$data->{$step}, step => $step, context => [@context]};
+					: $context[$#context];
 		}->();
 		pop @context;
 		return @r;
@@ -717,6 +709,22 @@ $keysProc = {
 	dwildcard => sub{
 		my ($data, undef, $subpath,$filter) = @_;
 		return descendent($data,$subpath,$filter);		
+	},
+	qq|..| => sub{
+		my (undef, undef, $subpath,$filter) = @_;
+		print ".. context", (Dumper \@_), Dumper \@context;
+		return () unless scalar @context > 1;
+		push @context, $context[$#context-1];
+		my @r = ();
+		sub{	
+			return if defined $filter and !_check($filter); 
+			push @r, 
+				defined $subpath ? 
+					_getObjectSubset(${$context[$#context]->{data}}, $subpath)
+					: $context[$#context];
+		}->();		
+		pop @context;
+		return @r;	
 	} 
 };
 sub descendent{
@@ -739,39 +747,50 @@ sub descendent{
 sub _getObjectSubset{
 	my ($data,$path) = @_;
 	return () unless ref $path eq q|HASH|;
+	#push @context, {path => $path, data  => \$data};
+	#print 'Context ', Dumper \@context;
 	my @r = ();
 	if (ref $data eq q|HASH| or ref $data eq q|ARRAY| and exists $path->{dwildcard}){
 		my @keys = grep{exists $path->{$_}} keys %$keysProc; 								#$#keys = 1 always but let it to be generic
 		push @r, $keysProc->{$_}->($data, $path->{$_}, $path->{subpath}, $path->{filter})
 			foreach (@keys);
-	}elsif(ref $data eq q|ARRAY|){
+	}elsif(ref $data eq q|ARRAY| and defined $path->{indexes} and ref $path->{indexes} eq q|ARRAY|){
 		my $indexes = $path->{indexes};
-		return () unless defined $indexes;
 		foreach my $entry (@$indexes){
 			push @r, $indexesProc->{$_}->($data,$entry->{$_},$path->{subpath},$path->{filter})
 				foreach (grep {exists $indexesProc->{$_}} keys %$entry); 	#just in case use grep to filter out not supported indexes types
 		}
 	}else{
-		#ignore
-		#warn q|Data arg is not a HASH ref or ARRAY ref|;
+		#do nothing. Nothing is ok
+		#print 'Nothing ', Dumper $data;
 	}
+	#pop @context;
 	return @r;
 }
-
+sub _getSubObjectsOrCurrent{
+	my $paths = $_[0];
+	return _getObjects(@$paths) if defined $paths and ref $paths eq q|ARRAY| and scalar @$paths > 0;
+	return ($context[$#context]);
+}
 sub _getObjects{
-		return map {_getObjectSubset($_[0],$_)}  (@_[1..$#_]);
+		my @paths = @_;
+		my @r = ();
+		foreach my $entry (@paths){
+			my $data = ${$context[defined $entry->{absolute} ? 0 : $#context]->{data}};
+			push @r, _getObjectSubset($data,$entry->{path});
+		}
+		return @r;
 }
 
 ###########object based invocation methods ########################
 sub _execute{
 	my ($self,$data,$query) = @_;
 	return undef unless ref $data eq q|HASH| or ref $data eq q|ARRAY|; 
-	return undef unless defined $query and (defined $query->{oper} or defined $query->{path});
+	return undef unless defined $query and (defined $query->{oper} or defined $query->{paths});
 	push @context, {data  => \$data};
-	#print "struct ", Dumper $self->{query};
 	my @r = defined $query->{oper} ? 
 		map {\$_} (_operation($query))								#if an operation	
-		: map {$_->{data}} _getObjects($data, @{$query->{path}}); 	#else is a path
+		: map {$_->{data}} _getObjects(@{$query->{paths}}); 	#else is a path
 	pop @context;
 	return Data::pQuery::Results->new(@r);
 }
@@ -789,7 +808,6 @@ sub compile{
 	$q =~ s/[#\N{U+A0}-\N{U+10FFFF}]/sprintf "#%d#", ord $&/ge; #code utf8 characters with sequece #utfcode#. Marpa problem? 
 	$reader->read(\$q);
 	my $qp = $reader->value;
-	#print $q, Dumper $qp;
 	return Data::pQuery::Data->new(${$qp})
 }
 
@@ -823,7 +841,7 @@ use Data::Dumper;
 
 sub new{
 	my ($self,$pQuery) = @_;
-	return undef unless defined $pQuery and (defined $pQuery->{oper} or defined $pQuery->{path});
+	return undef unless defined $pQuery and (defined $pQuery->{oper} or defined $pQuery->{paths});
 	return bless {pQuery=>$pQuery}, $self;
 }
 
@@ -1153,11 +1171,11 @@ operator to compare strings expressions.
 
 =item   NumericExpr <= NumericExpr							
 
-=item	NumericExpr > NumericExpr							
+=item  NumericExpr > NumericExpr							
 
 =item 	NumericExpr >= NumericExpr
 
-=item	NumericExpr == NumericExpr							
+=item  NumericExpr == NumericExpr							
 
 =item 	NumericExpr != NumericExpr							
 
@@ -1167,21 +1185,21 @@ operator to compare strings expressions.
 
 =over 8 
 
-=item	StringExpr lt StringExpr							
+=item  StringExpr lt StringExpr							
 
-=item	StringExpr le StringExpr							
+=item  StringExpr le StringExpr							
 
-=item	StringExpr gt StringExpr							
+=item  StringExpr gt StringExpr							
 
-=item	StringExpr ge StringExpr							
+=item  StringExpr ge StringExpr							
 
-=item	StringExpr ~ RegularExpr							
+=item  StringExpr ~ RegularExpr							
 
-=item	StringExpr !~ RegularExpr							
+=item  StringExpr !~ RegularExpr							
 
-=item	StringExpr eq StringExpr							
+=item  StringExpr eq StringExpr							
 
-=item	StringExpr ne StringExpr	
+=item  StringExpr ne StringExpr	
 
 =back
 
