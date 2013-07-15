@@ -1303,7 +1303,31 @@ operator to compare strings expressions.
 
 =back
 
-=head2 pQuery Functions 
+=head2 pQuery Functions
+	
+Any function can be used as query  and some of them can also
+be used as part of a numeric or string expression inside a filter.
+
+Currently only the following function are supported 
+=over 4
+=item count(pathExpr)
+Counts the number of matched data-structures
+
+=item names(pathExpr?)
+Returns a list of names of matched data-structures. 
+If pathExpr is omitted it returns the name of current data-structure. 
+If the data-structure is a hash entry it returns the keyname.
+If the data-structure is an array entry it returns the index.
+PathExpr is any valid pQuery path expression. 
+If it starts with a slash it means an absolute path, otherwise it is a 
+path relative to the current data-structure.
+A empty list will be returned if nothing matches.   
+
+=item name(pathExpr?)
+name is a particular case of names and just returns the name of first matched 
+data-structure or undef if nothing matches. 
+
+This function can be part of a string expression inside a filter
 
 =head2 pQuery grammar
 
