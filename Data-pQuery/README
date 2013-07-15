@@ -109,7 +109,7 @@ DESCRIPTION
     It looks for data-structures which match the pQuery expression and
     returns a list of matched data-structures.
 
-    The pQuery sintax is very similar to the xpath but with some exceptios.
+    The pQuery sintax is very similar to the xpath but with some exceptions.
     The square brackets '[]' are used to indexes arrays unlike xpath where
     they are used to specify predicates.
 
@@ -120,13 +120,15 @@ DESCRIPTION
     provides o double wildcard to match any nested data (descendent nodes in
     xpath nomenclature). So instead of xpath expression //a the pQuery uses
     /**/a and instead of *[count(b) = 1] pQuery uses *{count() == 1}. Notice
-    the double equal operator. Also, pQuery does not cast anything, so is
-    impossible to compare string expressions with mumeric expressions or
-    using numeric operatores. If a function returns a string it mus be
-    compared with string operatores against another string expression, ex:
-    *{name() eq "keyname"}. Like xpath it is possible to do any logical or
-    arithmetic operations, ex: *{count(a) == count(c) / 2 * (1 + count(b))
-    or d}
+    the double equal operator.
+
+    Furthermore, pQuery does not cast anything, so is impossible to compare
+    string expressions with mumeric expressions or using numeric operatores.
+    If a function returns a string it mus be compared with string operatores
+    against another string expression, ex: *{name() eq "keyname"}.
+
+    Like xpath it is possible to deal with any logical or arithmetic
+    expressions, ex: *{count(a) == count(c) / 2 * (1 + count(b)) or d}
 
 METHODS
     The Data::pQuery just provides two useful methods, compile and data. The
