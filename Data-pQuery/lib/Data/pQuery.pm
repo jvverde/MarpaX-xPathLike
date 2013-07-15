@@ -886,7 +886,7 @@ __END__
 
 =head1 NAME
 
-Data::pQuery - a xpath like processor for json like data-structures (hashes and arrays)! 
+Data::pQuery - a xpath like processor for perl data-structures (hashes and arrays)! 
 
 =head1 VERSION
 
@@ -997,7 +997,25 @@ How to use it.
 =head1 DESCRIPTION
 
 It looks for data-structures which match the pQuery expression and returns a list
-with matched data-structures.
+of matched data-structures.
+
+The pQuery sintax is very similar to the xpath but with some exceptios. 
+The square brackets '[]' are used to indexes arrays unlike xpath where they are 
+used to specify predicates.
+
+To specify filters (predicates in xpath nomenclature) pQuery uses curly brackets 
+'{}'
+
+The pQuery does not support paths of variable length '//' but instead it provides 
+o double wildcard to match any nested data (descendent nodes in xpath nomenclature).
+So instead of xpath expression //a the pQuery uses /**/a and instead of 
+*[count(b) = 1] pQuery uses *{count() == 1}. Notice the double equal operator. 
+Also, pQuery does not cast anything, so is impossible to compare string expressions 
+with mumeric expressions or using numeric operatores. If a function returns a string
+it mus be compared with string operatores against another string expression, ex:
+*{name() eq "keyname"}. Like xpath it is possible to do any logical or arithmetic 
+operations, ex: *{count(a) == count(c) / 2 * (1 + count(b)) or d}
+
 
 =head1 METHODS
 

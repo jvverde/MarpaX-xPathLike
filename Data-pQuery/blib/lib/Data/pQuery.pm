@@ -886,7 +886,7 @@ __END__
 
 =head1 NAME
 
-Data::pQuery - a xpath like processor for json like data-objects (hashes and arrays)! 
+Data::pQuery - a xpath like processor for perl data-structures (hashes and arrays)! 
 
 =head1 VERSION
 
@@ -897,31 +897,131 @@ Version 0.02
 How to use it.
 
 	use Data::pQuery;
+	use Data::Dumper;
 
 	($\,$,) = ("\n",",");
-	my $query = Data::pQuery->compile('a.*');
-	my $data = {
-	        a => {
-	                b => 'bb',
-	                c => 'cc'
-	        },
-	        aa => 'aa'
+	my $d = {
+		drinks => {
+			q|Alcoholic beverage| => 'not allowed',
+			q|Soft drinks| => [qw|Soda Coke|]
+		},
+		food => { 
+			fruit => [qw|bananas apples oranges pears|], 
+			vegetables  => [qw|potatoes  carrots tomatoes|]
+		} 
 	};
-	my $results = $query->data($data);
+
+	my $data = Data::pQuery->data($d);
+	my $results = $data->query(q|/*/*[0]|);
 	my @values = $results->getvalues();
-	print @values;                          #outputs 'bb,cc'
+	print @values;					
+	#Soda,bananas,potatoes
+
 	my $ref = $results->getref();
-	$$ref = 'new value';
-	print $data->{a}->{b};                  #outputs 'new value'
+	$$ref = 'Tonic';
+	print $d->{drinks}->{q|Soft drinks|}->[0];	
+	#Tonic
+
+	#keys with spaces or especial characters should be delimited 
+	#by double quotes 
+	print $data->query(q|/drinks/"Alcoholic beverage"|)->getvalues();
+	#not allowed
+
+	#or by single quotes
+	print $data->query(q|/drinks/'Soft drinks'[1]|)->getvalues();
+	#Coke
+
+	#the .. sequence indexes all array positions
+	print $data->query(q|/*/*[..]|)->getvalues();
+	#Tonic,Coke,bananas,apples,oranges,pears,potatoes,carrots,tomatoes
+
+	print $data->query(q|*/*[..]|)->getvalues(); #the leading slash is optional
+	#Tonic,Coke,bananas,apples,oranges,pears,potatoes,carrots,tomatoes
+
+	#Curly brackets are used to specify filters
+	print $data->query(q|/*/*{isScalar()}|)->getvalues();
+	#not allowed
+
+	#data at any level could be specified by the sequence **
+	print $data->query(q|**{isScalar()}|)->getvalues();
+	#not allowed,Tonic,Coke,bananas,apples,oranges,pears,potatoes,carrots,tomatoes
+
+	#negative values indexes the arrays in reverse order. -1 is the last index
+	print $data->query(q|/*/*[-1]|)->getvalues();
+	#Coke,pears,tomatoes
+
+	#the filter could be a match between a string expression and a pattern
+	print $data->query(q|/*/*{name() ~ "drinks"}[..]|)->getvalues();
+	#Tonic,Coke
+
+	#The returned values does not need to be scalars
+	print Dumper $data->query(q|/*/vegetables|)->getvalues();
+	=pod
+	$VAR1 = [
+	          'potatoes',
+	          'carrots',
+	          'tomatoes'
+	        ];
+	=cut
+
+	#using two filters in sequence
+	print Dumper $data->query(q|
+		/*/*
+		{value([-1]) gt value([0])}
+		{count([..]) < 4}
+	|)->getvalues();
+	=pod
+	$VAR1 = [
+	          'potatoes',
+	          'carrots',
+	          'tomatoes'
+	        ];
+	=cut
+
+	#the same as above but using a logical operation instead of two filters
+	print Dumper $data->query(q|
+		/*/*{value([-1]) gt value([0]) 
+			and count([..]) < 4
+		}
+	|)->getvalues();
+
+	#a query could be a function instead of a path
+	print $data->query(q|names(/*/*)|)->getvalues();
+	#Alcoholic beverage,Soft drinks,fruit,vegetables
+
+	#the function 'names' returns the keys names or indexes
+	print $data->query(q|names(/**)|)->getvalues();
+	#drinks,Alcoholic beverage,Soft drinks,0,1,food,fruit,0,1,2,3,vegetables,0,1,2
+
 
 =head1 DESCRIPTION
 
-It looks for data-objects which match the pQuery expression and returns a list
-with matched data-objects.
+It looks for data-structures which match the pQuery expression and returns a list
+of matched data-structures.
+
+The pQuery sintax is very similar to the xpath but with some exceptios. 
+The square brackets '[]' are used to indexes arrays unlike xpath where they are 
+used to specify predicates.
+
+To specify filters (predicates in xpath nomenclature) pQuery uses curly brackets 
+'{}'
+
+The pQuery does not support paths of variable length '//' but instead it provides 
+o double wildcard to match any nested data (descendent nodes in xpath nomenclature).
+So instead of xpath expression //a the pQuery uses /**/a and instead of 
+*[count(b) = 1] pQuery uses *{count() == 1}. Notice the double equal operator. 
+Also, pQuery does not cast anything, so is impossible to compare string expressions 
+with mumeric expressions or using numeric operatores. If a function returns a string
+it mus be compared with string operatores against another string expression, ex:
+*{name() eq "keyname"}. Like xpath it is possible to do any logical or arithmetic 
+operations, ex: *{count(a) == count(c) / 2 * (1 + count(b)) or d}
+
 
 =head1 METHODS
 
-The Data::pQuery just provides two methods, compile and data
+The Data::pQuery just provides two useful methods, compile and data. 
+The first is used to complie a pQuery expression and the second is used
+to prepare data to be queried. 
 
 =head2 Data::pQuery methods
 
@@ -947,8 +1047,8 @@ Used only internally!!! Do nothing;
 	})->getvalues();
 	# @values3 = ({fruit => 'bananas'})
 
-Receives a pQuery string compile it and return a Data::pQuery::Data object.
-This is the prefered method to run the same query over several data-objects.
+The compile method receives a pQuery string, compiles it and returns a Data::pQuery::Data object.
+This is the prefered method to run the same query over several data-structures.
 
 =head3 data(dataRef)
 
@@ -962,35 +1062,33 @@ This is the prefered method to run the same query over several data-objects.
 	                water => 'Evian'
 	        }
 	});
-	my @values1 = $data->query('*.*')->getvalues();
+	my @values1 = $data->query('/*/*')->getvalues();
 	print @values1; # Evian,Porto,bananas,unions
 
-	my @values2 = $data->query('*.wine')->getvalues();
-	print @values2; # Porto
+	my @values2 = $data->query('/*/wine')->getvalues();
+	print @values2; #Porto
 
-	#using a filter {condition}.  
-	my @values3 = $data->query('*{fruit}.*')->getvalues();
-	print @values3; # bananas,unions
+	#using a filter, to get only first level entry which contains a fruit key
+	my @values3 = $data->query('/*{fruit}/*')->getvalues();
+	print @values3; #bananas,unions
+	#using another filter to return only elements which have the value matching 
+	#a /an/ pattern
+	my @values4 = $data->query('/*/*{value() ~ "an"}')->getvalues();
+	print @values4;# Evian,bananas
 
-	#using another filter
-	my @values4 = $data->query('*.*{value() ~ /an/}')->getvalues();
-	print @values4; # Evian,bananas
-
-	#using a variable length path (**) and a filter
-	my @values5 = $data->query('**{isScalar()}')->getvalues();
+	my @values5 = $data->query('/**{isScalar()}')->getvalues();
 	print @values5;#Evian,Porto,bananas,unions
+
                   
 
-Receives a hash or array reference and return a Data::pQuery::Compile object. 
-This is the prefered method to run several query over same data-objects.
-
+The method data receives a hash or array reference and returns a Data::pQuery::Compile object. 
+This is the prefered method to run several query over same data.
 
 =head2 Data::pQuery::Data methods
 
 =head3 data(data)
 
 Executes the query over data and returns a Data::pQuery::Results object
-
 
 =head2 Data::pQuery::Compiler methods
 
@@ -1001,16 +1099,16 @@ Compile a pQuery string, query the data and returns a Data::pQuery::Results obje
 =head2 Data::pQuery::Results methods
 
 =head3 getrefs()
-Returns a list os references for each matched data-object;
+Returns a list os references for each matched data;
 
 =head3 getref()
-Returns a reference for first matched data-object;
+Returns a reference for first matched data;
 
 =head3 getvalues()
-Returns a list of values for each matched data-object;
+Returns a list of values for each matched data;
 
 =head3 getvalue()
-Returns the value of first matched data-object;
+Returns the value of first matched data;
 
 =head1 pQuery sintax
 	
@@ -1023,7 +1121,7 @@ index.
 
 A array index is represented inside square brackets.
 
-Two succesive key names are separated by a dot.
+Two successive key names are separated by a slash.
 
 	my $d = {
 	        food => {
@@ -1033,16 +1131,16 @@ Two succesive key names are separated by a dot.
 	};
 	my $data = Data::pQuery->data($d);
 
-	my $food = $data->query('food')->getref();
+	my $food = $data->query('/food')->getref();
 	$$food->{drinks} = q|no drinks|;
 
-	my $fruit = $data->query('food.fruit')->getref();
+	my $fruit = $data->query('/food/fruit')->getref();
 	$$fruit = 'pears';
 
-	my $vegetables = $data->query('food.vegetables')->getref();
+	my $vegetables = $data->query('/food/vegetables')->getref();
 	push @$$vegetables, q|garlic|;
 
-	my $vegetable = $data->query('food.vegetables[1]')->getref();
+	my $vegetable = $data->query('/food/vegetables[1]')->getref();
 	$$vegetable = q|spinach|;
 
 	print Dumper $d;
@@ -1065,7 +1163,7 @@ The above code will produce the result
 
 
 A wildcard (*) means any key name and a double wildcard (**) means any key name
-or any index nested inside current data-object. 
+or any index nested inside current data-structure. 
 
 	my $d = {
 	        food => {
@@ -1121,8 +1219,8 @@ It's possible to index a range by specifying the limits separated by a
 dotdot sequence. 
 If first limit is greater than last the result will be returned in reverse 
 order. 
-If left limit is replaced by a dot it means from first index.
-If right limit is replaced by a dot it means until last index.
+If left limit is omitted it means start from first index.
+If right limit is omitted it means stop on last index.
 Its' also possible to index any combination of ranges and indexes separated
 by commas
 
@@ -1135,27 +1233,24 @@ by commas
 	print $data->query('*[-1]')->getvalues();           #pears,onions
 	print $data->query('fruit[0,2]')->getvalues();      #bananas,oranges
 	print $data->query('fruit[2,0]')->getvalues();      #oranges,bananas
-	print $data->query('fruit[2...]')->getvalues();     #oranges,pears
-	print $data->query('fruit[...1]')->getvalues();     #bananas,apples
+	print $data->query('fruit[2..]')->getvalues();      #oranges,pears
+	print $data->query('fruit[..1]')->getvalues();      #bananas,apples
 	print $data->query('fruit[1..2]')->getvalues();     #apples,oranges
 	print $data->query('fruit[2..1]')->getvalues();     #oranges,apples
-	print $data->query('fruit[...]')->getvalues();      #bananas,apples,oranges,pears
+	print $data->query('fruit[..]')->getvalues();      #bananas,apples,oranges,pears
 	print $data->query('fruit[1..-1]')->getvalues();    #apples,oranges,pears
 	print $data->query('fruit[-1..1]')->getvalues();    #pears,oranges,apples
-	print $data->query('fruit[-1...]')->getvalues();    #pears
+	print $data->query('fruit[-1..]')->getvalues();     #pears
 	print $data->query('fruit[3..9]')->getvalues();     #pears
 	print $data->query('fruit[-1..9]')->getvalues();    #pears
-	print $data->query('fruit[-1..-9]')->getvalues();   #pears,oranges,apples,bananas 
+	print $data->query('fruit[-1..-9]')->getvalues(); #pears,oranges,apples,bananas 
 	print $data->query('fruit[0,2..3]')->getvalues();   #bananas,oranges,pears 
-	print $data->query('fruit[...1,3...]')->getvalues();#bananas,apples,pears 
-
-
+	print $data->query('fruit[..1,3..]')->getvalues();  #bananas,apples,pears 
 
 Every step could be filter out by a logical expression inside a curly bracket. 
 
 A logical expression is any combination of comparison expressions, path 
 expressions, or logical functions, combined with operators 'and' and 'or'
-
 
 
 =head3 Comparison expressions
@@ -1213,244 +1308,266 @@ Marpa::R2 is used to parse the pQuery expression. Bellow is the complete grammar
 
 	:start ::= Start
 
-	Start	::= OperExp									
+	Start ::= OperExp                             
 
 	OperExp ::=
-		PathExpr 										
-		|Function 										
+	  PathExpr                                    
+	  |Function                                   
 
 	Function ::=
-		NumericFunction									
-		|StringFunction 								
-		|ListFunction 									
+	  NumericFunction                             
+	  | StringFunction                            
+	  | ListFunction                              
 
 	PathExpr ::=
-		absolutePath										
-		| PathExpr '|' absolutePath						
+	  absolutePath                                
+	  | relativePath                              
+	  | PathExpr '|' PathExpr                     
 
-	absolutePath ::=	
-		stepPath 										
-		|indexPath 										
+	relativePath ::=  
+	  stepPath                                    
+	  | indexPath                                 
+
+	absolutePath ::=  
+	  '/' stepPath                                
+	  | indexPath                                 
 
 	stepPath ::=
-		step Filter subPathExpr 						
-		| step Filter 									
-		| step subPathExpr 								
-		| step											
+	  step Filter absolutePath                    
+	  | step Filter                               
+	  | step absolutePath                         
+	  | step                                      
 
 	step ::= 
-		keyword 										
-		| wildcard 										
-		| dwildcard 									
-
-	subPathExpr ::= 
-		'.' stepPath 									
-		|indexPath 										
+	  keyname                                     
+	  | wildcard                                  
+	  | dwildcard                                 
+	  | '..'                                      
 
 	indexPath ::=
-		IndexArray Filter subPathExpr 					
-		| IndexArray Filter 							
-		| IndexArray subPathExpr 						
-		| IndexArray										
+	  IndexArray Filter absolutePath              
+	  | IndexArray Filter                         
+	  | IndexArray absolutePath                   
+	  | IndexArray                                
 
-	IndexArray ::=  '[' IndexExprs ']'					
 
-	IndexExprs ::= IndexExpr+ 			
+	IndexArray ::=  '[' IndexExprs ']'            
+
+
+	IndexExprs ::= IndexExpr+       separator => <comma>
 
 	IndexExpr ::=
-		IntExpr										
-		| rangeExpr										
+	  IntExpr                                     
+	  | rangeExpr                                 
 
 	rangeExpr ::= 
-		IntExpr '..' IntExpr 					
-		|IntExpr '...' 								
-		| '...' IntExpr								
-		| '...' 										
+	  IntExpr '..' IntExpr                        
+	  |IntExpr '..'                               
+	  | '..' IntExpr                              
+	  | '..'                                      
 
-	Filter ::= 	
-		'{' LogicalExpr '}' 							
-		| '{' LogicalExpr '}' Filter 					
+
+	Filter ::=  
+	  '{' LogicalExpr '}'                         
+	  | '{' LogicalExpr '}' Filter                
 
 	IntExpr ::=
-	  ArithmeticIntExpr										
+	  ArithmeticIntExpr                           
 
 	 ArithmeticIntExpr ::=
-	 	INT 													
-		| IntegerFunction										
-		| '(' IntExpr ')' 									
-		|| '-' ArithmeticIntExpr 							
-		 | '+' ArithmeticIntExpr 							
-		|| ArithmeticIntExpr '*' ArithmeticIntExpr		
-		 | ArithmeticIntExpr '/' ArithmeticIntExpr		
-		 | ArithmeticIntExpr '%' ArithmeticIntExpr		
-		|| ArithmeticIntExpr '+' ArithmeticIntExpr		
-		 | ArithmeticIntExpr '-' ArithmeticIntExpr		
+	  INT                                         
+	  | IntegerFunction                           
+	  | '(' IntExpr ')'                           
+	  || '-' ArithmeticIntExpr                    
+	   | '+' ArithmeticIntExpr                    
+	  || ArithmeticIntExpr '*' ArithmeticIntExpr  
+	   | ArithmeticIntExpr '/' ArithmeticIntExpr  
+	   | ArithmeticIntExpr '%' ArithmeticIntExpr  
+	  || ArithmeticIntExpr '+' ArithmeticIntExpr  
+	   | ArithmeticIntExpr '-' ArithmeticIntExpr  
 
 
 	NumericExpr ::=
-	  ArithmeticExpr 											
+	  ArithmeticExpr                              
 
 	ArithmeticExpr ::=
-		NUMBER 													
-		| NumericFunction										
-		| '(' NumericExpr ')' 									
-		|| '-' ArithmeticExpr 									
-		 | '+' ArithmeticExpr 									
-		|| ArithmeticExpr '*' ArithmeticExpr					
-		 | ArithmeticExpr '/' ArithmeticExpr					
-		 | ArithmeticExpr '%' ArithmeticExpr					
-		|| ArithmeticExpr '+' ArithmeticExpr					
-		 | ArithmeticExpr '-' ArithmeticExpr					
+	  NUMBER                                      
+	  | NumericFunction                           
+	  | '(' NumericExpr ')'                       
+	  || '-' ArithmeticExpr                       
+	   | '+' ArithmeticExpr                       
+	  || ArithmeticExpr '*' ArithmeticExpr        
+	   | ArithmeticExpr '/' ArithmeticExpr        
+	   | ArithmeticExpr '%' ArithmeticExpr        
+	  || ArithmeticExpr '+' ArithmeticExpr        
+	   | ArithmeticExpr '-' ArithmeticExpr        
 
 	LogicalExpr ::=
-		compareExpr												
-		|LogicalFunction										
+	  compareExpr                                 
+	  |LogicalFunction                            
 
-	compareExpr ::=	
-		PathExpr 												
-		|| NumericExpr '<' NumericExpr							
-		 | NumericExpr '<=' NumericExpr							
-		 | NumericExpr '>' NumericExpr							
-		 | NumericExpr '>=' NumericExpr							
-		 | StringExpr 'lt' StringExpr							
-		 | StringExpr 'le' StringExpr							
-		 | StringExpr 'gt' StringExpr							
-		 | StringExpr 'ge' StringExpr							
-		 | StringExpr '~' RegularExpr							
-		 | StringExpr '!~' RegularExpr							
-		 | NumericExpr '==' NumericExpr							
-		 | NumericExpr '!=' NumericExpr							
-		 | StringExpr 'eq' StringExpr							
-		 | StringExpr 'ne' StringExpr							
-		|| compareExpr 'and' LogicalExpr						
-		|| compareExpr 'or' LogicalExpr							
+	compareExpr ::= 
+	  PathExpr                                    
+	  || NumericExpr '<' NumericExpr              
+	   | NumericExpr '<=' NumericExpr             
+	   | NumericExpr '>' NumericExpr              
+	   | NumericExpr '>=' NumericExpr             
+	   | StringExpr 'lt' StringExpr               
+	   | StringExpr 'le' StringExpr               
+	   | StringExpr 'gt' StringExpr               
+	   | StringExpr 'ge' StringExpr               
+	   | StringExpr '~' RegularExpr               
+	   | StringExpr '!~' RegularExpr              
+	   | NumericExpr '==' NumericExpr             
+	   | NumericExpr '!=' NumericExpr             
+	   | StringExpr 'eq' StringExpr               
+	   | StringExpr 'ne' StringExpr               
+	  || compareExpr 'and' LogicalExpr            
+	  || compareExpr 'or' LogicalExpr             
 
-	#operator match, not match, in, intersect, union,
+	#operator match, not match, in, intersect and union are missing
 
 	StringExpr ::=
-		STRING 													
-	 	| StringFunction 										
-	 	|| StringExpr '||' StringExpr  							
+	  STRING                                      
+	  | StringFunction                            
+	  || StringExpr '||' StringExpr               
+
+
+	RegularExpr 
+	  ::= STRING                                  
 
 	LogicalFunction ::=
-		'not' '(' LogicalExpr ')'			 					
-		| 'isRef' '('  PathArgs  ')'			 					
-		| 'isScalar' '(' PathArgs ')'			 				
-		| 'isArray' '(' PathArgs ')'			 				
-		| 'isHash' '(' PathArgs ')'			 					
-		| 'isCode' '(' PathArgs ')'								
+	  'not' '(' LogicalExpr ')'                   
+	  | 'isRef' '('  PathArgs  ')'                
+	  | 'isScalar' '(' PathArgs ')'               
+	  | 'isArray' '(' PathArgs ')'                
+	  | 'isHash' '(' PathArgs ')'                 
+	  | 'isCode' '(' PathArgs ')'                 
 
 	StringFunction ::=
-		NameFunction											
-		| ValueFunction											
+	  NameFunction                                
+	  | ValueFunction                             
 
 	NameFunction ::= 
-		'name' '(' PathArgs ')'				 					
+	  'name' '(' PathArgs ')'                     
 
 	PathArgs ::= 
-		PathExpr						  						
-		|EMPTY													
+	  PathExpr                                    
+	  |EMPTY                                      
 
 	EMPTY ::=
 
 	ValueFunction ::= 
-		'value' '(' PathArgs ')'				 				
+	  'value' '(' PathArgs ')'                    
 
 	CountFunction ::= 
-		'count' '(' PathExpr ')'				 				
+	  'count' '(' PathExpr ')'                    
 
 	SumFunction ::= 
-		'sum' '(' PathExpr ')'				 					
+	  'sum' '(' PathExpr ')'                      
 
 	SumProductFunction ::= 
-		'sumproduct' '(' PathExpr ',' PathExpr ')'				
+	  'sumproduct' '(' PathExpr ',' PathExpr ')'  
 
 	NumericFunction ::=
-		CountFunction											
-		|ValueFunction											
-		|SumFunction											
-		|SumProductFunction										
+	  CountFunction                               
+	  |ValueFunction                              
+	  |SumFunction                                
+	  |SumProductFunction                         
 
 	IntegerFunction ::=
-		CountFunction											
+	  CountFunction                               
 
 	ListFunction ::=
-		'names' '(' PathArgs ')'    		 					
-		| 'values' '(' PathArgs ')'    		 					
+	  'names' '(' PathArgs ')'                    
+	  | 'values' '(' PathArgs ')'                 
 
 
-	 NUMBER ::= UNUMBER 										
-	 	| '-' UNUMBER 											
-	 	| '+' UNUMBER 											
+	 NUMBER ::= 
+	  unumber                                     
+	  | '-' unumber                               
+	  | '+' unumber                               
 
-	UNUMBER  
-		~ unumber       
-
-	unumber	
-		~ uint
-		| uint frac
-		| uint exp
-		| uint frac exp
+	unumber 
+	  ~ uint
+	  | uint frac
+	  | uint exp
+	  | uint frac exp
 	 
 	uint            
-		~ digits
+	  ~ digits
 
 	digits 
-		~ [\d]+
+	  ~ [\d]+
 	 
 	frac
-		~ '.' digits
+	  ~ '.' digits
 	 
 	exp
-		~ e digits
+	  ~ e digits
 	 
 	e
-		~ 'e'
-		| 'e+'
-		| 'e-'
-		| 'E'
-		| 'E+'
-		| 'E-'
+	  ~ 'e'
+	  | 'e+'
+	  | 'e-'
+	  | 'E'
+	  | 'E+'
+	  | 'E-'
 
 	INT ::= 
-		UINT 											
-		| '+' UINT  									
-		| '-' UINT  									
+	  UINT                                    
+	  | '+' UINT                              
+	  | '-' UINT                              
 
 	UINT
-		~digits
+	  ~digits
 
-	STRING       ::= lstring               				
-	RegularExpr ::= regularstring						
-	regularstring ~ delimiter re delimiter				
-
-	delimiter ~ [/]
-
-	re ~ char*
-
-	char ~ [^/\\]
-	 	| '\' '/'
-	 	| '\\'
+	STRING ::= 
+	  double_quoted                               
+	  | single_quoted                             
 
 
-	lstring        ~ quote in_string quote
-	quote          ~ ["]
+	single_quoted        
+	  ~ [''] single_quoted_chars ['']
+
+	single_quoted_chars      
+	  ~ single_quoted_char*
 	 
-	in_string      ~ in_string_char*
+	single_quoted_char  
+	  ~ [^']
+	  | '\' [']
+
+	double_quoted        
+	  ~ ["] double_quoted_chars ["]
+
+	double_quoted_chars      
+	  ~ double_quoted_char*
 	 
-	in_string_char  ~ [^"\\]
-		| '\' '"'
-		| '\\'
+	double_quoted_char  
+	  ~ [^"]
+	  | '\' '"'
 
-	comma ~ ','
+	wildcard 
+	  ~ [*]
 
-	wildcard ~ [*]
-	dwildcard ~ [*][*]
+	dwildcard 
+	  ~ [*][*]
 
-	keyword ~ [a-zA-Z\N{U+A1}-\N{U+10FFFF}]+
+	keyname ::= 
+	  token                                       
+	  | STRING                                    
 
-	:discard ~ WS
-	WS ~ [\s]+
+	token ~ [^./*,'"|\s\]\[\(\)\{\}\\+-]+
+
+
+	:discard 
+	  ~ WS
+
+	WS 
+	  ~ [\s]+
+
+	comma 
+	  ~ ','
 
 =head1 AUTHOR
 

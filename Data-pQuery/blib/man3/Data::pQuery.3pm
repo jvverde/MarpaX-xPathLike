@@ -130,7 +130,7 @@
 .if n .ad l
 .nh
 .SH "NAME"
-Data::pQuery \- a xpath like processor for json like data\-objects (hashes and arrays)!
+Data::pQuery \- a xpath like processor for perl data\-structures (hashes and arrays)!
 .SH "VERSION"
 .IX Header "VERSION"
 Version 0.02
@@ -138,32 +138,130 @@ Version 0.02
 .IX Header "SYNOPSIS"
 How to use it.
 .PP
-.Vb 1
+.Vb 2
 \&        use Data::pQuery;
+\&        use Data::Dumper;
 \&
 \&        ($\e,$,) = ("\en",",");
-\&        my $query = Data::pQuery\->compile(\*(Aqa.*\*(Aq);
-\&        my $data = {
-\&                a => {
-\&                        b => \*(Aqbb\*(Aq,
-\&                        c => \*(Aqcc\*(Aq
+\&        my $d = {
+\&                drinks => {
+\&                        q|Alcoholic beverage| => \*(Aqnot allowed\*(Aq,
+\&                        q|Soft drinks| => [qw|Soda Coke|]
 \&                },
-\&                aa => \*(Aqaa\*(Aq
+\&                food => { 
+\&                        fruit => [qw|bananas apples oranges pears|], 
+\&                        vegetables  => [qw|potatoes  carrots tomatoes|]
+\&                } 
 \&        };
-\&        my $results = $query\->data($data);
+\&
+\&        my $data = Data::pQuery\->data($d);
+\&        my $results = $data\->query(q|/*/*[0]|);
 \&        my @values = $results\->getvalues();
-\&        print @values;                          #outputs \*(Aqbb,cc\*(Aq
+\&        print @values;                                  
+\&        #Soda,bananas,potatoes
+\&
 \&        my $ref = $results\->getref();
-\&        $$ref = \*(Aqnew value\*(Aq;
-\&        print $data\->{a}\->{b};                  #outputs \*(Aqnew value\*(Aq
+\&        $$ref = \*(AqTonic\*(Aq;
+\&        print $d\->{drinks}\->{q|Soft drinks|}\->[0];      
+\&        #Tonic
+\&
+\&        #keys with spaces or especial characters should be delimited 
+\&        #by double quotes 
+\&        print $data\->query(q|/drinks/"Alcoholic beverage"|)\->getvalues();
+\&        #not allowed
+\&
+\&        #or by single quotes
+\&        print $data\->query(q|/drinks/\*(AqSoft drinks\*(Aq[1]|)\->getvalues();
+\&        #Coke
+\&
+\&        #the .. sequence indexes all array positions
+\&        print $data\->query(q|/*/*[..]|)\->getvalues();
+\&        #Tonic,Coke,bananas,apples,oranges,pears,potatoes,carrots,tomatoes
+\&
+\&        print $data\->query(q|*/*[..]|)\->getvalues(); #the leading slash is optional
+\&        #Tonic,Coke,bananas,apples,oranges,pears,potatoes,carrots,tomatoes
+\&
+\&        #Curly brackets are used to specify filters
+\&        print $data\->query(q|/*/*{isScalar()}|)\->getvalues();
+\&        #not allowed
+\&
+\&        #data at any level could be specified by the sequence **
+\&        print $data\->query(q|**{isScalar()}|)\->getvalues();
+\&        #not allowed,Tonic,Coke,bananas,apples,oranges,pears,potatoes,carrots,tomatoes
+\&
+\&        #negative values indexes the arrays in reverse order. \-1 is the last index
+\&        print $data\->query(q|/*/*[\-1]|)\->getvalues();
+\&        #Coke,pears,tomatoes
+\&
+\&        #the filter could be a match between a string expression and a pattern
+\&        print $data\->query(q|/*/*{name() ~ "drinks"}[..]|)\->getvalues();
+\&        #Tonic,Coke
+\&
+\&        #The returned values does not need to be scalars
+\&        print Dumper $data\->query(q|/*/vegetables|)\->getvalues();
+\&        =pod
+\&        $VAR1 = [
+\&                  \*(Aqpotatoes\*(Aq,
+\&                  \*(Aqcarrots\*(Aq,
+\&                  \*(Aqtomatoes\*(Aq
+\&                ];
+\&        =cut
+\&
+\&        #using two filters in sequence
+\&        print Dumper $data\->query(q|
+\&                /*/*
+\&                {value([\-1]) gt value([0])}
+\&                {count([..]) < 4}
+\&        |)\->getvalues();
+\&        =pod
+\&        $VAR1 = [
+\&                  \*(Aqpotatoes\*(Aq,
+\&                  \*(Aqcarrots\*(Aq,
+\&                  \*(Aqtomatoes\*(Aq
+\&                ];
+\&        =cut
+\&
+\&        #the same as above but using a logical operation instead of two filters
+\&        print Dumper $data\->query(q|
+\&                /*/*{value([\-1]) gt value([0]) 
+\&                        and count([..]) < 4
+\&                }
+\&        |)\->getvalues();
+\&
+\&        #a query could be a function instead of a path
+\&        print $data\->query(q|names(/*/*)|)\->getvalues();
+\&        #Alcoholic beverage,Soft drinks,fruit,vegetables
+\&
+\&        #the function \*(Aqnames\*(Aq returns the keys names or indexes
+\&        print $data\->query(q|names(/**)|)\->getvalues();
+\&        #drinks,Alcoholic beverage,Soft drinks,0,1,food,fruit,0,1,2,3,vegetables,0,1,2
 .Ve
 .SH "DESCRIPTION"
 .IX Header "DESCRIPTION"
-It looks for data-objects which match the pQuery expression and returns a list
-with matched data-objects.
+It looks for data-structures which match the pQuery expression and returns a list
+of matched data-structures.
+.PP
+The pQuery sintax is very similar to the xpath but with some exceptios. 
+The square brackets '[]' are used to indexes arrays unlike xpath where they are 
+used to specify predicates.
+.PP
+To specify filters (predicates in xpath nomenclature) pQuery uses curly brackets 
+\&'{}'
+.PP
+The pQuery does not support paths of variable length '//' but instead it provides 
+o double wildcard to match any nested data (descendent nodes in xpath nomenclature).
+So instead of xpath expression //a the pQuery uses /**/a and instead of 
+*[count(b) = 1] pQuery uses *{\fIcount()\fR == 1}. Notice the double equal operator. 
+Also, pQuery does not cast anything, so is impossible to compare string expressions 
+with mumeric expressions or using numeric operatores. If a function returns a string
+it mus be compared with string operatores against another string expression, ex:
+*{\fIname()\fR eq \*(L"keyname\*(R"}. Like xpath it is possible to do any logical or arithmetic 
+operations, ex: *{count(a) == count(c) / 2 * (1 + count(b)) or d}
 .SH "METHODS"
 .IX Header "METHODS"
-The Data::pQuery just provides two methods, compile and data
+The Data::pQuery just provides two useful methods, compile and data. 
+The first is used to complie a pQuery expression and the second is used
+to prepare data to be queried.
 .SS "Data::pQuery methods"
 .IX Subsection "Data::pQuery methods"
 \fInew(pQuery)\fR
@@ -192,8 +290,8 @@ Used only internally!!! Do nothing;
 \&        # @values3 = ({fruit => \*(Aqbananas\*(Aq})
 .Ve
 .PP
-Receives a pQuery string compile it and return a Data::pQuery::Data object.
-This is the prefered method to run the same query over several data-objects.
+The compile method receives a pQuery string, compiles it and returns a Data::pQuery::Data object.
+This is the prefered method to run the same query over several data-structures.
 .PP
 \fIdata(dataRef)\fR
 .IX Subsection "data(dataRef)"
@@ -209,27 +307,26 @@ This is the prefered method to run the same query over several data-objects.
 \&                        water => \*(AqEvian\*(Aq
 \&                }
 \&        });
-\&        my @values1 = $data\->query(\*(Aq*.*\*(Aq)\->getvalues();
+\&        my @values1 = $data\->query(\*(Aq/*/*\*(Aq)\->getvalues();
 \&        print @values1; # Evian,Porto,bananas,unions
 \&
-\&        my @values2 = $data\->query(\*(Aq*.wine\*(Aq)\->getvalues();
-\&        print @values2; # Porto
+\&        my @values2 = $data\->query(\*(Aq/*/wine\*(Aq)\->getvalues();
+\&        print @values2; #Porto
 \&
-\&        #using a filter {condition}.  
-\&        my @values3 = $data\->query(\*(Aq*{fruit}.*\*(Aq)\->getvalues();
-\&        print @values3; # bananas,unions
+\&        #using a filter, to get only first level entry which contains a fruit key
+\&        my @values3 = $data\->query(\*(Aq/*{fruit}/*\*(Aq)\->getvalues();
+\&        print @values3; #bananas,unions
+\&        #using another filter to return only elements which have the value matching 
+\&        #a /an/ pattern
+\&        my @values4 = $data\->query(\*(Aq/*/*{value() ~ "an"}\*(Aq)\->getvalues();
+\&        print @values4;# Evian,bananas
 \&
-\&        #using another filter
-\&        my @values4 = $data\->query(\*(Aq*.*{value() ~ /an/}\*(Aq)\->getvalues();
-\&        print @values4; # Evian,bananas
-\&
-\&        #using a variable length path (**) and a filter
-\&        my @values5 = $data\->query(\*(Aq**{isScalar()}\*(Aq)\->getvalues();
+\&        my @values5 = $data\->query(\*(Aq/**{isScalar()}\*(Aq)\->getvalues();
 \&        print @values5;#Evian,Porto,bananas,unions
 .Ve
 .PP
-Receives a hash or array reference and return a Data::pQuery::Compile object. 
-This is the prefered method to run several query over same data-objects.
+The method data receives a hash or array reference and returns a Data::pQuery::Compile object. 
+This is the prefered method to run several query over same data.
 .SS "Data::pQuery::Data methods"
 .IX Subsection "Data::pQuery::Data methods"
 \fIdata(data)\fR
@@ -244,17 +341,17 @@ Executes the query over data and returns a Data::pQuery::Results object
 Compile a pQuery string, query the data and returns a Data::pQuery::Results object
 .SS "Data::pQuery::Results methods"
 .IX Subsection "Data::pQuery::Results methods"
-\fI\fIgetrefs()\fI Returns a list os references for each matched data-object;\fR
-.IX Subsection "getrefs() Returns a list os references for each matched data-object;"
+\fI\fIgetrefs()\fI Returns a list os references for each matched data;\fR
+.IX Subsection "getrefs() Returns a list os references for each matched data;"
 .PP
-\fI\fIgetref()\fI Returns a reference for first matched data-object;\fR
-.IX Subsection "getref() Returns a reference for first matched data-object;"
+\fI\fIgetref()\fI Returns a reference for first matched data;\fR
+.IX Subsection "getref() Returns a reference for first matched data;"
 .PP
-\fI\fIgetvalues()\fI Returns a list of values for each matched data-object;\fR
-.IX Subsection "getvalues() Returns a list of values for each matched data-object;"
+\fI\fIgetvalues()\fI Returns a list of values for each matched data;\fR
+.IX Subsection "getvalues() Returns a list of values for each matched data;"
 .PP
-\fI\fIgetvalue()\fI Returns the value of first matched data-object;\fR
-.IX Subsection "getvalue() Returns the value of first matched data-object;"
+\fI\fIgetvalue()\fI Returns the value of first matched data;\fR
+.IX Subsection "getvalue() Returns the value of first matched data;"
 .SH "pQuery sintax"
 .IX Header "pQuery sintax"
 A pQuery expression is a function or a path.
@@ -265,7 +362,7 @@ index.
 .PP
 A array index is represented inside square brackets.
 .PP
-Two succesive key names are separated by a dot.
+Two successive key names are separated by a slash.
 .PP
 .Vb 7
 \&        my $d = {
@@ -276,16 +373,16 @@ Two succesive key names are separated by a dot.
 \&        };
 \&        my $data = Data::pQuery\->data($d);
 \&
-\&        my $food = $data\->query(\*(Aqfood\*(Aq)\->getref();
+\&        my $food = $data\->query(\*(Aq/food\*(Aq)\->getref();
 \&        $$food\->{drinks} = q|no drinks|;
 \&
-\&        my $fruit = $data\->query(\*(Aqfood.fruit\*(Aq)\->getref();
+\&        my $fruit = $data\->query(\*(Aq/food/fruit\*(Aq)\->getref();
 \&        $$fruit = \*(Aqpears\*(Aq;
 \&
-\&        my $vegetables = $data\->query(\*(Aqfood.vegetables\*(Aq)\->getref();
+\&        my $vegetables = $data\->query(\*(Aq/food/vegetables\*(Aq)\->getref();
 \&        push @$$vegetables, q|garlic|;
 \&
-\&        my $vegetable = $data\->query(\*(Aqfood.vegetables[1]\*(Aq)\->getref();
+\&        my $vegetable = $data\->query(\*(Aq/food/vegetables[1]\*(Aq)\->getref();
 \&        $$vegetable = q|spinach|;
 \&
 \&        print Dumper $d;
@@ -310,7 +407,7 @@ The above code will produce the result
 .Ve
 .PP
 A wildcard (*) means any key name and a double wildcard (**) means any key name
-or any index nested inside current data-object.
+or any index nested inside current data-structure.
 .PP
 .Vb 8
 \&        my $d = {
@@ -370,8 +467,8 @@ It's possible to index a range by specifying the limits separated by a
 dotdot sequence. 
 If first limit is greater than last the result will be returned in reverse 
 order. 
-If left limit is replaced by a dot it means from first index.
-If right limit is replaced by a dot it means until last index.
+If left limit is omitted it means start from first index.
+If right limit is omitted it means stop on last index.
 Its' also possible to index any combination of ranges and indexes separated
 by commas
 .PP
@@ -385,19 +482,19 @@ by commas
 \&        print $data\->query(\*(Aq*[\-1]\*(Aq)\->getvalues();           #pears,onions
 \&        print $data\->query(\*(Aqfruit[0,2]\*(Aq)\->getvalues();      #bananas,oranges
 \&        print $data\->query(\*(Aqfruit[2,0]\*(Aq)\->getvalues();      #oranges,bananas
-\&        print $data\->query(\*(Aqfruit[2...]\*(Aq)\->getvalues();     #oranges,pears
-\&        print $data\->query(\*(Aqfruit[...1]\*(Aq)\->getvalues();     #bananas,apples
+\&        print $data\->query(\*(Aqfruit[2..]\*(Aq)\->getvalues();      #oranges,pears
+\&        print $data\->query(\*(Aqfruit[..1]\*(Aq)\->getvalues();      #bananas,apples
 \&        print $data\->query(\*(Aqfruit[1..2]\*(Aq)\->getvalues();     #apples,oranges
 \&        print $data\->query(\*(Aqfruit[2..1]\*(Aq)\->getvalues();     #oranges,apples
-\&        print $data\->query(\*(Aqfruit[...]\*(Aq)\->getvalues();      #bananas,apples,oranges,pears
+\&        print $data\->query(\*(Aqfruit[..]\*(Aq)\->getvalues();      #bananas,apples,oranges,pears
 \&        print $data\->query(\*(Aqfruit[1..\-1]\*(Aq)\->getvalues();    #apples,oranges,pears
 \&        print $data\->query(\*(Aqfruit[\-1..1]\*(Aq)\->getvalues();    #pears,oranges,apples
-\&        print $data\->query(\*(Aqfruit[\-1...]\*(Aq)\->getvalues();    #pears
+\&        print $data\->query(\*(Aqfruit[\-1..]\*(Aq)\->getvalues();     #pears
 \&        print $data\->query(\*(Aqfruit[3..9]\*(Aq)\->getvalues();     #pears
 \&        print $data\->query(\*(Aqfruit[\-1..9]\*(Aq)\->getvalues();    #pears
-\&        print $data\->query(\*(Aqfruit[\-1..\-9]\*(Aq)\->getvalues();   #pears,oranges,apples,bananas 
+\&        print $data\->query(\*(Aqfruit[\-1..\-9]\*(Aq)\->getvalues(); #pears,oranges,apples,bananas 
 \&        print $data\->query(\*(Aqfruit[0,2..3]\*(Aq)\->getvalues();   #bananas,oranges,pears 
-\&        print $data\->query(\*(Aqfruit[...1,3...]\*(Aq)\->getvalues();#bananas,apples,pears
+\&        print $data\->query(\*(Aqfruit[..1,3..]\*(Aq)\->getvalues();  #bananas,apples,pears
 .Ve
 .PP
 Every step could be filter out by a logical expression inside a curly bracket.
@@ -459,244 +556,266 @@ Marpa::R2 is used to parse the pQuery expression. Bellow is the complete grammar
 .Vb 1
 \&        :start ::= Start
 \&
-\&        Start   ::= OperExp                                                                     
+\&        Start ::= OperExp                             
 \&
 \&        OperExp ::=
-\&                PathExpr                                                                                
-\&                |Function                                                                               
+\&          PathExpr                                    
+\&          |Function                                   
 \&
 \&        Function ::=
-\&                NumericFunction                                                                 
-\&                |StringFunction                                                                 
-\&                |ListFunction                                                                   
+\&          NumericFunction                             
+\&          | StringFunction                            
+\&          | ListFunction                              
 \&
 \&        PathExpr ::=
-\&                absolutePath                                                                            
-\&                | PathExpr \*(Aq|\*(Aq absolutePath                                             
+\&          absolutePath                                
+\&          | relativePath                              
+\&          | PathExpr \*(Aq|\*(Aq PathExpr                     
 \&
-\&        absolutePath ::=        
-\&                stepPath                                                                                
-\&                |indexPath                                                                              
+\&        relativePath ::=  
+\&          stepPath                                    
+\&          | indexPath                                 
+\&
+\&        absolutePath ::=  
+\&          \*(Aq/\*(Aq stepPath                                
+\&          | indexPath                                 
 \&
 \&        stepPath ::=
-\&                step Filter subPathExpr                                                 
-\&                | step Filter                                                                   
-\&                | step subPathExpr                                                              
-\&                | step                                                                                  
+\&          step Filter absolutePath                    
+\&          | step Filter                               
+\&          | step absolutePath                         
+\&          | step                                      
 \&
 \&        step ::= 
-\&                keyword                                                                                 
-\&                | wildcard                                                                              
-\&                | dwildcard                                                                     
-\&
-\&        subPathExpr ::= 
-\&                \*(Aq.\*(Aq stepPath                                                                    
-\&                |indexPath                                                                              
+\&          keyname                                     
+\&          | wildcard                                  
+\&          | dwildcard                                 
+\&          | \*(Aq..\*(Aq                                      
 \&
 \&        indexPath ::=
-\&                IndexArray Filter subPathExpr                                   
-\&                | IndexArray Filter                                                     
-\&                | IndexArray subPathExpr                                                
-\&                | IndexArray                                                                            
+\&          IndexArray Filter absolutePath              
+\&          | IndexArray Filter                         
+\&          | IndexArray absolutePath                   
+\&          | IndexArray                                
 \&
-\&        IndexArray ::=  \*(Aq[\*(Aq IndexExprs \*(Aq]\*(Aq                                      
 \&
-\&        IndexExprs ::= IndexExpr+                       
+\&        IndexArray ::=  \*(Aq[\*(Aq IndexExprs \*(Aq]\*(Aq            
+\&
+\&
+\&        IndexExprs ::= IndexExpr+       separator => <comma>
 \&
 \&        IndexExpr ::=
-\&                IntExpr                                                                         
-\&                | rangeExpr                                                                             
+\&          IntExpr                                     
+\&          | rangeExpr                                 
 \&
 \&        rangeExpr ::= 
-\&                IntExpr \*(Aq..\*(Aq IntExpr                                    
-\&                |IntExpr \*(Aq...\*(Aq                                                          
-\&                | \*(Aq...\*(Aq IntExpr                                                         
-\&                | \*(Aq...\*(Aq                                                                                 
+\&          IntExpr \*(Aq..\*(Aq IntExpr                        
+\&          |IntExpr \*(Aq..\*(Aq                               
+\&          | \*(Aq..\*(Aq IntExpr                              
+\&          | \*(Aq..\*(Aq                                      
 \&
-\&        Filter ::=      
-\&                \*(Aq{\*(Aq LogicalExpr \*(Aq}\*(Aq                                                     
-\&                | \*(Aq{\*(Aq LogicalExpr \*(Aq}\*(Aq Filter                                    
+\&
+\&        Filter ::=  
+\&          \*(Aq{\*(Aq LogicalExpr \*(Aq}\*(Aq                         
+\&          | \*(Aq{\*(Aq LogicalExpr \*(Aq}\*(Aq Filter                
 \&
 \&        IntExpr ::=
-\&          ArithmeticIntExpr                                                                             
+\&          ArithmeticIntExpr                           
 \&
 \&         ArithmeticIntExpr ::=
-\&                INT                                                                                                     
-\&                | IntegerFunction                                                                               
-\&                | \*(Aq(\*(Aq IntExpr \*(Aq)\*(Aq                                                                       
-\&                || \*(Aq\-\*(Aq ArithmeticIntExpr                                                        
-\&                 | \*(Aq+\*(Aq ArithmeticIntExpr                                                        
-\&                || ArithmeticIntExpr \*(Aq*\*(Aq ArithmeticIntExpr              
-\&                 | ArithmeticIntExpr \*(Aq/\*(Aq ArithmeticIntExpr              
-\&                 | ArithmeticIntExpr \*(Aq%\*(Aq ArithmeticIntExpr              
-\&                || ArithmeticIntExpr \*(Aq+\*(Aq ArithmeticIntExpr              
-\&                 | ArithmeticIntExpr \*(Aq\-\*(Aq ArithmeticIntExpr              
+\&          INT                                         
+\&          | IntegerFunction                           
+\&          | \*(Aq(\*(Aq IntExpr \*(Aq)\*(Aq                           
+\&          || \*(Aq\-\*(Aq ArithmeticIntExpr                    
+\&           | \*(Aq+\*(Aq ArithmeticIntExpr                    
+\&          || ArithmeticIntExpr \*(Aq*\*(Aq ArithmeticIntExpr  
+\&           | ArithmeticIntExpr \*(Aq/\*(Aq ArithmeticIntExpr  
+\&           | ArithmeticIntExpr \*(Aq%\*(Aq ArithmeticIntExpr  
+\&          || ArithmeticIntExpr \*(Aq+\*(Aq ArithmeticIntExpr  
+\&           | ArithmeticIntExpr \*(Aq\-\*(Aq ArithmeticIntExpr  
 \&
 \&
 \&        NumericExpr ::=
-\&          ArithmeticExpr                                                                                        
+\&          ArithmeticExpr                              
 \&
 \&        ArithmeticExpr ::=
-\&                NUMBER                                                                                                  
-\&                | NumericFunction                                                                               
-\&                | \*(Aq(\*(Aq NumericExpr \*(Aq)\*(Aq                                                                   
-\&                || \*(Aq\-\*(Aq ArithmeticExpr                                                                   
-\&                 | \*(Aq+\*(Aq ArithmeticExpr                                                                   
-\&                || ArithmeticExpr \*(Aq*\*(Aq ArithmeticExpr                                    
-\&                 | ArithmeticExpr \*(Aq/\*(Aq ArithmeticExpr                                    
-\&                 | ArithmeticExpr \*(Aq%\*(Aq ArithmeticExpr                                    
-\&                || ArithmeticExpr \*(Aq+\*(Aq ArithmeticExpr                                    
-\&                 | ArithmeticExpr \*(Aq\-\*(Aq ArithmeticExpr                                    
+\&          NUMBER                                      
+\&          | NumericFunction                           
+\&          | \*(Aq(\*(Aq NumericExpr \*(Aq)\*(Aq                       
+\&          || \*(Aq\-\*(Aq ArithmeticExpr                       
+\&           | \*(Aq+\*(Aq ArithmeticExpr                       
+\&          || ArithmeticExpr \*(Aq*\*(Aq ArithmeticExpr        
+\&           | ArithmeticExpr \*(Aq/\*(Aq ArithmeticExpr        
+\&           | ArithmeticExpr \*(Aq%\*(Aq ArithmeticExpr        
+\&          || ArithmeticExpr \*(Aq+\*(Aq ArithmeticExpr        
+\&           | ArithmeticExpr \*(Aq\-\*(Aq ArithmeticExpr        
 \&
 \&        LogicalExpr ::=
-\&                compareExpr                                                                                             
-\&                |LogicalFunction                                                                                
+\&          compareExpr                                 
+\&          |LogicalFunction                            
 \&
 \&        compareExpr ::= 
-\&                PathExpr                                                                                                
-\&                || NumericExpr \*(Aq<\*(Aq NumericExpr                                                  
-\&                 | NumericExpr \*(Aq<=\*(Aq NumericExpr                                                 
-\&                 | NumericExpr \*(Aq>\*(Aq NumericExpr                                                  
-\&                 | NumericExpr \*(Aq>=\*(Aq NumericExpr                                                 
-\&                 | StringExpr \*(Aqlt\*(Aq StringExpr                                                   
-\&                 | StringExpr \*(Aqle\*(Aq StringExpr                                                   
-\&                 | StringExpr \*(Aqgt\*(Aq StringExpr                                                   
-\&                 | StringExpr \*(Aqge\*(Aq StringExpr                                                   
-\&                 | StringExpr \*(Aq~\*(Aq RegularExpr                                                   
-\&                 | StringExpr \*(Aq!~\*(Aq RegularExpr                                                  
-\&                 | NumericExpr \*(Aq==\*(Aq NumericExpr                                                 
-\&                 | NumericExpr \*(Aq!=\*(Aq NumericExpr                                                 
-\&                 | StringExpr \*(Aqeq\*(Aq StringExpr                                                   
-\&                 | StringExpr \*(Aqne\*(Aq StringExpr                                                   
-\&                || compareExpr \*(Aqand\*(Aq LogicalExpr                                                
-\&                || compareExpr \*(Aqor\*(Aq LogicalExpr                                                 
+\&          PathExpr                                    
+\&          || NumericExpr \*(Aq<\*(Aq NumericExpr              
+\&           | NumericExpr \*(Aq<=\*(Aq NumericExpr             
+\&           | NumericExpr \*(Aq>\*(Aq NumericExpr              
+\&           | NumericExpr \*(Aq>=\*(Aq NumericExpr             
+\&           | StringExpr \*(Aqlt\*(Aq StringExpr               
+\&           | StringExpr \*(Aqle\*(Aq StringExpr               
+\&           | StringExpr \*(Aqgt\*(Aq StringExpr               
+\&           | StringExpr \*(Aqge\*(Aq StringExpr               
+\&           | StringExpr \*(Aq~\*(Aq RegularExpr               
+\&           | StringExpr \*(Aq!~\*(Aq RegularExpr              
+\&           | NumericExpr \*(Aq==\*(Aq NumericExpr             
+\&           | NumericExpr \*(Aq!=\*(Aq NumericExpr             
+\&           | StringExpr \*(Aqeq\*(Aq StringExpr               
+\&           | StringExpr \*(Aqne\*(Aq StringExpr               
+\&          || compareExpr \*(Aqand\*(Aq LogicalExpr            
+\&          || compareExpr \*(Aqor\*(Aq LogicalExpr             
 \&
-\&        #operator match, not match, in, intersect, union,
+\&        #operator match, not match, in, intersect and union are missing
 \&
 \&        StringExpr ::=
-\&                STRING                                                                                                  
-\&                | StringFunction                                                                                
-\&                || StringExpr \*(Aq||\*(Aq StringExpr                                                   
+\&          STRING                                      
+\&          | StringFunction                            
+\&          || StringExpr \*(Aq||\*(Aq StringExpr               
+\&
+\&
+\&        RegularExpr 
+\&          ::= STRING                                  
 \&
 \&        LogicalFunction ::=
-\&                \*(Aqnot\*(Aq \*(Aq(\*(Aq LogicalExpr \*(Aq)\*(Aq                                                               
-\&                | \*(AqisRef\*(Aq \*(Aq(\*(Aq  PathArgs  \*(Aq)\*(Aq                                                            
-\&                | \*(AqisScalar\*(Aq \*(Aq(\*(Aq PathArgs \*(Aq)\*(Aq                                                   
-\&                | \*(AqisArray\*(Aq \*(Aq(\*(Aq PathArgs \*(Aq)\*(Aq                                                    
-\&                | \*(AqisHash\*(Aq \*(Aq(\*(Aq PathArgs \*(Aq)\*(Aq                                                             
-\&                | \*(AqisCode\*(Aq \*(Aq(\*(Aq PathArgs \*(Aq)\*(Aq                                                             
+\&          \*(Aqnot\*(Aq \*(Aq(\*(Aq LogicalExpr \*(Aq)\*(Aq                   
+\&          | \*(AqisRef\*(Aq \*(Aq(\*(Aq  PathArgs  \*(Aq)\*(Aq                
+\&          | \*(AqisScalar\*(Aq \*(Aq(\*(Aq PathArgs \*(Aq)\*(Aq               
+\&          | \*(AqisArray\*(Aq \*(Aq(\*(Aq PathArgs \*(Aq)\*(Aq                
+\&          | \*(AqisHash\*(Aq \*(Aq(\*(Aq PathArgs \*(Aq)\*(Aq                 
+\&          | \*(AqisCode\*(Aq \*(Aq(\*(Aq PathArgs \*(Aq)\*(Aq                 
 \&
 \&        StringFunction ::=
-\&                NameFunction                                                                                    
-\&                | ValueFunction                                                                                 
+\&          NameFunction                                
+\&          | ValueFunction                             
 \&
 \&        NameFunction ::= 
-\&                \*(Aqname\*(Aq \*(Aq(\*(Aq PathArgs \*(Aq)\*(Aq                                                                 
+\&          \*(Aqname\*(Aq \*(Aq(\*(Aq PathArgs \*(Aq)\*(Aq                     
 \&
 \&        PathArgs ::= 
-\&                PathExpr                                                                                                
-\&                |EMPTY                                                                                                  
+\&          PathExpr                                    
+\&          |EMPTY                                      
 \&
 \&        EMPTY ::=
 \&
 \&        ValueFunction ::= 
-\&                \*(Aqvalue\*(Aq \*(Aq(\*(Aq PathArgs \*(Aq)\*(Aq                                                                
+\&          \*(Aqvalue\*(Aq \*(Aq(\*(Aq PathArgs \*(Aq)\*(Aq                    
 \&
 \&        CountFunction ::= 
-\&                \*(Aqcount\*(Aq \*(Aq(\*(Aq PathExpr \*(Aq)\*(Aq                                                                
+\&          \*(Aqcount\*(Aq \*(Aq(\*(Aq PathExpr \*(Aq)\*(Aq                    
 \&
 \&        SumFunction ::= 
-\&                \*(Aqsum\*(Aq \*(Aq(\*(Aq PathExpr \*(Aq)\*(Aq                                                                  
+\&          \*(Aqsum\*(Aq \*(Aq(\*(Aq PathExpr \*(Aq)\*(Aq                      
 \&
 \&        SumProductFunction ::= 
-\&                \*(Aqsumproduct\*(Aq \*(Aq(\*(Aq PathExpr \*(Aq,\*(Aq PathExpr \*(Aq)\*(Aq                              
+\&          \*(Aqsumproduct\*(Aq \*(Aq(\*(Aq PathExpr \*(Aq,\*(Aq PathExpr \*(Aq)\*(Aq  
 \&
 \&        NumericFunction ::=
-\&                CountFunction                                                                                   
-\&                |ValueFunction                                                                                  
-\&                |SumFunction                                                                                    
-\&                |SumProductFunction                                                                             
+\&          CountFunction                               
+\&          |ValueFunction                              
+\&          |SumFunction                                
+\&          |SumProductFunction                         
 \&
 \&        IntegerFunction ::=
-\&                CountFunction                                                                                   
+\&          CountFunction                               
 \&
 \&        ListFunction ::=
-\&                \*(Aqnames\*(Aq \*(Aq(\*(Aq PathArgs \*(Aq)\*(Aq                                                        
-\&                | \*(Aqvalues\*(Aq \*(Aq(\*(Aq PathArgs \*(Aq)\*(Aq                                                     
+\&          \*(Aqnames\*(Aq \*(Aq(\*(Aq PathArgs \*(Aq)\*(Aq                    
+\&          | \*(Aqvalues\*(Aq \*(Aq(\*(Aq PathArgs \*(Aq)\*(Aq                 
 \&
 \&
-\&         NUMBER ::= UNUMBER                                                                             
-\&                | \*(Aq\-\*(Aq UNUMBER                                                                                   
-\&                | \*(Aq+\*(Aq UNUMBER                                                                                   
-\&
-\&        UNUMBER  
-\&                ~ unumber       
+\&         NUMBER ::= 
+\&          unumber                                     
+\&          | \*(Aq\-\*(Aq unumber                               
+\&          | \*(Aq+\*(Aq unumber                               
 \&
 \&        unumber 
-\&                ~ uint
-\&                | uint frac
-\&                | uint exp
-\&                | uint frac exp
+\&          ~ uint
+\&          | uint frac
+\&          | uint exp
+\&          | uint frac exp
 \&         
 \&        uint            
-\&                ~ digits
+\&          ~ digits
 \&
 \&        digits 
-\&                ~ [\ed]+
+\&          ~ [\ed]+
 \&         
 \&        frac
-\&                ~ \*(Aq.\*(Aq digits
+\&          ~ \*(Aq.\*(Aq digits
 \&         
 \&        exp
-\&                ~ e digits
+\&          ~ e digits
 \&         
 \&        e
-\&                ~ \*(Aqe\*(Aq
-\&                | \*(Aqe+\*(Aq
-\&                | \*(Aqe\-\*(Aq
-\&                | \*(AqE\*(Aq
-\&                | \*(AqE+\*(Aq
-\&                | \*(AqE\-\*(Aq
+\&          ~ \*(Aqe\*(Aq
+\&          | \*(Aqe+\*(Aq
+\&          | \*(Aqe\-\*(Aq
+\&          | \*(AqE\*(Aq
+\&          | \*(AqE+\*(Aq
+\&          | \*(AqE\-\*(Aq
 \&
 \&        INT ::= 
-\&                UINT                                                                                    
-\&                | \*(Aq+\*(Aq UINT                                                                      
-\&                | \*(Aq\-\*(Aq UINT                                                                      
+\&          UINT                                    
+\&          | \*(Aq+\*(Aq UINT                              
+\&          | \*(Aq\-\*(Aq UINT                              
 \&
 \&        UINT
-\&                ~digits
+\&          ~digits
 \&
-\&        STRING       ::= lstring                                        
-\&        RegularExpr ::= regularstring                                           
-\&        regularstring ~ delimiter re delimiter                          
-\&
-\&        delimiter ~ [/]
-\&
-\&        re ~ char*
-\&
-\&        char ~ [^/\e\e]
-\&                | \*(Aq\e\*(Aq \*(Aq/\*(Aq
-\&                | \*(Aq\e\e\*(Aq
+\&        STRING ::= 
+\&          double_quoted                               
+\&          | single_quoted                             
 \&
 \&
-\&        lstring        ~ quote in_string quote
-\&        quote          ~ ["]
+\&        single_quoted        
+\&          ~ [\*(Aq\*(Aq] single_quoted_chars [\*(Aq\*(Aq]
+\&
+\&        single_quoted_chars      
+\&          ~ single_quoted_char*
 \&         
-\&        in_string      ~ in_string_char*
+\&        single_quoted_char  
+\&          ~ [^\*(Aq]
+\&          | \*(Aq\e\*(Aq [\*(Aq]
+\&
+\&        double_quoted        
+\&          ~ ["] double_quoted_chars ["]
+\&
+\&        double_quoted_chars      
+\&          ~ double_quoted_char*
 \&         
-\&        in_string_char  ~ [^"\e\e]
-\&                | \*(Aq\e\*(Aq \*(Aq"\*(Aq
-\&                | \*(Aq\e\e\*(Aq
+\&        double_quoted_char  
+\&          ~ [^"]
+\&          | \*(Aq\e\*(Aq \*(Aq"\*(Aq
 \&
-\&        comma ~ \*(Aq,\*(Aq
+\&        wildcard 
+\&          ~ [*]
 \&
-\&        wildcard ~ [*]
-\&        dwildcard ~ [*][*]
+\&        dwildcard 
+\&          ~ [*][*]
 \&
-\&        keyword ~ [a\-zA\-Z\eN{U+A1}\-\eN{U+10FFFF}]+
+\&        keyname ::= 
+\&          token                                       
+\&          | STRING                                    
 \&
-\&        :discard ~ WS
-\&        WS ~ [\es]+
+\&        token ~ [^./*,\*(Aq"|\es\e]\e[\e(\e)\e{\e}\e\e+\-]+
+\&
+\&
+\&        :discard 
+\&          ~ WS
+\&
+\&        WS 
+\&          ~ [\es]+
+\&
+\&        comma 
+\&          ~ \*(Aq,\*(Aq
 .Ve
 .SH "AUTHOR"
 .IX Header "AUTHOR"
