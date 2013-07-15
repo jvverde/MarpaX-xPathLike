@@ -60,10 +60,6 @@ step ::=
 	| dwildcard 																action => _do_dwildcard
 	|	'..'																			action => _do_dotdot			
 
-# subPathExpr ::= 
-# 	'/' stepPath 															action => _do_arg2
-# 	|indexPath 																action => _do_arg1
-
 indexPath ::=
 	IndexArray Filter absolutePath 							action => _do_indexFilterSubpath	
 	| IndexArray Filter 												action => _do_indexFilter	
@@ -712,7 +708,6 @@ $keysProc = {
 	},
 	qq|..| => sub{
 		my (undef, undef, $subpath,$filter) = @_;
-		#print ".. context", (Dumper \@_), Dumper \@context;
 		return () unless scalar @context > 1;
 		push @context, $context[$#context-1];
 		my @r = ();
@@ -727,22 +722,23 @@ $keysProc = {
 		return @r;	
 	} 
 };
-sub descendent{ #falta actualizar o contexto
+sub descendent{ 
 	my ($data,$subpath,$filter) = @_;
+	return () unless defined $data;
 	my @r = ();
-	if (defined $data and ref $data eq q|HASH|){
+	if (ref $data eq q|HASH|){
 		foreach (sort keys %$data){
-			push @r, $keysProc->{step}->($data, $_, $subpath,$filter);
-			push @context, {name => $_, data  => \$data->{$_}};
-			push @r, descendent($data->{$_},$subpath,$filter);
+			push @r, $keysProc->{step}->($data, $_, $subpath,$filter);			#process this key entry
+			push @context, {name => $_, data  => \$data->{$_}};							#create a context for next level
+			push @r, descendent($data->{$_},$subpath,$filter);							#process descendents
 			pop @context;		
 		}
 	}
-	if (defined $data and ref $data eq q|ARRAY|){
+	if (ref $data eq q|ARRAY|){
 		foreach (0..$#$data){
-			push @r, $indexesProc->{index}->($data,$_,$subpath,$filter);
-			push @context, {name => $_, data  => \$data->[$_]};
-			push @r, descendent($data->[$_],$subpath,$filter);
+			push @r, $indexesProc->{index}->($data,$_,$subpath,$filter);		#process this array index
+			push @context, {name => $_, data  => \$data->[$_]};							#create a context for next level
+			push @r, descendent($data->[$_],$subpath,$filter);							#process descendents
 			pop @context;
 		}
 	};
@@ -764,6 +760,8 @@ sub _getObjectSubset{
 			push @r, $indexesProc->{$_}->($data,$entry->{$_},$path->{subpath},$path->{filter})
 				foreach (grep {exists $indexesProc->{$_}} keys %$entry); 	#just in case use grep to filter out not supported indexes types
 		}
+	}elsif (exists $path->{q|..|}){
+			push @r, $keysProc->{q|..|}->($data, $path->{q|..|}, $path->{subpath}, $path->{filter});
 	}else{ #aqui deve-se por outro teste para o caso .. e .
 		#do nothing. Nothing is ok
 		#print 'Nothing ', Dumper $data;

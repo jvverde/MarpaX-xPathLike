@@ -60,10 +60,6 @@ step ::=
 	| dwildcard 																action => _do_dwildcard
 	|	'..'																			action => _do_dotdot			
 
-# subPathExpr ::= 
-# 	'/' stepPath 															action => _do_arg2
-# 	|indexPath 																action => _do_arg1
-
 indexPath ::=
 	IndexArray Filter absolutePath 							action => _do_indexFilterSubpath	
 	| IndexArray Filter 												action => _do_indexFilter	
@@ -712,7 +708,6 @@ $keysProc = {
 	},
 	qq|..| => sub{
 		my (undef, undef, $subpath,$filter) = @_;
-		#print ".. context", (Dumper \@_), Dumper \@context;
 		return () unless scalar @context > 1;
 		push @context, $context[$#context-1];
 		my @r = ();
@@ -727,22 +722,23 @@ $keysProc = {
 		return @r;	
 	} 
 };
-sub descendent{ #falta actualizar o contexto
+sub descendent{ 
 	my ($data,$subpath,$filter) = @_;
+	return () unless defined $data;
 	my @r = ();
-	if (defined $data and ref $data eq q|HASH|){
+	if (ref $data eq q|HASH|){
 		foreach (sort keys %$data){
-			push @r, $keysProc->{step}->($data, $_, $subpath,$filter);
-			push @context, {name => $_, data  => \$data->{$_}};
-			push @r, descendent($data->{$_},$subpath,$filter);
+			push @r, $keysProc->{step}->($data, $_, $subpath,$filter);			#process this key entry
+			push @context, {name => $_, data  => \$data->{$_}};							#create a context for next level
+			push @r, descendent($data->{$_},$subpath,$filter);							#process descendents
 			pop @context;		
 		}
 	}
-	if (defined $data and ref $data eq q|ARRAY|){
+	if (ref $data eq q|ARRAY|){
 		foreach (0..$#$data){
-			push @r, $indexesProc->{index}->($data,$_,$subpath,$filter);
-			push @context, {name => $_, data  => \$data->[$_]};
-			push @r, descendent($data->[$_],$subpath,$filter);
+			push @r, $indexesProc->{index}->($data,$_,$subpath,$filter);		#process this array index
+			push @context, {name => $_, data  => \$data->[$_]};							#create a context for next level
+			push @r, descendent($data->[$_],$subpath,$filter);							#process descendents
 			pop @context;
 		}
 	};
@@ -764,6 +760,8 @@ sub _getObjectSubset{
 			push @r, $indexesProc->{$_}->($data,$entry->{$_},$path->{subpath},$path->{filter})
 				foreach (grep {exists $indexesProc->{$_}} keys %$entry); 	#just in case use grep to filter out not supported indexes types
 		}
+	}elsif (exists $path->{q|..|}){
+			push @r, $keysProc->{q|..|}->($data, $path->{q|..|}, $path->{subpath}, $path->{filter});
 	}else{ #aqui deve-se por outro teste para o caso .. e .
 		#do nothing. Nothing is ok
 		#print 'Nothing ', Dumper $data;
@@ -899,22 +897,102 @@ Version 0.02
 How to use it.
 
 	use Data::pQuery;
+	use Data::Dumper;
 
 	($\,$,) = ("\n",",");
-	my $query = Data::pQuery->compile('a.*');
-	my $data = {
-	        a => {
-	                b => 'bb',
-	                c => 'cc'
-	        },
-	        aa => 'aa'
+	my $d = {
+		drinks => {
+			q|Alcoholic beverage| => 'not allowed',
+			q|Soft drinks| => [qw|Soda Coke|]
+		},
+		food => { 
+			fruit => [qw|bananas apples oranges pears|], 
+			vegetables  => [qw|potatoes  carrots tomatoes|]
+		} 
 	};
-	my $results = $query->data($data);
+
+	my $data = Data::pQuery->data($d);
+	my $results = $data->query(q|/*/*[0]|);
 	my @values = $results->getvalues();
-	print @values;                          #outputs 'bb,cc'
+	print @values;					
+	#Soda,bananas,potatoes
+
 	my $ref = $results->getref();
-	$$ref = 'new value';
-	print $data->{a}->{b};                  #outputs 'new value'
+	$$ref = 'Tonic';
+	print $d->{drinks}->{q|Soft drinks|}->[0];	
+	#Tonic
+
+	#keys with spaces or especial characters should be delimited 
+	#by double quotes 
+	print $data->query(q|/drinks/"Alcoholic beverage"|)->getvalues();
+	#not allowed
+
+	#or single quotes
+	print $data->query(q|/drinks/'Soft drinks'[1]|)->getvalues();
+	#Coke
+
+	#the .. sequence indexes all array positions
+	print $data->query(q|/*/*[..]|)->getvalues();
+	#Tonic,Coke,bananas,apples,oranges,pears,potatoes,carrots,tomatoes
+
+	print $data->query(q|*/*[..]|)->getvalues(); #the leading slash is optional
+	#Tonic,Coke,bananas,apples,oranges,pears,potatoes,carrots,tomatoes
+
+	#Curly brackets are used to specify filters
+	print $data->query(q|/*/*{isScalar()}|)->getvalues();
+	#not allowed
+
+	#data at any level could be specified by the sequence **
+	print $data->query(q|**{isScalar()}|)->getvalues();
+	#not allowed,Tonic,Coke,bananas,apples,oranges,pears,potatoes,carrots,tomatoes
+
+	#negative values indexes the arrays in reverse order. -1 is the last index
+	print $data->query(q|/*/*[-1]|)->getvalues();
+	#Coke,pears,tomatoes
+
+	#the filter could be a match between a string expression and a pattern
+	print $data->query(q|/*/*{name() ~ "drinks"}[..]|)->getvalues();
+	#Tonic,Coke
+
+	#The returned values does not need to be scalars
+	print Dumper $data->query(q|/*/vegetables|)->getvalues();
+	=pod
+	$VAR1 = [
+	          'potatoes',
+	          'carrots',
+	          'tomatoes'
+	        ];
+	=cut
+
+	#using two filters in sequence
+	print Dumper $data->query(q|
+		/*/*
+		{value([-1]) gt value([0])}
+		{count([..]) < 4}
+	|)->getvalues();
+	=pod
+	$VAR1 = [
+	          'potatoes',
+	          'carrots',
+	          'tomatoes'
+	        ];
+	=cut
+
+	#the same as above but using a logical operation instead of two filters
+	print Dumper $data->query(q|
+		/*/*{value([-1]) gt value([0]) 
+			and count([..]) < 4
+		}
+	|)->getvalues();
+
+	#a query could be a function instead of a path
+	print $data->query(q|names(/*/*)|)->getvalues();
+	#Alcoholic beverage,Soft drinks,fruit,vegetables
+
+	#the function 'names' returns the keys names or indexes
+	print $data->query(q|names(/**)|)->getvalues();
+	#drinks,Alcoholic beverage,Soft drinks,0,1,food,fruit,0,1,2,3,vegetables,0,1,2
+
 
 =head1 DESCRIPTION
 
