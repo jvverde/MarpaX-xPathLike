@@ -31,7 +31,7 @@ print $d->{drinks}->{q|Soft drinks|}->[0];
 print $data->query(q|/drinks/"Alcoholic beverage"|)->getvalues();
 #not allowed
 
-#or single quotes
+#or by single quotes
 print $data->query(q|/drinks/'Soft drinks'[1]|)->getvalues();
 #Coke
 
