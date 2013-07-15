@@ -712,7 +712,7 @@ $keysProc = {
 	},
 	qq|..| => sub{
 		my (undef, undef, $subpath,$filter) = @_;
-		print ".. context", (Dumper \@_), Dumper \@context;
+		#print ".. context", (Dumper \@_), Dumper \@context;
 		return () unless scalar @context > 1;
 		push @context, $context[$#context-1];
 		my @r = ();
@@ -727,19 +727,23 @@ $keysProc = {
 		return @r;	
 	} 
 };
-sub descendent{
+sub descendent{ #falta actualizar o contexto
 	my ($data,$subpath,$filter) = @_;
 	my @r = ();
 	if (defined $data and ref $data eq q|HASH|){
 		foreach (sort keys %$data){
 			push @r, $keysProc->{step}->($data, $_, $subpath,$filter);
-			push @r, descendent($data->{$_},$subpath,$filter);		
+			push @context, {name => $_, data  => \$data->{$_}};
+			push @r, descendent($data->{$_},$subpath,$filter);
+			pop @context;		
 		}
 	}
 	if (defined $data and ref $data eq q|ARRAY|){
 		foreach (0..$#$data){
 			push @r, $indexesProc->{index}->($data,$_,$subpath,$filter);
+			push @context, {name => $_, data  => \$data->[$_]};
 			push @r, descendent($data->[$_],$subpath,$filter);
+			pop @context;
 		}
 	};
 	return @r;
@@ -751,16 +755,16 @@ sub _getObjectSubset{
 	#print 'Context ', Dumper \@context;
 	my @r = ();
 	if (ref $data eq q|HASH| or ref $data eq q|ARRAY| and exists $path->{dwildcard}){
-		my @keys = grep{exists $path->{$_}} keys %$keysProc; 								#$#keys = 1 always but let it to be generic
+		my @keys = grep{exists $path->{$_}} keys %$keysProc; 								
 		push @r, $keysProc->{$_}->($data, $path->{$_}, $path->{subpath}, $path->{filter})
-			foreach (@keys);
+			foreach (@keys);		#$#keys = 1 always but let it to be generic
 	}elsif(ref $data eq q|ARRAY| and defined $path->{indexes} and ref $path->{indexes} eq q|ARRAY|){
 		my $indexes = $path->{indexes};
 		foreach my $entry (@$indexes){
 			push @r, $indexesProc->{$_}->($data,$entry->{$_},$path->{subpath},$path->{filter})
 				foreach (grep {exists $indexesProc->{$_}} keys %$entry); 	#just in case use grep to filter out not supported indexes types
 		}
-	}else{
+	}else{ #aqui deve-se por outro teste para o caso .. e .
 		#do nothing. Nothing is ok
 		#print 'Nothing ', Dumper $data;
 	}
