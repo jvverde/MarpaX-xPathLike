@@ -417,6 +417,7 @@ Currently only the following function are supported
 Counts the number of matched data-structures
 
 - names(pathExpr?)
+
 Returns a list of names of matched data-structures. 
 If pathExpr is omitted it returns the name of current data-structure. 
 If the data-structure is a hash entry it returns the keyname.
@@ -425,11 +426,38 @@ PathExpr is any valid pQuery path expression.
 If it starts with a slash it means an absolute path, otherwise it is a 
 path relative to the current data-structure.
 A empty list will be returned if nothing matches.   
+
 - name(pathExpr?)
-name is a particular case of names and just returns the name of first matched 
+
+name is a particular case of names which just returns the name of first matched 
 data-structure or undef if nothing matches. 
 
 This function can be part of a string expression inside a filter
+
+- values(pathExpr?)
+ 
+
+Like names but returns the values instead of keys or indexs. 
+The same rules apllies for the optional pathExpr argument.
+
+- value(pathExpr?)
+
+Returns the value of first matched data-structure or undef in none matches.
+If pathExpr is omitted it returns the value of current data-structure.  
+
+This function can be part of a string expression or a numeric expression inside a filter
+
+- isXXXX(pathExpr?)
+
+Thet set of functions isXXX() returns true is the matched data-structure is a variable of 
+correspondent type. This is the currently implemented list: isRef, isScalar, 
+isHash, isArray and isCode.
+
+If pathExpr is omitted it applies to current data-structure. 
+If pathExpr evaluates to more than one data-strucures it returns the result of a internal 
+logical or operation. For instance, the pQuery expression a{isScalar(\*)} returns the 
+data-structure referenced by the 'a' keyname if it contains at least one key associated 
+with a scalar value. 
 
 ## pQuery grammar
 
