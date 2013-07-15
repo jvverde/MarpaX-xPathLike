@@ -439,7 +439,7 @@ sub _do_dotdot{
 	my $k = $_[1];
 	return {q|..| => $k};	
 }
-######################################################end of rules######################################################3
+#############################end of rules################################
 
 my @context = ();
 my $operatorBy;
@@ -620,8 +620,8 @@ sub _check{
 $indexesProc = {
 	index => sub{
 		my ($data, $index, $subpath,$filter) = @_;
-		$index += $#$data + 1 if $index < 0;													# -1 == $#data => last index
-		return () if $index < 0 or $index > $#$data;									# check bounds limits
+		$index += $#$data + 1 if $index < 0;						# -1 == $#data => last index
+		return () if $index < 0 or $index > $#$data;		# check bounds limits
 		my @r = ();	
 		push @context, {name => $index, data  => \$data->[$index]};
 		sub{
@@ -999,7 +999,7 @@ How to use it.
 It looks for data-structures which match the pQuery expression and returns a list
 of matched data-structures.
 
-The pQuery sintax is very similar to the xpath but with some exceptios. 
+The pQuery sintax is very similar to the xpath but with some exceptions. 
 The square brackets '[]' are used to indexes arrays unlike xpath where they are 
 used to specify predicates.
 
@@ -1010,11 +1010,14 @@ The pQuery does not support paths of variable length '//' but instead it provide
 o double wildcard to match any nested data (descendent nodes in xpath nomenclature).
 So instead of xpath expression //a the pQuery uses /**/a and instead of 
 *[count(b) = 1] pQuery uses *{count() == 1}. Notice the double equal operator. 
-Also, pQuery does not cast anything, so is impossible to compare string expressions 
+
+Furthermore, pQuery does not cast anything, so is impossible to compare string expressions 
 with mumeric expressions or using numeric operatores. If a function returns a string
 it mus be compared with string operatores against another string expression, ex:
-*{name() eq "keyname"}. Like xpath it is possible to do any logical or arithmetic 
-operations, ex: *{count(a) == count(c) / 2 * (1 + count(b)) or d}
+*{name() eq "keyname"}. 
+
+Like xpath it is possible to deal with any logical or arithmetic 
+expressions, ex: *{count(a) == count(c) / 2 * (1 + count(b)) or d}
 
 
 =head1 METHODS
@@ -1300,7 +1303,73 @@ operator to compare strings expressions.
 
 =back
 
-=head2 pQuery Functions 
+
+=head2 pQuery Functions
+	
+Any function can be used as query  and some of them can also
+be used as part of a numeric or string expression inside a filter.
+
+Currently only the following function are supported 
+=over 4
+
+=item count(pathExpr)
+
+Counts the number of matched data-structures. The count can be used inside
+a filter as part of a Numeric expression. Ex: *{count(a/b) == 3}
+
+=item exists(pathExpr)
+
+Exists is similar to count but returns a boolean expression instead of a 
+numeric value. Ex: *{exists(a/b)} 
+
+=item not(pathExpr)
+
+Is a boolean function. Ex: *{not(exists(a/b))} 
+
+=item names(pathExpr?)
+
+Returns a list of names of matched data-structures. 
+If pathExpr is omitted it returns the name of current data-structure. 
+If the data-structure is a hash entry it returns the keyname.
+If the data-structure is an array entry it returns the index.
+PathExpr is any valid pQuery path expression. 
+If it starts with a slash it means an absolute path, otherwise it is a 
+path relative to the current data-structure.
+A empty list will be returned if nothing matches.   
+
+=item name(pathExpr?)
+
+name is a particular case of names which just returns the name of first matched 
+data-structure or undef if nothing matches. 
+
+This function can be part of a string expression inside a filter
+
+=item values(pathExpr?)
+ 
+Like names but returns the values instead of keys or indexs. 
+The same rules apllies for the optional pathExpr argument.
+
+=item value(pathExpr?)
+
+Returns the value of first matched data-structure or undef in none matches.
+If pathExpr is omitted it returns the value of current data-structure.  
+
+This function can be part of a string expression or a numeric expression inside a filter
+
+=item isXXXX(pathExpr?)
+
+Thet group of functions isRef, isScalar, isHash, isArray and isCode returns true
+is the matched data-structure is a structure of correspondent type.
+
+If pathExpr is omitted it applies to current data-structure. 
+If pathExpr evaluates to more than one data-strucures it returns the result of a 
+internal logical or operation. For instance, the pQuery expression a{isScalar(*)} 
+returns the data-structure referenced by the 'a' keyname if it contains at least 
+one keyname associated with a scalar value. 
+
+These functions can be used inside a filter as a boolean expression.
+
+=back
 
 =head2 pQuery grammar
 

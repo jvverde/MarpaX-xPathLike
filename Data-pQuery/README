@@ -377,46 +377,62 @@ pQuery sintax
     Any function can be used as query and some of them can also be used as
     part of a numeric or string expression inside a filter.
 
-    Currently only the following function are supported =over 4 =item
-    count(pathExpr) Counts the number of matched data-structures
+    Currently only the following function are supported
+
+    count(pathExpr)
+            Counts the number of matched data-structures. The count can be
+            used inside a filter as part of a Numeric expression. Ex:
+            *{count(a/b) == 3}
+
+    exists(pathExpr)
+            Exists is similar to count but returns a boolean expression
+            instead of a numeric value. Ex: *{exists(a/b)}
+
+    not(pathExpr)
+            Is a boolean function. Ex: *{not(exists(a/b))}
 
     names(pathExpr?)
-    Returns a list of names of matched data-structures. If pathExpr is
-    omitted it returns the name of current data-structure. If the
-    data-structure is a hash entry it returns the keyname. If the
-    data-structure is an array entry it returns the index. PathExpr is any
-    valid pQuery path expression. If it starts with a slash it means an
-    absolute path, otherwise it is a path relative to the current
-    data-structure. A empty list will be returned if nothing matches.
+            Returns a list of names of matched data-structures. If pathExpr
+            is omitted it returns the name of current data-structure. If the
+            data-structure is a hash entry it returns the keyname. If the
+            data-structure is an array entry it returns the index. PathExpr
+            is any valid pQuery path expression. If it starts with a slash
+            it means an absolute path, otherwise it is a path relative to
+            the current data-structure. A empty list will be returned if
+            nothing matches.
 
     name(pathExpr?)
-    name is a particular case of names which just returns the name of first
-    matched data-structure or undef if nothing matches.
+            name is a particular case of names which just returns the name
+            of first matched data-structure or undef if nothing matches.
 
-    This function can be part of a string expression inside a filter
+            This function can be part of a string expression inside a filter
 
     values(pathExpr?)
-    Like names but returns the values instead of keys or indexs. The same
-    rules apllies for the optional pathExpr argument.
+            Like names but returns the values instead of keys or indexs. The
+            same rules apllies for the optional pathExpr argument.
 
     value(pathExpr?)
-    Returns the value of first matched data-structure or undef in none
-    matches. If pathExpr is omitted it returns the value of current
-    data-structure.
+            Returns the value of first matched data-structure or undef in
+            none matches. If pathExpr is omitted it returns the value of
+            current data-structure.
 
-    This function can be part of a string expression or a numeric expression
-    inside a filter
+            This function can be part of a string expression or a numeric
+            expression inside a filter
 
     isXXXX(pathExpr?)
-    Thet set of functions isXXX() returns true is the matched data-structure
-    is a variable of correspondent type. This is the currently implemented
-    list: isRef, isScalar, isHash, isArray and isCode.
+            Thet group of functions isRef, isScalar, isHash, isArray and
+            isCode returns true is the matched data-structure is a structure
+            of correspondent type.
 
-    If pathExpr is omitted it applies to current data-structure. If pathExpr
-    evaluates to more than one data-strucures it returns the result of a
-    internal logical or operation. For instance, the pQuery expression
-    a{isScalar(*)} returns the data-structure referenced by the 'a' keyname
-    if it contains at least one key associated with a scalar value.
+            If pathExpr is omitted it applies to current data-structure. If
+            pathExpr evaluates to more than one data-strucures it returns
+            the result of a internal logical or operation. For instance, the
+            pQuery expression a{isScalar(*)} returns the data-structure
+            referenced by the 'a' keyname if it contains at least one
+            keyname associated with a scalar value.
+
+            These functions can be used inside a filter as a boolean
+            expression.
 
   pQuery grammar
     Marpa::R2 is used to parse the pQuery expression. Bellow is the complete

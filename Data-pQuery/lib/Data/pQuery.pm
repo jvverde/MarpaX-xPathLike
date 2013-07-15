@@ -1303,15 +1303,29 @@ operator to compare strings expressions.
 
 =back
 
+
 =head2 pQuery Functions
 	
 Any function can be used as query  and some of them can also
 be used as part of a numeric or string expression inside a filter.
 
 Currently only the following function are supported 
-=over 4
+
+=over 8
+
 =item count(pathExpr)
-Counts the number of matched data-structures
+
+Counts the number of matched data-structures. The count can be used inside
+a filter as part of a Numeric expression. Ex: *{count(a/b) == 3}
+
+=item exists(pathExpr)
+
+Exists is similar to count but returns a boolean expression instead of a 
+numeric value. Ex: *{exists(a/b)} 
+
+=item not(pathExpr)
+
+Is a boolean function. Ex: *{not(exists(a/b))} 
 
 =item names(pathExpr?)
 
@@ -1345,15 +1359,18 @@ This function can be part of a string expression or a numeric expression inside 
 
 =item isXXXX(pathExpr?)
 
-Thet set of functions isXXX() returns true is the matched data-structure is a variable of 
-correspondent type. This is the currently implemented list: isRef, isScalar, 
-isHash, isArray and isCode.
+Thet group of functions isRef, isScalar, isHash, isArray and isCode returns true
+is the matched data-structure is a structure of correspondent type.
 
 If pathExpr is omitted it applies to current data-structure. 
-If pathExpr evaluates to more than one data-strucures it returns the result of a internal 
-logical or operation. For instance, the pQuery expression a{isScalar(*)} returns the 
-data-structure referenced by the 'a' keyname if it contains at least one key associated 
-with a scalar value. 
+If pathExpr evaluates to more than one data-strucures it returns the result of a 
+internal logical or operation. For instance, the pQuery expression a{isScalar(*)} 
+returns the data-structure referenced by the 'a' keyname if it contains at least 
+one keyname associated with a scalar value. 
+
+These functions can be used inside a filter as a boolean expression.
+
+=back
 
 =head2 pQuery grammar
 
