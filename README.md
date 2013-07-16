@@ -6,7 +6,7 @@ Data::pQuery - a xpath like processor for perl data-structures (hashes and array
 
 Version 0.02
 
-# Why we need it
+# Why we need another one
 
 There are already some good approaches to xpath syntax, namely the Data::dPath 
 and Data::Path. 
