@@ -924,7 +924,7 @@ xpath.
 Suppose, for example, we have an array of invoices with Total, Amount and Tax 
 and need to check which one does not comply to the rule "Total = Amount * (1+Tax)".
 
-For the data structure bellow we can easily achive it with this code:
+For the data structure below we can easily achieve it with this code:
 
 	use Data::pQuery;
 	use Data::Dumper;

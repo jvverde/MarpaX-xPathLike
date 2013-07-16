@@ -1,0 +1,8 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+use Pod::Markdown;
+
+my $parser = Pod::Markdown->new;
+$parser->parse_from_filehandle(\*STDIN);
+print $parser->as_markdown;
