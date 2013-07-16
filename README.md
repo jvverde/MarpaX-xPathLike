@@ -6,6 +6,49 @@ Data::pQuery - a xpath like processor for perl data-structures (hashes and array
 
 Version 0.02
 
+# Why we need it
+
+There are already some good approaches to xpath syntax, namely the Data::dPath 
+and Data::Path. 
+Nevertheless we still missing some of powerfull constructions as provided by 
+xpath.
+
+Suppose, for example, we have an array of invoices with Total, Amount and Tax 
+and need to check which one does not comply to the rule "Total = Amount \* (1+Tax)".
+
+For the data structure bellow we can easily achive it with this code:
+
+	use Data::pQuery;
+	use Data::Dumper;
+
+	($\,$,) = (qq|\n|, q|,|);
+	my $data = Data::pQuery->data([
+	        {invoice => {
+	                        Amount => 100,
+	                        Tax => 0.2,
+	                        Total => 120
+	                }
+	        },
+	        {invoice => {
+	                        Amount => 200,
+	                        Tax => 0.15,
+	                        Total => 240
+	                }       
+	        },
+	        receipt =>{ 
+	        }
+	]);
+
+	print Dumper $data->query(q$
+	        //invoice{value(Total) != value(Amount) * (1 + value(Tax))}
+	$)->getvalues();
+
+The pQuery sintax is very similar to the xpath but with some exceptions. 
+The square brackets '\[\]' are used to indexes arrays unlike xpath where they
+are used to specify predicates. To specify filters (predicates in xpath 
+nomenclature) pQuery uses curly brackets '{}'. 
+There are also some others little diferences as explained bellow.
+
 # SYNOPSIS
 
 How to use it.
@@ -121,12 +164,7 @@ used to specify predicates.
 To specify filters (predicates in xpath nomenclature) pQuery uses curly brackets 
 '{}'
 
-The pQuery does not support paths of variable length '//' but instead it provides 
-o double wildcard to match any nested data (descendent nodes in xpath nomenclature).
-So instead of xpath expression //a the pQuery uses /\*\*/a and instead of 
-\*\[count(b) = 1\] pQuery uses \*{count() == 1}. Notice the double equal operator. 
-
-Furthermore, pQuery does not cast anything, so is impossible to compare string expressions 
+However, pQuery does not cast anything, so is impossible to compare string expressions 
 with mumeric expressions or using numeric operatores. If a function returns a string
 it mus be compared with string operatores against another string expression, ex:
 \*{name() eq "keyname"}. 
