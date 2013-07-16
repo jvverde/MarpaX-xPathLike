@@ -46,24 +46,30 @@ relativePath ::=
 
 absolutePath ::=	
 	'/' stepPath 																action => _do_arg2
+	| '//' relativePath													action => _do_vlen
+	| '/' indexPath 														action => _do_arg2
+
+subPath ::=	
+	'/' stepPath 																action => _do_arg2
+	| '//' relativePath													action => _do_vlen
 	| indexPath 																action => _do_arg1
 
 stepPath ::=
-	step Filter absolutePath 										action => _do_stepFilterSubpath
+	step Filter subPath 												action => _do_stepFilterSubpath
 	| step Filter 															action => _do_stepFilter
-	| step absolutePath 												action => _do_stepSubpath
+	| step subPath 															action => _do_stepSubpath
 	| step																			action => _do_arg1
 
 step ::= 
 	keyname 																		action => _do_keyname
 	| wildcard 																	action => _do_wildcard
 	| dwildcard 																action => _do_dwildcard
-	|	'..'																			action => _do_dotdot			
+	|	'..'																			action => _do_dotdot
 
 indexPath ::=
-	IndexArray Filter absolutePath 							action => _do_indexFilterSubpath	
+	IndexArray Filter subPath 									action => _do_indexFilterSubpath	
 	| IndexArray Filter 												action => _do_indexFilter	
-	| IndexArray absolutePath 									action => _do_indexSubpath		
+	| IndexArray subPath 												action => _do_indexSubpath		
 	| IndexArray																action => _do_arg1	
 
 
@@ -288,7 +294,6 @@ comma
 END_OF_SOURCE
 });
 
-
 sub _do_arg1{ return $_[1]};
 sub _do_arg2{ return $_[2]};
 
@@ -426,6 +431,12 @@ sub _do_endRange{
 }
 sub _do_allRange{
 	{all => 1}
+}
+sub  _do_vlen{
+	return {
+			slashslash => $_[1],
+			subpath => $_[2]
+	};
 }
 sub _do_wildcard{
 	my $k = $_[1];
@@ -706,9 +717,20 @@ $keysProc = {
 		my ($data, undef, $subpath,$filter) = @_;
 		return descendent($data,$subpath,$filter);		
 	},
+	slashslash => sub{
+		my ($data, undef, $subpath,undef) = @_;
+		my @r = (); 
+		#print 'slashslash - ', Dumper \@_;
+		#push @r, child_key_and_descendent($data,$subpath->{step}, $subpath->{subpath}, $subpath->{filter}) if exists $subpath->{step};		
+		#push @r, child_index_and_descendent($data,$subpath->{indexes}, $subpath->{subpath}, $subpath->{filter}) if exists $subpath->{indexes};		
+		push @r, _getObjectSubset($data, $subpath) if exists $subpath->{step} or exists $subpath->{indexes};
+		push @r, descendent($data, $subpath);	
+		return @r;	
+	},
 	qq|..| => sub{
 		my (undef, undef, $subpath,$filter) = @_;
 		return () unless scalar @context > 1;
+		#print 'context at ..', Dumper \@context;
 		push @context, $context[$#context-1];
 		my @r = ();
 		sub{	
@@ -722,9 +744,27 @@ $keysProc = {
 		return @r;	
 	} 
 };
+sub child_key_and_descendent{
+	my ($data,$step, $subpath,$filter) = @_;
+	return () unless defined $data;
+	my @r = ();
+	print 'child_key_and_descendent - ', Dumper \@_;
+	push @r, _getObjectSubset($data, {step => $step, subpath => $subpath, filter => $filter});
+	#push @r, descendent($data,{step => $step, subpath => $subpath},$filter);							#process descendents
+	return @r;
+}
+sub child_index_and_descendent{
+	my ($data,$indexes, $subpath,$filter) = @_;
+	return () unless defined $data;
+	my @r = ();
+	push @r, _getObjectSubset($data, $subpath);
+	#push @r, descendent($data,{indexes => $indexes, subpath => $subpath},$filter);							#process descendents
+	return @r;
+}
 sub descendent{ 
 	my ($data,$subpath,$filter) = @_;
 	return () unless defined $data;
+	#print 'descendent', Dumper \@_;
 	my @r = ();
 	if (ref $data eq q|HASH|){
 		foreach (sort keys %$data){
@@ -749,9 +789,10 @@ sub _getObjectSubset{
 	return () unless ref $path eq q|HASH|;
 	#push @context, {path => $path, data  => \$data};
 	#print 'Context ', Dumper \@context;
+	#print '_getObjectSubset', Dumper \@_;
 	my @r = ();
-	if (ref $data eq q|HASH| or ref $data eq q|ARRAY| and exists $path->{dwildcard}){
-		my @keys = grep{exists $path->{$_}} keys %$keysProc; 								
+	if (ref $data eq q|HASH| or ref $data eq q|ARRAY| and (exists $path->{dwildcard} or exists $path->{slashslash})){
+		my @keys = grep{exists $path->{$_}} keys %$keysProc; 							
 		push @r, $keysProc->{$_}->($data, $path->{$_}, $path->{subpath}, $path->{filter})
 			foreach (@keys);		#$#keys = 1 always but let it to be generic
 	}elsif(ref $data eq q|ARRAY| and defined $path->{indexes} and ref $path->{indexes} eq q|ARRAY|){
@@ -810,6 +851,7 @@ sub compile{
 	$q =~ s/[#\N{U+A0}-\N{U+10FFFF}]/sprintf "#%d#", ord $&/ge; #code utf8 characters with sequece #utfcode#. Marpa problem? 
 	$reader->read(\$q);
 	my $qp = $reader->value;
+	#print "compile", Dumper $qp;
 	return Data::pQuery::Data->new(${$qp})
 }
 
@@ -1011,7 +1053,7 @@ o double wildcard to match any nested data (descendent nodes in xpath nomenclatu
 So instead of xpath expression //a the pQuery uses /**/a and instead of 
 *[count(b) = 1] pQuery uses *{count() == 1}. Notice the double equal operator. 
 
-Furthermore, pQuery does not cast anything, so is impossible to compare string expressions 
+However, pQuery does not cast anything, so is impossible to compare string expressions 
 with mumeric expressions or using numeric operatores. If a function returns a string
 it mus be compared with string operatores against another string expression, ex:
 *{name() eq "keyname"}. 
