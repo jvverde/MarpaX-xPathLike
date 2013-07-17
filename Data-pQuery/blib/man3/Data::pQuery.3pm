@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "Data::pQuery 3"
-.TH Data::pQuery 3 "2013-07-16" "perl v5.14.2" "User Contributed Perl Documentation"
+.TH Data::pQuery 3 "2013-07-17" "perl v5.14.2" "User Contributed Perl Documentation"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -144,7 +144,7 @@ xpath.
 Suppose, for example, we have an array of invoices with Total, Amount and Tax 
 and need to check which one does not comply to the rule \*(L"Total = Amount * (1+Tax)\*(R".
 .PP
-For the data structure bellow we can easily achive it with this code:
+For the data structure below we can easily achieve it with this code:
 .PP
 .Vb 2
 \&        use Data::pQuery;
@@ -169,20 +169,18 @@ For the data structure bellow we can easily achive it with this code:
 \&        ]);
 \&
 \&        print Dumper $data\->query(q$
-\&                //invoice{value(Total) != value(Amount) * (1 + value(Tax))}
+\&                //invoice[value(Total) != value(Amount) * (1 + value(Tax))]
 \&        $)\->getvalues();
 .Ve
 .PP
-The pQuery sintax is very similar to the xpath but with some exceptions. 
-The square brackets '[]' are used to indexes arrays unlike xpath where they
-are used to specify predicates. To specify filters (predicates in xpath 
-nomenclature) pQuery uses curly brackets '{}'. 
-There are also some others little diferences as explained bellow.
+The pQuery sintax is very similar to the xpath but with some minor exceptions,
+as showed in examples bellow.
 .SH "SYNOPSIS"
 .IX Header "SYNOPSIS"
 How to use it.
 .PP
-.Vb 2
+.Vb 3
+\&        use strict;
 \&        use Data::pQuery;
 \&        use Data::Dumper;
 \&
@@ -208,7 +206,27 @@ How to use it.
 \&        $$ref = \*(AqTonic\*(Aq;
 \&        print $d\->{drinks}\->{q|Soft drinks|}\->[0];      
 \&        #Tonic
-\&
+.Ve
+.PP
+As we can see above the hashes structures are indexed like an element node 
+in xpath and the arrays are indexed by square brackets.
+.PP
+The result of a query is a object Data::pQuery::Results. This object provide
+us with two kind of methods
+.IP "getvalues and getvalue" 4
+.IX Item "getvalues and getvalue"
+.PD 0
+.IP "getrefs and getref" 4
+.IX Item "getrefs and getref"
+.PD
+.PP
+The first returns a list/scalar with values. The second returns a list/scalar
+of references for the matched structures.
+.PP
+I keys contains key spaces or some special caracters used to construct a pQuery
+string we can use quotes to delimite them
+.PP
+.Vb 4
 \&        #keys with spaces or especial characters should be delimited 
 \&        #by double quotes 
 \&        print $data\->query(q|/drinks/"Alcoholic beverage"|)\->getvalues();
@@ -217,7 +235,12 @@ How to use it.
 \&        #or by single quotes
 \&        print $data\->query(q|/drinks/\*(AqSoft drinks\*(Aq[1]|)\->getvalues();
 \&        #Coke
-\&
+.Ve
+.PP
+The arrays could be index in several ways, including negative indexes,
+ranges, lists and any combination of these.
+.PP
+.Vb 3
 \&        #the .. sequence indexes all array positions
 \&        print $data\->query(q|/*/*[..]|)\->getvalues();
 \&        #Tonic,Coke,bananas,apples,oranges,pears,potatoes,carrots,tomatoes
@@ -225,59 +248,102 @@ How to use it.
 \&        print $data\->query(q|*/*[..]|)\->getvalues(); #the leading slash is optional
 \&        #Tonic,Coke,bananas,apples,oranges,pears,potatoes,carrots,tomatoes
 \&
-\&        #Curly brackets are used to specify filters
-\&        print $data\->query(q|/*/*{isScalar()}|)\->getvalues();
-\&        #not allowed
-\&
-\&        #data at any level could be specified by the sequence **
-\&        print $data\->query(q|**{isScalar()}|)\->getvalues();
-\&        #not allowed,Tonic,Coke,bananas,apples,oranges,pears,potatoes,carrots,tomatoes
-\&
 \&        #negative values indexes the arrays in reverse order. \-1 is the last index
 \&        print $data\->query(q|/*/*[\-1]|)\->getvalues();
 \&        #Coke,pears,tomatoes
-\&
+.Ve
+.PP
+Like xpath the square brackets are used also to specify filters 
+(predicates in xpath nomenclature)
+.PP
+.Vb 3
+\&        #Square brackets are also used to specify filters
+\&        print $data\->query(q|/*/*[isScalar()]|)\->getvalues();
+\&        #not allowed
+.Ve
+.PP
+The variable path length is also defined as in xpath
+.PP
+.Vb 3
+\&        #Like xpath a variable path length is defined by the sequence //
+\&        print $data\->query(q|//*[isScalar()]|)\->getvalues();
+\&        #not allowed
+.Ve
+.PP
+Unlike xpath in perl we have hashes (which are indexed like element nodes in 
+xpath) and arrays (which are indexed by square brackets.) 
+If we need to specify a step which could be a hash's key or an array's index 
+we can use the sequence **
+.PP
+.Vb 3
+\&        #The step ** select any key or any index, while the step * only select any key
+\&        print $data\->query(q|//**[isScalar()]|)\->getvalues();
+\&        #not allowed,Tonic,Coke,bananas,apples,oranges,pears,potatoes,carrots,tomatoes
+.Ve
+.PP
+We can use pattern to match stings inside a filter
+.PP
+.Vb 3
 \&        #the filter could be a match between a string expression and a pattern
-\&        print $data\->query(q|/*/*{name() ~ "drinks"}[..]|)\->getvalues();
+\&        print $data\->query(q|/*/*[name() ~ "drinks"][..]|)\->getvalues();
 \&        #Tonic,Coke
 \&
+\&        #the same as above (in this particular data\-strucure)
+\&        print $data\->query(q|/*/*[name() ~ "drinks"]/**|)\->getvalues();
+\&        #Tonic,Coke
+.Ve
+.PP
+Of course, the returned values does not need be scalars (note however, in case 
+of not scalares, that the returned values are just references to structures and 
+not copy of them. This is normal behaviour in perl, is just a remember)
+.PP
+.Vb 2
 \&        #The returned values does not need to be scalars
 \&        print Dumper $data\->query(q|/*/vegetables|)\->getvalues();
-\&        =pod
+.Ve
+.PP
+The output of above code will be (assuming the \f(CW$data\fR is defined as above)
+.PP
+.Vb 5
 \&        $VAR1 = [
 \&                  \*(Aqpotatoes\*(Aq,
 \&                  \*(Aqcarrots\*(Aq,
 \&                  \*(Aqtomatoes\*(Aq
 \&                ];
-\&        =cut
-\&
-\&        #using two filters in sequence
-\&        print Dumper $data\->query(q|
-\&                /*/*
-\&                {value([\-1]) gt value([0])}
-\&                {count([..]) < 4}
+.Ve
+.PP
+Again, like in xpath we can specify zero or more filters (predicates) and/or 
+combine logical expression with operators 'and' and 'or'
+.PP
+.Vb 8
+\&        #using two filters in sequence and then get the array in reverse order
+\&        print $data\->query(q|
+\&                //*
+\&                [value([\-1]) gt value([0])]
+\&                [count([..]) < 4]
+\&                [\-1..0]
 \&        |)\->getvalues();
-\&        =pod
-\&        $VAR1 = [
-\&                  \*(Aqpotatoes\*(Aq,
-\&                  \*(Aqcarrots\*(Aq,
-\&                  \*(Aqtomatoes\*(Aq
-\&                ];
-\&        =cut
+\&        #tomatoes,carrots,potatoes
 \&
 \&        #the same as above but using a logical operation instead of two filters
-\&        print Dumper $data\->query(q|
-\&                /*/*{value([\-1]) gt value([0]) 
+\&        print $data\->query(q|
+\&                //*[value([\-1]) gt value([0]) 
 \&                        and count([..]) < 4
-\&                }
+\&                ][\-1..0]
 \&        |)\->getvalues();
-\&
+\&        #tomatoes,carrots,potatoes
+.Ve
+.PP
+Similar to xpath a query does not need to be only a path. A function could
+also be used as a query
+.PP
+.Vb 3
 \&        #a query could be a function instead of a path
 \&        print $data\->query(q|names(/*/*)|)\->getvalues();
 \&        #Alcoholic beverage,Soft drinks,fruit,vegetables
 \&
 \&        #the function \*(Aqnames\*(Aq returns the keys names or indexes
-\&        print $data\->query(q|names(/**)|)\->getvalues();
+\&        print $data\->query(q|names(//**)|)\->getvalues();
 \&        #drinks,Alcoholic beverage,Soft drinks,0,1,food,fruit,0,1,2,3,vegetables,0,1,2
 .Ve
 .SH "DESCRIPTION"
@@ -285,17 +351,10 @@ How to use it.
 It looks for data-structures which match the pQuery expression and returns a list
 of matched data-structures.
 .PP
-The pQuery sintax is very similar to the xpath but with some exceptions. 
-The square brackets '[]' are used to indexes arrays unlike xpath where they are 
-used to specify predicates.
-.PP
-To specify filters (predicates in xpath nomenclature) pQuery uses curly brackets 
-\&'{}'
-.PP
-However, pQuery does not cast anything, so is impossible to compare string expressions 
-with mumeric expressions or using numeric operatores. If a function returns a string
-it mus be compared with string operatores against another string expression, ex:
-*{\fIname()\fR eq \*(L"keyname\*(R"}.
+Currently, pQuery does not cast anything, so is impossible to compare string 
+expressions with mumeric expressions or using numeric operatores. If a function
+returns a string it must be compared with string operators against another 
+string expression, ex: *[\fIname()\fR eq \*(L"keyname\*(R"].
 .PP
 Like xpath it is possible to deal with any logical or arithmetic 
 expressions, ex: *{count(a) == count(c) / 2 * (1 + count(b)) or d}
