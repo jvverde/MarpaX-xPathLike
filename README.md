@@ -40,19 +40,19 @@ For the data structure below we can easily achieve it with this code:
 	]);
 
 	print Dumper $data->query(q$
-	        //invoice{value(Total) != value(Amount) * (1 + value(Tax))}
+	        //invoice[value(Total) != value(Amount) * (1 + value(Tax))]
 	$)->getvalues();
 
-The pQuery sintax is very similar to the xpath but with some exceptions. 
-The square brackets '\[\]' are used to indexes arrays unlike xpath where they
-are used to specify predicates. To specify filters (predicates in xpath 
-nomenclature) pQuery uses curly brackets '{}'. 
-There are also some others little diferences as explained bellow.
+The pQuery sintax is very similar to the xpath but with some minor exceptions,
+as showed in examples bellow.
+
+
 
 # SYNOPSIS
 
 How to use it.
 
+	use strict;
 	use Data::pQuery;
 	use Data::Dumper;
 
@@ -79,6 +79,23 @@ How to use it.
 	print $d->{drinks}->{q|Soft drinks|}->[0];	
 	#Tonic
 
+As we can see above the hashes structures are indexed like an element node 
+in xpath and the arrays are indexed by square brackets.
+
+The result of a query is a object Data::pQuery::Results. This object provide
+us with two kind of methods
+
+- getvalues and getvalue
+- getrefs and getref
+
+The first returns a list/scalar with values. The second returns a list/scalar
+of references for the matched structures.
+
+
+
+I keys contains key spaces or some special caracters used to construct a pQuery
+string we can use quotes to delimite them
+
 	#keys with spaces or especial characters should be delimited 
 	#by double quotes 
 	print $data->query(q|/drinks/"Alcoholic beverage"|)->getvalues();
@@ -88,6 +105,11 @@ How to use it.
 	print $data->query(q|/drinks/'Soft drinks'[1]|)->getvalues();
 	#Coke
 
+
+
+The arrays could be index in several ways, including negative indexes,
+ranges, lists and any combination of these.
+
 	#the .. sequence indexes all array positions
 	print $data->query(q|/*/*[..]|)->getvalues();
 	#Tonic,Coke,bananas,apples,oranges,pears,potatoes,carrots,tomatoes
@@ -95,59 +117,100 @@ How to use it.
 	print $data->query(q|*/*[..]|)->getvalues(); #the leading slash is optional
 	#Tonic,Coke,bananas,apples,oranges,pears,potatoes,carrots,tomatoes
 
-	#Curly brackets are used to specify filters
-	print $data->query(q|/*/*{isScalar()}|)->getvalues();
-	#not allowed
-
-	#data at any level could be specified by the sequence **
-	print $data->query(q|**{isScalar()}|)->getvalues();
-	#not allowed,Tonic,Coke,bananas,apples,oranges,pears,potatoes,carrots,tomatoes
-
 	#negative values indexes the arrays in reverse order. -1 is the last index
 	print $data->query(q|/*/*[-1]|)->getvalues();
 	#Coke,pears,tomatoes
 
+
+
+Like xpath the square brackets are used also to specify filters 
+(predicates in xpath nomenclature)
+
+	#Square brackets are also used to specify filters
+	print $data->query(q|/*/*[isScalar()]|)->getvalues();
+	#not allowed
+
+
+
+The variable path length is also defined as in xpath
+
+	#Like xpath a variable path length is defined by the sequence //
+	print $data->query(q|//*[isScalar()]|)->getvalues();
+	#not allowed
+
+
+
+Unlike xpath in perl we have hashes (which are indexed like element nodes in 
+xpath) and arrays (which are indexed by square brackets.) 
+If we need to specify a step which could be a hash's key or an array's index 
+we can use the sequence \*\*
+
+	#The step ** select any key or any index, while the step * only select any key
+	print $data->query(q|//**[isScalar()]|)->getvalues();
+	#not allowed,Tonic,Coke,bananas,apples,oranges,pears,potatoes,carrots,tomatoes
+
+
+
+We can use pattern to match stings inside a filter
+
 	#the filter could be a match between a string expression and a pattern
-	print $data->query(q|/*/*{name() ~ "drinks"}[..]|)->getvalues();
+	print $data->query(q|/*/*[name() ~ "drinks"][..]|)->getvalues();
 	#Tonic,Coke
+
+	#the same as above (in this particular data-strucure)
+	print $data->query(q|/*/*[name() ~ "drinks"]/**|)->getvalues();
+	#Tonic,Coke
+
+
+
+Of course, the returned values does not need be scalars (note however, in case 
+of not scalares, that the returned values are just references to structures and 
+not copy of them. This is normal behaviour in perl, is just a remember)
 
 	#The returned values does not need to be scalars
 	print Dumper $data->query(q|/*/vegetables|)->getvalues();
-	=pod
-	$VAR1 = [
-	          'potatoes',
-	          'carrots',
-	          'tomatoes'
-	        ];
-	=cut
 
-	#using two filters in sequence
-	print Dumper $data->query(q|
-		/*/*
-		{value([-1]) gt value([0])}
-		{count([..]) < 4}
-	|)->getvalues();
-	=pod
+The output of above code will be (assuming the $data is defined as above)
+
 	$VAR1 = [
 	          'potatoes',
 	          'carrots',
 	          'tomatoes'
 	        ];
-	=cut
+
+
+
+Again, like in xpath we can specify zero or more filters (predicates) and/or 
+combine logical expression with operators 'and' and 'or'
+
+	#using two filters in sequence and then get the array in reverse order
+	print $data->query(q|
+		//*
+		[value([-1]) gt value([0])]
+		[count([..]) < 4]
+		[-1..0]
+	|)->getvalues();
+	#tomatoes,carrots,potatoes
 
 	#the same as above but using a logical operation instead of two filters
-	print Dumper $data->query(q|
-		/*/*{value([-1]) gt value([0]) 
+	print $data->query(q|
+		//*[value([-1]) gt value([0]) 
 			and count([..]) < 4
-		}
+		][-1..0]
 	|)->getvalues();
+	#tomatoes,carrots,potatoes
+
+
+
+Similar to xpath a query does not need to be only a path. A function could
+also be used as a query
 
 	#a query could be a function instead of a path
 	print $data->query(q|names(/*/*)|)->getvalues();
 	#Alcoholic beverage,Soft drinks,fruit,vegetables
 
 	#the function 'names' returns the keys names or indexes
-	print $data->query(q|names(/**)|)->getvalues();
+	print $data->query(q|names(//**)|)->getvalues();
 	#drinks,Alcoholic beverage,Soft drinks,0,1,food,fruit,0,1,2,3,vegetables,0,1,2
 
 
@@ -157,17 +220,14 @@ How to use it.
 It looks for data-structures which match the pQuery expression and returns a list
 of matched data-structures.
 
-The pQuery sintax is very similar to the xpath but with some exceptions. 
-The square brackets '\[\]' are used to indexes arrays unlike xpath where they are 
-used to specify predicates.
 
-To specify filters (predicates in xpath nomenclature) pQuery uses curly brackets 
-'{}'
 
-However, pQuery does not cast anything, so is impossible to compare string expressions 
-with mumeric expressions or using numeric operatores. If a function returns a string
-it mus be compared with string operatores against another string expression, ex:
-\*{name() eq "keyname"}. 
+Currently, pQuery does not cast anything, so is impossible to compare string 
+expressions with mumeric expressions or using numeric operatores. If a function
+returns a string it must be compared with string operators against another 
+string expression, ex: \*\[name() eq "keyname"\]. 
+
+
 
 Like xpath it is possible to deal with any logical or arithmetic 
 expressions, ex: \*{count(a) == count(c) / 2 \* (1 + count(b)) or d}
