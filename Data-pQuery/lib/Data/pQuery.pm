@@ -974,7 +974,7 @@ For the data structure below we can easily achieve it with this code:
 	        //invoice[value(Total) != value(Amount) * (1 + value(Tax))]
 	$)->getvalues();
 
-The pQuery sintax is very similar to the xpath but with some minor exceptions,
+The pQuery syntax is very similar to the xpath but with some minor exceptions,
 as showed in examples bellow.
 
 
@@ -1027,7 +1027,7 @@ The first returns a list/scalar with values. The second returns a list/scalar
 of references for the matched structures.
 
 
-I keys contains key spaces or some special caracters used to construct a pQuery
+If keys contains key spaces or some special caracters used to construct a pQuery
 string we can use quotes to delimite them
 
 	#keys with spaces or especial characters should be delimited 
@@ -1249,7 +1249,7 @@ Returns a list of values for each matched data;
 =head3 getvalue()
 Returns the value of first matched data;
 
-=head1 pQuery sintax
+=head1 pQuery syntax
 	
 A pQuery expression is a function or a path. 
 

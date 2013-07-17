@@ -41,7 +41,7 @@ Why we need another one
                     //invoice[value(Total) != value(Amount) * (1 + value(Tax))]
             $)->getvalues();
 
-    The pQuery sintax is very similar to the xpath but with some minor
+    The pQuery syntax is very similar to the xpath but with some minor
     exceptions, as showed in examples bellow.
 
 SYNOPSIS
@@ -86,8 +86,8 @@ SYNOPSIS
     The first returns a list/scalar with values. The second returns a
     list/scalar of references for the matched structures.
 
-    I keys contains key spaces or some special caracters used to construct a
-    pQuery string we can use quotes to delimite them
+    If keys contains key spaces or some special caracters used to construct
+    a pQuery string we can use quotes to delimite them
 
             #keys with spaces or especial characters should be delimited 
             #by double quotes 
@@ -284,7 +284,7 @@ Returns a reference for first matched data;
 Returns a list of values for each matched data;
     getvalue()
 Returns the value of first matched data;
-pQuery sintax
+pQuery syntax
     A pQuery expression is a function or a path.
 
   pQuery Path Expressions
