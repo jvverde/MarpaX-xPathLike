@@ -636,8 +636,6 @@ $indexesProc = {
 		my @r = ();	
 		my $location = $context[$#context]->{location}  // q||;
 		$location .= qq|[$index]|;
-		print "location = $location";
-		print 'Context Before[]', Dumper \@context;
 		push @context, {name => $index, data  => \$data->[$index], location => $location};
 		sub{
 			return if defined $filter and !_check($filter); 
@@ -647,7 +645,6 @@ $indexesProc = {
 					: $context[$#context];
 		}->();
 		pop @context;
-		print 'Context after[]', Dumper \@context;
 		return @r;
 	},
 	range => sub{
@@ -699,11 +696,8 @@ $keysProc = {
 		return () unless exists $data->{$step};
 
 		my @r = ();
-		#$subpath->{currentObj} = $data->{$step} if defined $subpath;
 		my $location = $context[$#context]->{location} // q||;
 		$location .= qq|/$step|;
-		print "location = $location";
-		print 'Context Before', Dumper \@context;
 		push @context, {name => $step, data  => \$data->{$step}, location => $location};
 		sub{	
 			return if defined $filter and !_check($filter); 
@@ -713,7 +707,6 @@ $keysProc = {
 					: $context[$#context];
 		}->();
 		pop @context;
-		print 'Context after', Dumper \@context;
 		return @r;
 	},
 	wildcard => sub{
@@ -729,35 +722,13 @@ $keysProc = {
 	},
 	slashslash => sub{
 		my ($data, undef, $subpath,undef) = @_;
-		print 'slashslash args', Dumper \@_;
-		#my @r = (); 
-		#push @r, _getObjectSubset($data, $subpath) if exists $subpath->{step} or exists $subpath->{indexes}; #find a struct at this level
-		#print  'sub structs ->', Dumper [descendent2($data)];
-		#push @r, _getObjectSubset($data, $subpath); #find a struct at this level
-		my @d = descendent2($data);
-		print 'descendent2 order', Dumper \@d;
-		#my @r = map {my $r = _getObjectSubset($_->[1], $subpath); $r->{location} = $_->[0] . $r->{location}; $r} @d;
-		my @r = map {my $prefix = $_->[0]; map {$_->{location} = $prefix . $_->{location}; $_} _getObjectSubset($_->[1],,$subpath)} @d;
-		# my @r = ();
-		# foreach(@d){
-		#  	my $prefix = $_->[0];
-		#  	print "prefix = $prefix, and ", Dumper $_->[1];
-		#  	my @list = _getObjectSubset($_->[1],$subpath);
-		#  	foreach (@list){
-		#  		$_->{location} = $prefix . $_->{location};
-		#  		print "obj -> ", Dumper $_;
-		#  		push @r, $_;
-		#  	}
-		# }
-		print 'descendent2 result', Dumper \@r;
-		#push @r, descendent($data, $subpath);	
-		#print 'slashslash2', Dumper \@r; 
-		return @r;	
+		#get every descent, apply _getObjectSubset and prefix every location
+		#BUT WE HAVE A PROBLEM WITH CONTEX
+		return map {my $prefix = $_->[0]; map {$_->{location} = $prefix . $_->{location}; $_} _getObjectSubset($_->[1],,$subpath)}  descendent($data);
 	},
 	qq|..| => sub{
 		my (undef, undef, $subpath,$filter) = @_;
 		return () unless scalar @context > 1;
-		#print 'context at ..', Dumper \@context;
 		push @context, $context[$#context-1];
 		my @r = ();
 		sub{	
@@ -771,12 +742,12 @@ $keysProc = {
 		return @r;	
 	} 
 };
-sub descendent2{
+sub descendent{
 	my $data = $_[0];
 	my $loc = $_[1] // '';
 	return () unless ref $data; 
-	my @r1 = map { descendent2($data->{$_},"$loc/$_") } (sort keys %$data) if (ref $data eq q|HASH|);
-	my @r2 = map { descendent2($data->[$_],"${loc}[$_]") } (0 .. $#$data) if (ref $data eq q|ARRAY|);		
+	my @r1 = map { descendent($data->{$_},"$loc/$_") } (sort keys %$data) if (ref $data eq q|HASH|);
+	my @r2 = map { descendent($data->[$_],"${loc}[$_]") } (0 .. $#$data) if (ref $data eq q|ARRAY|);		
 	return ([$loc, $data],@r1,@r2);
 }
 $Data::Dumper::Deepcopy = 1;
@@ -794,38 +765,11 @@ sub anyChildType{
 			push @r, $indexesProc->{index}->($data,$_,$subpath,$filter);		#process this array index
 		}
 	};
-	#print 'anyChildType results', Dumper \@r;
 	return @r;	
 }
-# sub descendent{ 
-# 	my ($data,$subpath,$filter) = @_;
-# 	return () unless defined $data;
-# 	print 'descendent', Dumper \@_;
-# 	my @r = ();
-# 	if (ref $data eq q|HASH|){
-# 		foreach (sort keys %$data){
-# 			push @r, $keysProc->{step}->($data, $_, $subpath,$filter);			#process this key entry
-# 			push @context, {name => $_, data  => \$data->{$_}};							#create a context for next level
-# 			push @r, descendent($data->{$_},$subpath,$filter);							#process descendents
-# 			pop @context;		
-# 		}
-# 	}
-# 	if (ref $data eq q|ARRAY|){
-# 		foreach (0..$#$data){
-# 			push @r, $indexesProc->{index}->($data,$_,$subpath,$filter);		#process this array index
-# 			push @context, {name => $_, data  => \$data->[$_]};							#create a context for next level
-# 			push @r, descendent($data->[$_],$subpath,$filter);							#process descendents
-# 			pop @context;
-# 		}
-# 	};
-# 	return @r;
-# }
 sub _getObjectSubset{
 	my ($data,$path) = @_;
 	return () unless ref $path eq q|HASH|;
-	#push @context, {path => $path, data  => \$data};
-	#print 'Context ', Dumper \@context;
-	#print '_getObjectSubset', Dumper \@_;
 	my @r = ();
 	if (ref $data eq q|HASH| or ref $data eq q|ARRAY| and (exists $path->{dwildcard} or exists $path->{slashslash})){
 		my @keys = grep{exists $path->{$_}} keys %$keysProc; 							
@@ -843,7 +787,6 @@ sub _getObjectSubset{
 		#do nothing. Nothing is ok
 		#print 'Nothing ', Dumper $data;
 	}
-	#pop @context;
 	return @r;
 }
 sub _getSubObjectsOrCurrent{

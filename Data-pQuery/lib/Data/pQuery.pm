@@ -636,8 +636,6 @@ $indexesProc = {
 		my @r = ();	
 		my $location = $context[$#context]->{location}  // q||;
 		$location .= qq|[$index]|;
-		print "location = $location";
-		print 'Context Before[]', Dumper \@context;
 		push @context, {name => $index, data  => \$data->[$index], location => $location};
 		sub{
 			return if defined $filter and !_check($filter); 
@@ -647,7 +645,6 @@ $indexesProc = {
 					: $context[$#context];
 		}->();
 		pop @context;
-		print 'Context after[]', Dumper \@context;
 		return @r;
 	},
 	range => sub{
@@ -701,8 +698,6 @@ $keysProc = {
 		my @r = ();
 		my $location = $context[$#context]->{location} // q||;
 		$location .= qq|/$step|;
-		print "location = $location";
-		print 'Context Before', Dumper \@context;
 		push @context, {name => $step, data  => \$data->{$step}, location => $location};
 		sub{	
 			return if defined $filter and !_check($filter); 
@@ -712,7 +707,6 @@ $keysProc = {
 					: $context[$#context];
 		}->();
 		pop @context;
-		print 'Context after', Dumper \@context;
 		return @r;
 	},
 	wildcard => sub{
@@ -729,6 +723,7 @@ $keysProc = {
 	slashslash => sub{
 		my ($data, undef, $subpath,undef) = @_;
 		#get every descent, apply _getObjectSubset and prefix every location
+		#BUT WE HAVE A PROBLEM WITH CONTEX
 		return map {my $prefix = $_->[0]; map {$_->{location} = $prefix . $_->{location}; $_} _getObjectSubset($_->[1],,$subpath)}  descendent($data);
 	},
 	qq|..| => sub{
@@ -751,8 +746,8 @@ sub descendent{
 	my $data = $_[0];
 	my $loc = $_[1] // '';
 	return () unless ref $data; 
-	my @r1 = map { descendent2($data->{$_},"$loc/$_") } (sort keys %$data) if (ref $data eq q|HASH|);
-	my @r2 = map { descendent2($data->[$_],"${loc}[$_]") } (0 .. $#$data) if (ref $data eq q|ARRAY|);		
+	my @r1 = map { descendent($data->{$_},"$loc/$_") } (sort keys %$data) if (ref $data eq q|HASH|);
+	my @r2 = map { descendent($data->[$_],"${loc}[$_]") } (0 .. $#$data) if (ref $data eq q|ARRAY|);		
 	return ([$loc, $data],@r1,@r2);
 }
 $Data::Dumper::Deepcopy = 1;
