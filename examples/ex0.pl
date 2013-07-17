@@ -16,8 +16,6 @@ my $d = {
 };
 
 my $data = Data::pQuery->data($d);
-print $data->query(q|names(//**)|)->getvalues();
-exit;
 my $results = $data->query(q|/*/*[0]|);
 my @values = $results->getvalues();
 print @values;					
@@ -41,7 +39,8 @@ print $data->query(q|/drinks/'Soft drinks'[1]|)->getvalues();
 print $data->query(q|/*/*[..]|)->getvalues();
 #Tonic,Coke,bananas,apples,oranges,pears,potatoes,carrots,tomatoes
 
-print $data->query(q|*/*[..]|)->getvalues(); #the leading slash is optional
+#the leading slash is optional
+print $data->query(q|*/*[..]|)->getvalues(); 
 #Tonic,Coke,bananas,apples,oranges,pears,potatoes,carrots,tomatoes
 
 #negative values indexes the arrays in reverse order. -1 is the last index
@@ -79,7 +78,7 @@ $VAR1 = [
         ];
 =cut
 
-#using two filters in sequence and then get the array in reverse order
+#using two filters in sequence 
 print $data->query(q|
 	//*
 	[value([-1]) gt value([0])]
@@ -102,4 +101,8 @@ print $data->query(q|names(/*/*)|)->getvalues();
 
 #the function 'names' returns the keys names or indexes
 print $data->query(q|names(//**)|)->getvalues();
-#Alcoholic beverage,Soft drinks,0,1,fruit,vegetables,0,1,2,3,0,1,2
+#drinks,Alcoholic beverage,Soft drinks,0,1,food,fruit,0,1,2,3,vegetables,0,1,2
+
+print $data->query(q|names(//**/..)|)->getvalues();
+#,,drinks,drinks,Soft drinks,Soft drinks,food,food,fruit,fruit,fruit,fruit,vegetables,vegetables,vegetables
+

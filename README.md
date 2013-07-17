@@ -151,7 +151,7 @@ we can use the sequence \*\*
 
 
 
-We can use pattern to match stings inside a filter
+We can use pattern to match strings inside a filter
 
 	#the filter could be a match between a string expression and a pattern
 	print $data->query(q|/*/*[name() ~ "drinks"][..]|)->getvalues();

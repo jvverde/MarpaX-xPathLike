@@ -551,7 +551,7 @@ $operatorBy = {
 		return _arithmeticOper(sub {$_[0] % $_[1]}, $_[0], $_[1], @_[2..$#_]);
 	},
 	names => sub{
-		return map {$_->{name}} sort {$a->{location} cmp $b->{location}} _getSubObjectsOrCurrent(@_);
+		return map {$_->{name}} sort {$a->{order} cmp $b->{order}} _getSubObjectsOrCurrent(@_);
 	},
 	name => sub{
 		my @r = $operatorBy->{names}->(@_);
@@ -559,7 +559,7 @@ $operatorBy = {
 		return q||; 
 	},
 	values => sub{
-		return map {${$_->{data}}} sort {$a->{location} cmp $b->{location}} _getSubObjectsOrCurrent(@_);
+		return map {${$_->{data}}} sort {$a->{order} cmp $b->{order}} _getSubObjectsOrCurrent(@_);
 	},
 	value => sub(){
 		my @r = $operatorBy->{values}->(@_);
@@ -634,9 +634,9 @@ $indexesProc = {
 		$index += $#$data + 1 if $index < 0;						# -1 == $#data => last index
 		return () if $index < 0 or $index > $#$data;		# check bounds limits
 		my @r = ();	
-		my $location = $context[$#context]->{location}  // q||;
-		$location .= qq|[$index]|;
-		push @context, {name => $index, data  => \$data->[$index], location => $location};
+		my $order = $context[$#context]->{order}  // q||;
+		$order .= qq|[]|;
+		push @context, {name => $index, data  => \$data->[$index], order => $order};
 		sub{
 			return if defined $filter and !_check($filter); 
 			push @r, 
@@ -696,9 +696,9 @@ $keysProc = {
 		return () unless exists $data->{$step};
 
 		my @r = ();
-		my $location = $context[$#context]->{location} // q||;
-		$location .= qq|/$step|;
-		push @context, {name => $step, data  => \$data->{$step}, location => $location};
+		my $order = $context[$#context]->{order} // q||;
+		$order .= qq|/$step|;
+		push @context, {name => $step, data  => \$data->{$step}, order => $order};
 		sub{	
 			return if defined $filter and !_check($filter); 
 			push @r, 
@@ -722,14 +722,13 @@ $keysProc = {
 	},
 	slashslash => sub{
 		my ($data, undef, $subpath,undef) = @_;
-		#get every descent, apply _getObjectSubset and prefix every location
-		#BUT WE HAVE A PROBLEM WITH CONTEX
-		return map {my $prefix = $_->[0]; map {$_->{location} = $prefix . $_->{location}; $_} _getObjectSubset($_->[1],,$subpath)}  descendent($data);
+		return descendent2($data,$subpath);
 	},
 	qq|..| => sub{
 		my (undef, undef, $subpath,$filter) = @_;
 		return () unless scalar @context > 1;
-		push @context, $context[$#context-1];
+		my $subcontext = pop @context;
+		#push @context, $context[$#context-1];
 		my @r = ();
 		sub{	
 			return if defined $filter and !_check($filter); 
@@ -738,17 +737,42 @@ $keysProc = {
 					_getObjectSubset(${$context[$#context]->{data}}, $subpath)
 					: $context[$#context];
 		}->();		
-		pop @context;
+		push @context, $subcontext;
 		return @r;	
 	} 
 };
+sub descendent2{
+	my ($data,$path) = @_;
+	#print 'context', Dumper \@context;
+	my @r = _getObjectSubset($data,$path);	
+	my $order = $context[$#context]->{order} // q||;
+	#print "order = $order";
+	if (ref $data eq q|HASH|){
+			foreach (sort keys %$data){
+				push @context, {name => $_, data  => \$data->{$_}, order => qq|$order/$_|};
+				push @r, descendent2($data->{$_}, $path);
+				pop @context;
+			}
+	}
+	if (ref $data eq q|ARRAY|){
+			foreach (0 .. $#$data){
+				push @context, {name => $_, data  => \$data->[$_], order =>  qq|${order}[]|};
+				push @r, descendent2($data->[$_], $path);
+				pop @context;
+			}
+	}
+	return @r;
+}
 sub descendent{
 	my $data = $_[0];
 	my $loc = $_[1] // '';
-	return () unless ref $data; 
-	my @r1 = map { descendent($data->{$_},"$loc/$_") } (sort keys %$data) if (ref $data eq q|HASH|);
-	my @r2 = map { descendent($data->[$_],"${loc}[$_]") } (0 .. $#$data) if (ref $data eq q|ARRAY|);		
-	return ([$loc, $data],@r1,@r2);
+	my $context = $_[2] // [];
+	my $step = $_[3];
+	return () unless ref $data;
+	push @$context, {name => $step, data  => \$data, order => $loc};
+	my @r1 = map { descendent($data->{$_},"$loc/$_",$context,$_) } (sort keys %$data) if (ref $data eq q|HASH|);
+	my @r2 = map { descendent($data->[$_],"${loc}[$_]", $context,$_) } (0 .. $#$data) if (ref $data eq q|ARRAY|);	
+	return ([$loc,$data,$context],@r1,@r2);
 }
 $Data::Dumper::Deepcopy = 1;
 sub anyChildType{
@@ -809,10 +833,10 @@ sub _execute{
 	my ($self,$data,$query) = @_;
 	return undef unless ref $data eq q|HASH| or ref $data eq q|ARRAY|; 
 	return undef unless defined $query and (defined $query->{oper} or defined $query->{paths});
-	push @context, {data  => \$data};
+	push @context, {data  => \$data, order => ''};
 	my @r = defined $query->{oper} ? 
 		map {\$_} (_operation($query))								#if an operation	
-		: map {$_->{data}} sort {$a->{location} cmp $b->{location}} _getObjects(@{$query->{paths}}); 	#else is a path
+		: map {$_->{data}} sort {$a->{order} cmp $b->{order}} _getObjects(@{$query->{paths}}); 	#else is a path
 	pop @context;
 	return Data::pQuery::Results->new(@r);
 }
@@ -1056,7 +1080,7 @@ we can use the sequence **
 	#not allowed,Tonic,Coke,bananas,apples,oranges,pears,potatoes,carrots,tomatoes
 
 
-We can use pattern to match stings inside a filter
+We can use pattern to match strings inside a filter
 
 	#the filter could be a match between a string expression and a pattern
 	print $data->query(q|/*/*[name() ~ "drinks"][..]|)->getvalues();
