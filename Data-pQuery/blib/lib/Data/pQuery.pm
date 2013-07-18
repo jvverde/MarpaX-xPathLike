@@ -68,7 +68,10 @@ step ::=
 	|	'..'																			action => _do_dotdot
 	| 'parent::*'																action => _do_dotdot
 	| 'parent::' keyname												action => _do_parentNamed			  
+	| 'parent::[' IntExpr	']'											action => _do_parentNamed			  
 	| 'ancestor::*'															action => _do_ancestor
+	| 'ancestor::' keyname											action => _do_ancestorNamed
+	| 'ancestor::[' IntExpr ']' 								action => _do_ancestorNamed
 
 indexPath ::=
 	IndexArray Filter subPath 									action => _do_indexFilterSubpath	
@@ -467,6 +470,9 @@ sub _do_parentNamed{
 sub _do_ancestor{
 	return {ancestor => $_[1]};
 }
+sub _do_ancestorNamed{
+	return {ancestorNamed => $_[2]};	
+}
 #############################end of rules################################
 
 my @context = ();
@@ -758,7 +764,8 @@ $keysProc = {
 	},
 	qq|..| => sub{
 		my (undef, undef, $subpath,$filter) = @_;
-		return () unless scalar @context > 0;
+		#print 'context ->', Dumper \@context;
+		return () unless scalar @context > 1;
 		my $subcontext = pop @context;
 		#push @context, $context[$#context-1];
 		my @r = ();
@@ -781,7 +788,7 @@ $keysProc = {
 		my (undef, undef, $subpath,$filter) = @_;
 		my @r = ();
 		my @tmp = ();
-		while(scalar @context > 0){
+		while(scalar @context > 1){
 			push @tmp, pop @context;
 			sub{	
 				return if defined $filter and !_check($filter); 
@@ -793,6 +800,24 @@ $keysProc = {
 		};
 		push @context, pop @tmp while(scalar @tmp > 0); #repo @context;	
 		return @r;		
+	},
+	ancestorNamed => sub{
+		my (undef, $step, $subpath,$filter) = @_;
+		my @r = ();
+		my @tmp = ();
+		while(scalar @context > 1){
+			push @tmp, pop @context;
+			next unless $context[$#context]->{name} eq $step;
+			sub{	
+				return if defined $filter and !_check($filter); 
+				push @r, 
+					defined $subpath ? 
+						_getObjectSubset(${$context[$#context]->{data}}, $subpath)
+						: $context[$#context];
+			}->();		
+		};
+		push @context, pop @tmp while(scalar @tmp > 0); #repo @context;	
+		return @r;	
 	} 
 };
 sub descendent2{
@@ -849,7 +874,7 @@ sub _getObjectSubset{
 	my ($data,$path) = @_;
 	return () unless ref $path eq q|HASH|;
 	my @r = ();
-	if (ref $data eq q|HASH| or ref $data eq q|ARRAY| and (exists $path->{dwildcard} or exists $path->{slashslash})){
+	if (ref $data eq q|HASH|){
 		my @keys = grep{exists $path->{$_}} keys %$keysProc; 							
 		push @r, $keysProc->{$_}->($data, $path->{$_}, $path->{subpath}, $path->{filter})
 			foreach (@keys);		#$#keys = 1 always but let it to be generic
@@ -859,6 +884,10 @@ sub _getObjectSubset{
 			push @r, $indexesProc->{$_}->($data,$entry->{$_},$path->{subpath},$path->{filter})
 				foreach (grep {exists $indexesProc->{$_}} keys %$entry); 	#just in case use grep to filter out not supported indexes types
 		}
+	}elsif (exists $path->{dwildcard}){
+			push @r, $keysProc->{dwildcard}->($data, $path->{dwildcard}, $path->{subpath}, $path->{filter});
+	}elsif (exists $path->{slashslash}){
+			push @r, $keysProc->{slashslash}->($data, $path->{slashslash}, $path->{subpath}, $path->{filter});
 	}elsif (exists $path->{q|..|}){
 			push @r, $keysProc->{q|..|}->($data, $path->{q|..|}, $path->{subpath}, $path->{filter});
 	}elsif (exists $path->{q|.|}){
@@ -867,6 +896,8 @@ sub _getObjectSubset{
 			push @r, $keysProc->{parentNamed}->($data, $path->{parentNamed}, $path->{subpath}, $path->{filter});
 	}elsif (exists $path->{ancestor}){
 			push @r, $keysProc->{ancestor}->($data, $path->{ancestor}, $path->{subpath}, $path->{filter});
+	}elsif (exists $path->{ancestorNamed}){
+			push @r, $keysProc->{ancestorNamed}->($data, $path->{ancestorNamed}, $path->{subpath}, $path->{filter});
 	}else{ #aqui deve-se por outro teste para o caso .. e .
 		#do nothing. Nothing is ok
 		#print 'Nothing ', Dumper $data;
@@ -1197,8 +1228,8 @@ combine logical expression with operators 'and' and 'or'
 	#tomatoes,carrots,potatoes
 
 
-Similar to xpath a query does not need to be only a path. A function could
-also be used as a query
+Similar to xpath a pQuery does not need to be only a path. A function could
+also be used as a pQuery
 
 	#a query could be a function instead of a path
 	print $data->query(q|names(/*/*)|)->getvalues();

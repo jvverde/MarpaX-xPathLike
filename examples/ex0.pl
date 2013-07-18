@@ -119,7 +119,7 @@ print $data->query(q|names(//**/..)|)->getvalues();
 
 #support parent axis
 print $data->query(q|count(//**/parent::fruit)|)->getvalues();
-#4
+#1
 
 print $data->query(q|names(/food/fruit[3]/ancestor::*)|)->getvalues();
 #/,food,fruit
@@ -141,3 +141,11 @@ print $data2->query(q|count(//**/parent::food)|)->getvalues();
 #4
 print $data2->query(q{names(//**[value() ~ "toma|oda"]/ancestor::*)})->getvalues();
 print $data2->query(q{names(//**[value() ~ "toma|oda"])})->getvalues();
+
+print $data2->query(q{names(//**/ancestor::food)})->getvalues();
+print $data2->query(q{names(//**/ancestor::[0])})->getvalues();
+print Dumper $data2->query(q{//**/parent::[0]})->getvalues();
+print Dumper $data2->query(q{//**/parent::*[isArray()]})->getvalues();
+print $data2->query(q{name(/.)})->getvalues();
+print $data2->query(q{name(.)})->getvalues();
+print $data2->query(q{/food[1][1]})->getvalues();
