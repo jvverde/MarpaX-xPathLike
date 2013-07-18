@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "Data::pQuery 3"
-.TH Data::pQuery 3 "2013-07-17" "perl v5.14.2" "User Contributed Perl Documentation"
+.TH Data::pQuery 3 "2013-07-18" "perl v5.14.2" "User Contributed Perl Documentation"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -173,7 +173,7 @@ For the data structure below we can easily achieve it with this code:
 \&        $)\->getvalues();
 .Ve
 .PP
-The pQuery sintax is very similar to the xpath but with some minor exceptions,
+The pQuery syntax is very similar to the xpath but with some minor exceptions,
 as showed in examples bellow.
 .SH "SYNOPSIS"
 .IX Header "SYNOPSIS"
@@ -223,7 +223,7 @@ us with two kind of methods
 The first returns a list/scalar with values. The second returns a list/scalar
 of references for the matched structures.
 .PP
-I keys contains key spaces or some special caracters used to construct a pQuery
+If keys contains key spaces or some special caracters used to construct a pQuery
 string we can use quotes to delimite them
 .PP
 .Vb 4
@@ -453,8 +453,8 @@ Compile a pQuery string, query the data and returns a Data::pQuery::Results obje
 .PP
 \fI\fIgetvalue()\fI Returns the value of first matched data;\fR
 .IX Subsection "getvalue() Returns the value of first matched data;"
-.SH "pQuery sintax"
-.IX Header "pQuery sintax"
+.SH "pQuery syntax"
+.IX Header "pQuery syntax"
 A pQuery expression is a function or a path.
 .SS "pQuery Path Expressions"
 .IX Subsection "pQuery Path Expressions"

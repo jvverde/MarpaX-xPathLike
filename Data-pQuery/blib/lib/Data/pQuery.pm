@@ -64,7 +64,11 @@ step ::=
 	keyname 																		action => _do_keyname
 	| wildcard 																	action => _do_wildcard
 	| dwildcard 																action => _do_dwildcard
+	|	'.'																				action => _do_dot
 	|	'..'																			action => _do_dotdot
+	| 'parent::*'																action => _do_dotdot
+	| 'parent::' keyname												action => _do_parentNamed			  
+	| 'ancestor::*'															action => _do_ancestor
 
 indexPath ::=
 	IndexArray Filter subPath 									action => _do_indexFilterSubpath	
@@ -144,8 +148,8 @@ compareExpr ::=
 	 | NumericExpr '!=' NumericExpr							action => _do_binaryOperation
 	 | StringExpr 'eq' StringExpr								action => _do_binaryOperation
 	 | StringExpr 'ne' StringExpr								action => _do_binaryOperation
-	|| compareExpr 'and' LogicalExpr						action => _do_binaryOperation
-	|| compareExpr 'or' LogicalExpr							action => _do_binaryOperation
+	|| LogicalExpr 'and' LogicalExpr						action => _do_binaryOperation
+	|| LogicalExpr 'or' LogicalExpr							action => _do_binaryOperation
 
 #operator match, not match, in, intersect and union are missing
 
@@ -248,7 +252,6 @@ STRING ::=
 	double_quoted               								action => _do_double_quoted
 	| single_quoted              								action => _do_single_quoted
 
-
 single_quoted        
 	~ [''] single_quoted_chars ['']
 
@@ -276,11 +279,15 @@ dwildcard
 	~ [*][*]
 
 keyname ::= 
-	token																				action => _do_token
+	keyword																			action => _do_token
 	| STRING            												action => _do_arg1
 
-token ~ [^./*,'"|\s\]\[\(\)\{\}\\+-]+
+keyword 
+	~ token
+	| token ':' token      #to allow replication of xml tags names with namespaces
 
+token 
+	~ [^:./*,'"|\s\]\[\(\)\{\}\\+-]+
 
 :discard 
 	~ WS
@@ -446,9 +453,19 @@ sub _do_dwildcard{
 	my $k = $_[1];
 	return {dwildcard => $k};
 }
+sub _do_dot{
+	my $k = $_[1];
+	return {q|.| => $k};	
+}
 sub _do_dotdot{
 	my $k = $_[1];
 	return {q|..| => $k};	
+}
+sub _do_parentNamed{
+	return {parentNamed => $_[2]};
+}
+sub _do_ancestor{
+	return {ancestor => $_[1]};
 }
 #############################end of rules################################
 
@@ -551,7 +568,7 @@ $operatorBy = {
 		return _arithmeticOper(sub {$_[0] % $_[1]}, $_[0], $_[1], @_[2..$#_]);
 	},
 	names => sub{
-		return map {$_->{name}} sort {$a->{order} cmp $b->{order}} _getSubObjectsOrCurrent(@_);
+		return map {$_->{name}} _getSubObjectsOrCurrent(@_);
 	},
 	name => sub{
 		my @r = $operatorBy->{names}->(@_);
@@ -559,7 +576,7 @@ $operatorBy = {
 		return q||; 
 	},
 	values => sub{
-		return map {${$_->{data}}} sort {$a->{order} cmp $b->{order}} _getSubObjectsOrCurrent(@_);
+		return map {${$_->{data}}} _getSubObjectsOrCurrent(@_);
 	},
 	value => sub(){
 		my @r = $operatorBy->{values}->(@_);
@@ -724,9 +741,24 @@ $keysProc = {
 		my ($data, undef, $subpath,undef) = @_;
 		return descendent2($data,$subpath);
 	},
+	q|.| => sub{
+		my (undef, undef, $subpath,$filter) = @_;
+		my @r = ();
+		#print "q|.| args ->", Dumper \@_;
+		#print "q|.| context ->", Dumper \@context;
+		sub{	
+			return if defined $filter and !_check($filter); 
+			push @r, 
+				defined $subpath ? 
+					_getObjectSubset(${$context[$#context]->{data}}, $subpath)
+					: $context[$#context];
+		}->();		
+		#print "q|.| result ->", Dumper \@r;
+		return @r;	
+	},
 	qq|..| => sub{
 		my (undef, undef, $subpath,$filter) = @_;
-		return () unless scalar @context > 1;
+		return () unless scalar @context > 0;
 		my $subcontext = pop @context;
 		#push @context, $context[$#context-1];
 		my @r = ();
@@ -739,6 +771,28 @@ $keysProc = {
 		}->();		
 		push @context, $subcontext;
 		return @r;	
+	},
+	parentNamed => sub{
+		my (undef, $step, $subpath,$filter) = @_;
+		return () unless scalar @context > 1 and $context[$#context-1]->{name} eq $step;
+		return $keysProc->{q|..|}->(undef, undef, $subpath,$filter);
+	},
+	ancestor => sub{
+		my (undef, undef, $subpath,$filter) = @_;
+		my @r = ();
+		my @tmp = ();
+		while(scalar @context > 0){
+			push @tmp, pop @context;
+			sub{	
+				return if defined $filter and !_check($filter); 
+				push @r, 
+					defined $subpath ? 
+						_getObjectSubset(${$context[$#context]->{data}}, $subpath)
+						: $context[$#context];
+			}->();		
+		};
+		push @context, pop @tmp while(scalar @tmp > 0); #repo @context;	
+		return @r;		
 	} 
 };
 sub descendent2{
@@ -807,11 +861,26 @@ sub _getObjectSubset{
 		}
 	}elsif (exists $path->{q|..|}){
 			push @r, $keysProc->{q|..|}->($data, $path->{q|..|}, $path->{subpath}, $path->{filter});
+	}elsif (exists $path->{q|.|}){
+			push @r, $keysProc->{q|.|}->($data, $path->{q|.|}, $path->{subpath}, $path->{filter});
+	}elsif (exists $path->{parentNamed}){
+			push @r, $keysProc->{parentNamed}->($data, $path->{parentNamed}, $path->{subpath}, $path->{filter});
+	}elsif (exists $path->{ancestor}){
+			push @r, $keysProc->{ancestor}->($data, $path->{ancestor}, $path->{subpath}, $path->{filter});
 	}else{ #aqui deve-se por outro teste para o caso .. e .
 		#do nothing. Nothing is ok
 		#print 'Nothing ', Dumper $data;
 	}
-	return @r;
+	my %seen;
+	return 
+		sort {
+			$a->{order} cmp $b->{order}
+		}grep {
+			defined $_ 
+			and defined defined $_->{data} 
+			and defined defined $_->{order} 
+			and !$seen{$_->{data}}++
+		} @r;
 }
 sub _getSubObjectsOrCurrent{
 	my $paths = $_[0];
@@ -833,7 +902,7 @@ sub _execute{
 	my ($self,$data,$query) = @_;
 	return undef unless ref $data eq q|HASH| or ref $data eq q|ARRAY|; 
 	return undef unless defined $query and (defined $query->{oper} or defined $query->{paths});
-	push @context, {data  => \$data, order => ''};
+	push @context, {data  => \$data, order => '', name => '/'};
 	my @r = defined $query->{oper} ? 
 		map {\$_} (_operation($query))								#if an operation	
 		: map {$_->{data}} sort {$a->{order} cmp $b->{order}} _getObjects(@{$query->{paths}}); 	#else is a path
@@ -974,7 +1043,7 @@ For the data structure below we can easily achieve it with this code:
 	        //invoice[value(Total) != value(Amount) * (1 + value(Tax))]
 	$)->getvalues();
 
-The pQuery sintax is very similar to the xpath but with some minor exceptions,
+The pQuery syntax is very similar to the xpath but with some minor exceptions,
 as showed in examples bellow.
 
 
@@ -1027,7 +1096,7 @@ The first returns a list/scalar with values. The second returns a list/scalar
 of references for the matched structures.
 
 
-I keys contains key spaces or some special caracters used to construct a pQuery
+If keys contains key spaces or some special caracters used to construct a pQuery
 string we can use quotes to delimite them
 
 	#keys with spaces or especial characters should be delimited 
@@ -1249,7 +1318,7 @@ Returns a list of values for each matched data;
 =head3 getvalue()
 Returns the value of first matched data;
 
-=head1 pQuery sintax
+=head1 pQuery syntax
 	
 A pQuery expression is a function or a path. 
 

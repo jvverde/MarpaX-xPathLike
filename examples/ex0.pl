@@ -103,6 +103,41 @@ print $data->query(q|names(/*/*)|)->getvalues();
 print $data->query(q|names(//**)|)->getvalues();
 #drinks,Alcoholic beverage,Soft drinks,0,1,food,fruit,0,1,2,3,vegetables,0,1,2
 
-print $data->query(q|names(//**/..)|)->getvalues();
-#,,drinks,drinks,Soft drinks,Soft drinks,food,food,fruit,fruit,fruit,fruit,vegetables,vegetables,vegetables
+#same as above as the dot (.) means the struct itself
+print $data->query(q|names(//**/.)|)->getvalues();
+#drinks,Alcoholic beverage,Soft drinks,0,1,food,fruit,0,1,2,3,vegetables,0,1,2
 
+#agian the same as above!!!
+print $data->query(q|names(.//**/.)|)->getvalues();
+#drinks,Alcoholic beverage,Soft drinks,0,1,food,fruit,0,1,2,3,vegetables,0,1,2
+
+print $data->query(q|names(./*)|)->getvalues();
+#drinks,food
+
+print $data->query(q|names(//**/..)|)->getvalues();
+#/,/,drinks,drinks,Soft drinks,Soft drinks,food,food,fruit,fruit,fruit,fruit,vegetables,vegetables,vegetables
+
+#support parent axis
+print $data->query(q|count(//**/parent::fruit)|)->getvalues();
+#4
+
+print $data->query(q|names(/food/fruit[3]/ancestor::*)|)->getvalues();
+#/,food,fruit
+print '-------------------------------------';
+my $d2 = {
+	drinks => [
+		{q|Alcoholic beverage| => 'not allowed'},
+		{q|Soft drinks| => [qw|Soda Coke|]}
+	],
+	food => [ 
+		[qw|bananas apples oranges pears|], 
+		[qw|potatoes  carrots tomatoes|]
+	] 
+};
+my $data2 = Data::pQuery->data($d2);
+
+#same as above as the dot (.) means the struct itself
+print $data2->query(q|count(//**/parent::food)|)->getvalues();
+#4
+print $data2->query(q{names(//**[value() ~ "toma|oda"]/ancestor::*)})->getvalues();
+print $data2->query(q{names(//**[value() ~ "toma|oda"])})->getvalues();
