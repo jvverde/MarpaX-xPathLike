@@ -53,6 +53,7 @@ subPath ::=
 	'/' stepPath 																action => _do_arg2
 	| '//' relativePath													action => _do_vlen
 	| indexPath 																action => _do_arg1
+	| '/' indexPath 														action => _do_arg2  #alternative syntax
 
 stepPath ::=
 	step Filter subPath 												action => _do_stepFilterSubpath
@@ -68,7 +69,7 @@ step ::=
 	|	'..'																			action => _do_dotdot
 	| 'parent::*'																action => _do_dotdot
 	| 'parent::' keyname												action => _do_parentNamed			  
-	| 'parent::[' IntExpr	']'											action => _do_parentNamed			  
+	| 'parent::[' IntExpr	']'										action => _do_parentNamed			  
 	| 'ancestor::*'															action => _do_ancestor
 	| 'ancestor::' keyname											action => _do_ancestorNamed
 	| 'ancestor::[' IntExpr ']' 								action => _do_ancestorNamed
@@ -80,7 +81,8 @@ indexPath ::=
 	| IndexArray																action => _do_arg1	
 
 
-IndexArray ::=  '[' IndexExprs ']'						action => _do_index
+IndexArray ::=  
+	'[' IndexExprs ']'													action => _do_index
 
 
 IndexExprs ::= IndexExpr+ 			separator => <comma>
@@ -745,7 +747,7 @@ $keysProc = {
 	},
 	slashslash => sub{
 		my ($data, undef, $subpath,undef) = @_;
-		return descendent2($data,$subpath);
+		return descendent($data,$subpath);
 	},
 	q|.| => sub{
 		my (undef, undef, $subpath,$filter) = @_;
@@ -820,7 +822,7 @@ $keysProc = {
 		return @r;	
 	} 
 };
-sub descendent2{
+sub descendent{
 	my ($data,$path) = @_;
 	#print 'context', Dumper \@context;
 	my @r = _getObjectSubset($data,$path);	
@@ -829,30 +831,30 @@ sub descendent2{
 	if (ref $data eq q|HASH|){
 			foreach (sort keys %$data){
 				push @context, {name => $_, data  => \$data->{$_}, order => qq|$order/$_|};
-				push @r, descendent2($data->{$_}, $path);
+				push @r, descendent($data->{$_}, $path);
 				pop @context;
 			}
 	}
 	if (ref $data eq q|ARRAY|){
 			foreach (0 .. $#$data){
 				push @context, {name => $_, data  => \$data->[$_], order =>  qq|${order}[]|};
-				push @r, descendent2($data->[$_], $path);
+				push @r, descendent($data->[$_], $path);
 				pop @context;
 			}
 	}
 	return @r;
 }
-sub descendent{
-	my $data = $_[0];
-	my $loc = $_[1] // '';
-	my $context = $_[2] // [];
-	my $step = $_[3];
-	return () unless ref $data;
-	push @$context, {name => $step, data  => \$data, order => $loc};
-	my @r1 = map { descendent($data->{$_},"$loc/$_",$context,$_) } (sort keys %$data) if (ref $data eq q|HASH|);
-	my @r2 = map { descendent($data->[$_],"${loc}[$_]", $context,$_) } (0 .. $#$data) if (ref $data eq q|ARRAY|);	
-	return ([$loc,$data,$context],@r1,@r2);
-}
+# sub descendent{
+# 	my $data = $_[0];
+# 	my $loc = $_[1] // '';
+# 	my $context = $_[2] // [];
+# 	my $step = $_[3];
+# 	return () unless ref $data;
+# 	push @$context, {name => $step, data  => \$data, order => $loc};
+# 	my @r1 = map { descendent($data->{$_},"$loc/$_",$context,$_) } (sort keys %$data) if (ref $data eq q|HASH|);
+# 	my @r2 = map { descendent($data->[$_],"${loc}[$_]", $context,$_) } (0 .. $#$data) if (ref $data eq q|ARRAY|);	
+# 	return ([$loc,$data,$context],@r1,@r2);
+# }
 $Data::Dumper::Deepcopy = 1;
 sub anyChildType{
 	my ($data,$subpath,$filter) = @_;
@@ -884,6 +886,8 @@ sub _getObjectSubset{
 			push @r, $indexesProc->{$_}->($data,$entry->{$_},$path->{subpath},$path->{filter})
 				foreach (grep {exists $indexesProc->{$_}} keys %$entry); 	#just in case use grep to filter out not supported indexes types
 		}
+	}elsif(ref $data eq q|ARRAY| and defined $path->{step} and $path->{step} =~ /^[+-]?\d+$/){
+		push @r, $indexesProc->{index}->($data,$path->{step},$path->{subpath},$path->{filter})
 	}elsif (exists $path->{dwildcard}){
 			push @r, $keysProc->{dwildcard}->($data, $path->{dwildcard}, $path->{subpath}, $path->{filter});
 	}elsif (exists $path->{slashslash}){

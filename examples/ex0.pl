@@ -16,7 +16,7 @@ my $d = {
 };
 
 my $data = Data::pQuery->data($d);
-my $results = $data->query(q|/*/*[0]|);
+my $results = $data->query(q|/*/*/[0]|);
 my @values = $results->getvalues();
 print @values;					
 #Soda,bananas,potatoes
@@ -32,19 +32,20 @@ print $data->query(q|/drinks/"Alcoholic beverage"|)->getvalues();
 #not allowed
 
 #or by single quotes
-print $data->query(q|/drinks/'Soft drinks'[1]|)->getvalues();
+print $data->query(q|/drinks/'Soft drinks'/[1]|)->getvalues();
 #Coke
+print '___________', $data->query(q|/drinks/'Soft drinks'/1|)->getvalues();
 
 #the .. sequence indexes all array positions
-print $data->query(q|/*/*[..]|)->getvalues();
+print $data->query(q|/*/*/[..]|)->getvalues();
 #Tonic,Coke,bananas,apples,oranges,pears,potatoes,carrots,tomatoes
 
 #the leading slash is optional
-print $data->query(q|*/*[..]|)->getvalues(); 
+print $data->query(q|*/*/[..]|)->getvalues(); 
 #Tonic,Coke,bananas,apples,oranges,pears,potatoes,carrots,tomatoes
 
 #negative values indexes the arrays in reverse order. -1 is the last index
-print $data->query(q|/*/*[-1]|)->getvalues();
+print $data->query(q|/*/*/[-1]|)->getvalues();
 #Coke,pears,tomatoes
 
 #Square brackets are also used to specify filters
@@ -60,7 +61,7 @@ print $data->query(q|//**[isScalar()]|)->getvalues();
 #not allowed,Tonic,Coke,bananas,apples,oranges,pears,potatoes,carrots,tomatoes
 
 #the filter could be a match between a string expression and a pattern
-print $data->query(q|/*/*[name() ~ "drinks"][..]|)->getvalues();
+print $data->query(q|/*/*[name() ~ "drinks"]/[..]|)->getvalues();
 #Tonic,Coke
 
 #the same as above (in this particular data-strucure)
@@ -83,7 +84,7 @@ print $data->query(q|
 	//*
 	[value([-1]) gt value([0])]
 	[count([..]) < 4]
-	[-1..0]
+	/[-1..0]
 |)->getvalues();
 #tomatoes,carrots,potatoes
 
@@ -91,7 +92,7 @@ print $data->query(q|
 print $data->query(q|
 	//*[value([-1]) gt value([0]) 
 		and count([..]) < 4
-	][-1..0]
+	]/[-1..0]
 |)->getvalues();
 #tomatoes,carrots,potatoes
 
@@ -145,7 +146,10 @@ print $data2->query(q{names(//**[value() ~ "toma|oda"])})->getvalues();
 print $data2->query(q{names(//**/ancestor::food)})->getvalues();
 print $data2->query(q{names(//**/ancestor::[0])})->getvalues();
 print Dumper $data2->query(q{//**/parent::[0]})->getvalues();
-print Dumper $data2->query(q{//**/parent::*[isArray()]})->getvalues();
 print $data2->query(q{name(/.)})->getvalues();
 print $data2->query(q{name(.)})->getvalues();
 print $data2->query(q{/food[1][1]})->getvalues();
+print Dumper $data2->query(q{/food[1][1]/parent::[1]})->getvalues();
+print $data2->query(q{/drinks[1]/*[1]})->getvalues();
+print Dumper $data2->query(q{/drinks[1]/*[1]/parent::'Soft drinks'})->getvalues();
+print Dumper $data2->query(q{/*[1]})->getvalues(); #devia devolver o elemento da chave drinks (a que surge na primeira posição)
