@@ -42,17 +42,13 @@ PathExpr ::=
 
 relativePath ::=	
 	stepPath 																		action => _do_arg1
-	| indexPath 																action => _do_arg1
 
 absolutePath ::=	
-	'/' stepPath 																action => _do_arg2
-	| '//' relativePath													action => _do_vlen
-	| '/' indexPath 														action => _do_arg2
+	subPath 																		action => _do_arg1
 
 subPath ::=	
 	'/' stepPath 																action => _do_arg2
-	| '//' relativePath													action => _do_vlen
-	| indexPath 																action => _do_arg1
+	| '//' stepPath															action => _do_vlen
 
 stepPath ::=
 	step Filter subPath 												action => _do_stepFilterSubpath
@@ -61,9 +57,9 @@ stepPath ::=
 	| step																			action => _do_arg1
 
 step ::= 
-	keyname 																		action => _do_keyname
+	UINT																				action => _do_index_single
+	| keyname 																	action => _do_keyname
 	| wildcard 																	action => _do_wildcard
-	| dwildcard 																action => _do_dwildcard
 	|	'.'																				action => _do_dot
 	|	'..'																			action => _do_dotdot
 	| 'parent::*'																action => _do_dotdot
@@ -73,14 +69,14 @@ step ::=
 	| 'ancestor::' keyname											action => _do_ancestorNamed
 	| 'ancestor::[' IntExpr ']' 								action => _do_ancestorNamed
 
-indexPath ::=
-	IndexArray Filter subPath 									action => _do_indexFilterSubpath	
-	| IndexArray Filter 												action => _do_indexFilter	
-	| IndexArray subPath 												action => _do_indexSubpath		
-	| IndexArray																action => _do_arg1	
+# indexPath ::=
+# 	IndexArray Filter subPath 									action => _do_indexFilterSubpath	
+# 	| IndexArray Filter 												action => _do_indexFilter	
+# 	| IndexArray subPath 												action => _do_indexSubpath		
+# 	| IndexArray																action => _do_arg1	
 
 
-IndexArray ::=  '[' IndexExprs ']'						action => _do_index
+#IndexArray ::=  '[' IndexExprs ']'						action => _do_index_filter
 
 
 IndexExprs ::= IndexExpr+ 			separator => <comma>
@@ -96,9 +92,17 @@ rangeExpr ::=
 	| '..' 																			action => _do_allRange
 
 
-Filter ::= 	
-	'[' LogicalExpr ']' 												action => _do_filter
-	| '[' LogicalExpr ']' Filter 								action => _do_mergeFilters
+Filter ::= 
+	IndexFilter
+	| LogicalFilter
+	| Filter Filter 														action => _do_mergeFilters
+
+LogicalFilter ::= 	
+	'[' LogicalExpr ']' 												action => _do_boolean_filter
+
+IndexFilter ::= 	
+	'[' IndexExprs ']'													action => _do_index_filter
+
 
 IntExpr ::=
   ArithmeticIntExpr														action => _do_arg1
@@ -132,8 +136,8 @@ ArithmeticExpr ::=
 	 | ArithmeticExpr '-' ArithmeticExpr				action => _do_binaryOperation
 
 LogicalExpr ::=
-	compareExpr																	action => _do_arg1
-	|LogicalFunction														action => _do_arg1
+	LogicalFunction															action => _do_arg1
+	|| compareExpr															action => _do_arg1
 
 compareExpr ::=	
 	PathExpr 																		action => _do_exists
@@ -192,6 +196,9 @@ ValueFunction ::=
 CountFunction ::= 
 	'count' '(' PathExpr ')'				 						action => _do_func
 
+LastFunction ::= 
+	'last' '(' PathExpr ')'					 						action => _do_func
+
 SumFunction ::= 
 	'sum' '(' PathExpr ')'				 							action => _do_func
 
@@ -199,17 +206,19 @@ SumProductFunction ::=
 	'sumproduct' '(' PathExpr ',' PathExpr ')'	action => _do_funcw2args
 
 NumericFunction ::=
-	CountFunction																action => _do_arg1
+	IntegerFunction															action => _do_arg1
 	|ValueFunction															action => _do_arg1
 	|SumFunction																action => _do_arg1
 	|SumProductFunction													action => _do_arg1
 
 IntegerFunction ::=
 	CountFunction																action => _do_arg1
+	|LastFunction																action => _do_arg1
 
 ListFunction ::=
 	'names' '(' PathArgs ')'    		 						action => _do_func
 	| 'values' '(' PathArgs ')'    		 					action => _do_func
+	| 'lasts' '(' PathArgs ')'    		 					action => _do_func
 
 
  NUMBER ::= 
@@ -278,9 +287,6 @@ double_quoted_char
 wildcard 
 	~ [*]
 
-dwildcard 
-	~ [*][*]
-
 keyname ::= 
 	keyword																			action => _do_token
 	| STRING            												action => _do_arg1
@@ -290,7 +296,7 @@ keyword
 	| token ':' token      #to allow replication of xml tags names with namespaces
 
 token 
-	~ [^:./*,'"|\s\]\[\(\)\{\}\\+-]+
+	~ [^0-9\d:./*,'"|\s\]\[\(\)\{\}\\+-]+
 
 :discard 
 	~ WS
@@ -418,13 +424,15 @@ sub _do_absolutePath{
 sub _do_relativePath{
 	return [{relative => 1, path => $_[1]}];
 }
-sub _do_filter{ return [$_[2]]};
+sub _do_boolean_filter{ 
+	return {boolean => $_[2]}
+};
 sub _do_mergeFilters{
-	my ($filter, $filters) = @_[2,4];
-	my @filters = ($filter, @$filters);
+	my ($filters1, $filters2) = @_[1,2];
+	my @filters = (@$filters1, @$filters2);
 	return \@filters; 
 }
-sub _do_index{
+sub _do_index_filter{
 	return {indexes => $_[2]}
 }
 sub _do_index_single{
@@ -451,10 +459,6 @@ sub  _do_vlen{
 sub _do_wildcard{
 	my $k = $_[1];
 	return {wildcard => $k};
-}
-sub _do_dwildcard{
-	my $k = $_[1];
-	return {dwildcard => $k};
 }
 sub _do_dot{
 	my $k = $_[1];
@@ -483,10 +487,10 @@ my $keysProc;
 sub _operation($){
 	my $operData = $_[0];
 	return undef unless defined $operData and ref $operData eq q|HASH| and exists $operData->{oper};
-	my @params = @{$operData->{oper}};
-	my $oper = $params[0];
-	return undef unless exists $operatorBy->{$oper};
-	my @args = @params[1..$#params];
+	my ($oper, @args) = @{$operData->{oper}};
+	#my $oper = $params[0];
+	return undef unless defined $oper and exists $operatorBy->{$oper};
+	#my @args = @params[1..$#params];
 	return $operatorBy->{$oper}->(@args);  
 }
 sub _arithmeticOper(&$$;@){
@@ -578,16 +582,14 @@ $operatorBy = {
 	},
 	name => sub{
 		my @r = $operatorBy->{names}->(@_);
-		return $r[0] if defined $r[0];
-		return q||; 
+		return $r[0] // q||;
 	},
 	values => sub{
 		return map {${$_->{data}}} _getSubObjectsOrCurrent(@_);
 	},
 	value => sub(){
 		my @r = $operatorBy->{values}->(@_);
-		return $r[0] if defined $r[0];
-		return q||; 
+		return $r[0] // q||;
 	},
 	isHash => sub{
 		my @r = grep {ref ${$_->{data}} eq q|HASH|} _getSubObjectsOrCurrent(@_);
@@ -616,6 +618,14 @@ $operatorBy = {
 	exists => sub{
 		my @r = _getSubObjectsOrCurrent(@_);
 		return scalar @r > 0;		
+	},
+	lasts => sub{
+		my @r = _getSubObjectsOrCurrent(@_);
+		return map {$_->{size}} @r;	
+	},
+	last => sub{
+		my @r = $operatorBy->{lasts}->(@_);
+		return $r[$#r] // 0;
 	},
 	not => sub{
 		return !_operation($_[0]);
@@ -651,101 +661,148 @@ sub _check{
 	return 1;	#true
 }
 
-$indexesProc = {
-	index => sub{
-		my ($data, $index, $subpath,$filter) = @_;
-		$index += $#$data + 1 if $index < 0;						# -1 == $#data => last index
-		return () if $index < 0 or $index > $#$data;		# check bounds limits
-		my @r = ();	
-		my $order = $context[$#context]->{order}  // q||;
-		$order .= qq|[]|;
-		push @context, {name => $index, data  => \$data->[$index], order => $order};
-		sub{
-			return if defined $filter and !_check($filter); 
-			push @r, 
-				defined $subpath ? 
-					_getObjectSubset($data->[$index],$subpath)
-					: $context[$#context];
-		}->();
-		pop @context;
-		return @r;
-	},
-	range => sub{
-		my ($data, $range, $subpath, $filter) = @_;
-		my ($start, $stop) = @{$range};
-		$start += $#$data + 1 if $start < 0;
-		$stop += $#$data + 1 if $stop < 0;
-		my @indexes = grep {$_ >=0 and $_ <= $#$data } $start <= $stop ?
-			($start..$stop)
-			: reverse ($stop..$start);
-		my @r = ();
-		push @r, $indexesProc->{index}->($data,$_,$subpath,$filter)
-			foreach (@indexes);
-		return @r;
-	},
-	from => sub{
-		my ($data, $from, $subpath,$filter) = @_;
-		$from += $#$data + 1 if $from < 0;
-		$from = 0 if $from < 0;
-		my @indexes = ($from..$#$data);
-		my @r = ();
-		push @r, $indexesProc->{index}->($data,$_,$subpath,$filter)
-			foreach (@indexes);
-		return @r;			
-	},
-	to => sub{
-		my ($data, $to, $subpath,$filter) = @_;	
-		$to += $#$data + 1 if $to < 0;
-		$to = $#$data if $to > $#$data;
-		my @indexes = (0..$to);
-		my @r = ();
-		push @r, $indexesProc->{index}->($data,$_,$subpath,$filter)
-			foreach (@indexes);
-		return @r;	
-	},
-	all => sub{
-		my ($data, undef, $subpath,$filter) = @_;
-		my @indexes = (0..$#$data);
-		my @r = ();
-		push @r, $indexesProc->{index}->($data,$_,$subpath,$filter)
-			foreach (@indexes);
-		return @r;	
+sub _filter{
+	my ($filter) = @_;
+	return 1 unless defined $filter and ref $filter eq q|HASH|; #no filter, always returns true
+	foreach (@$filter){
+		return 0 if defined $_->{boolean} and !_operation($_->{boolean})
 	}
-};
+	return 1;	#true
+}
+sub _evaluate{
+	my $x = $_[0];
+	return $x unless ref $x eq q|HASH| and exists $x->{oper};
+	return _operation($x);
+}
+my %filters = (
+	boolean => sub {
+		return  _operation($_[0]);
+	}
+	,indexes => sub{
+		sub positiveIndex{
+			my $index = 0 + _evaluate($_[0]);
+			return $index >= 0 ?
+				$index
+				: $index + 1 + $context[$#context]->{size};
+		}
+		my %proc = (
+			index => sub{
+				return $context[$#context]->{pos} == positiveIndex($_[0]);
+			}
+			,range => sub{
+				print 'range', Dumper $_[0];
+				my $pos = $context[$#context]->{pos};
+				my ($start, $end) = map {positiveIndex($_)} @{$_[0]};
+				return $pos >= $start && $pos <= $end;
+			}
+			,from => sub{
+				print 'from', Dumper $_[0];
+				return $context[$#context]->{pos} >= positiveIndex($_[0]);				
+			}
+			,to => sub{
+				print 'to', Dumper $_[0];
+				return $context[$#context]->{pos} <= positiveIndex($_[0]);				
+			}
+		);
+		#print 'indexes filter ',Dumper @_;
+		my $indexes = $_[0];
+		foreach my $index (@$indexes){
+			#print 'evaluate', Dumper $index;
+			return 1 if (map {$proc{$_}->($index->{$_})} grep {exists $proc{$_}} keys %$index)[0]; 
+		}
+		return 0;
+	}	
+);
+sub _validate{
+	my ($context,$filter) = @_;
+	#print 'validate -> ', Dumper \@_;
+	return 1 unless defined $filter and ref $filter eq q|HASH|;  #just in case
+	push @context, $context;
+	my ($r) = map {$filters{$_}->($filter->{$_})} grep {exists $filters{$_}} keys %$filter;
+	pop @context;
+	return $r;	
+}
+sub _anyChildType{
+	my ($data,$subpath,$filter) = @_;
+	return () unless defined $data;
+
+	$filter = [] unless defined $filter and ref $filter eq q|ARRAY|;
+	my $pos = 1;
+	my $order = $context[$#context]->{order} // q||;
+
+	if (ref $data eq q|HASH|){
+		my @keys = sort keys %$data;
+		print 'keys =', @keys;
+		my @skeys = (0..$#keys);
+		print 'skeys before =', @skeys;
+		foreach my $filter (@$filter){
+			$pos = 1;
+			@skeys = grep {_validate(
+						{name => $keys[$_], data  => \$data->{$keys[$_]}, order => qq|$order/$keys[$_]|, size => scalar @skeys, pos => $pos++}
+						,$filter
+			)} @skeys ;
+		}
+		$pos = 1;
+		print 'skeys after = ', @skeys;
+		return map {getStruct(
+				{name => $keys[$_], data  => \$data->{$keys[$_]}, order => qq|$order/$keys[$_]|, size => scalar @skeys, pos => $pos++}
+				,$subpath
+		)} @skeys;
+	}elsif (ref $data eq q|ARRAY|){
+		my @indexes = (0..$#$data);
+		print 'indexes before = ', @indexes;
+		foreach my $filter (@$filter){
+			$pos = 1;
+			@indexes = grep {_validate(
+						{name => $_, data  => \$data->[$_], order => qq|$order/$_|, size => scalar @indexes, pos => $pos++}
+						,$filter
+			)} @indexes ;
+		}
+		print 'indexes after = ', @indexes;
+		$pos = 1;
+		return map {getStruct(
+				{name => $_, data  => \$data->[$_], order => qq|$order/$_|, size => scalar @indexes, pos => $pos++}
+				,$subpath
+		)} @indexes;
+	};
+	return ();	
+}
+
+sub getStruct{
+	my ($context, $subpath) = @_;
+	return ($context) unless defined $subpath;
+	push @context, $context;
+	my @r = _getObjectSubset(${$context->{data}}, $subpath);
+	pop @context;
+	return @r; 
+}
 
 $keysProc = {
 	step => sub{
 		my ($data, $step, $subpath,$filter) = @_;
 		return () unless exists $data->{$step};
 
-		my @r = ();
+		#my @r = ();
 		my $order = $context[$#context]->{order} // q||;
 		$order .= qq|/$step|;
-		push @context, {name => $step, data  => \$data->{$step}, order => $order};
-		sub{	
-			return if defined $filter and !_check($filter); 
-			push @r, 
-				defined $subpath ? 
-					_getObjectSubset($data->{$step}, $subpath)
-					: $context[$#context];
-		}->();
+		my @keys = keys %$data;
+		push @context, {name => $step, data  => \$data->{$step}, order => $order, size => scalar @keys, pos => 1};
+		my @r = getStruct($data->{$step}, $subpath, $filter);
+		# sub{	
+		# 	return () if defined $filter and !_check($filter); 
+		# 	return _getObjectSubset($data->{$step}, $subpath) if defined $subpath; 
+		# 	return ($context[$#context]);
+		# }->();
 		pop @context;
 		return @r;
 	},
 	wildcard => sub{
 		my ($data, undef, $subpath,$filter) = @_;
-		my @r = ();
-		push @r, $keysProc->{step}->($data, $_, $subpath,$filter)
-			foreach (sort keys %$data);
-		return @r;
-	},
-	dwildcard => sub{
-		my ($data, undef, $subpath,$filter) = @_;
-		return anyChildType($data,$subpath,$filter);		
+		return _anyChildType($data,$subpath,$filter);		
 	},
 	slashslash => sub{
 		my ($data, undef, $subpath,undef) = @_;
-		return descendent2($data,$subpath);
+		return descendent($data,$subpath);
 	},
 	q|.| => sub{
 		my (undef, undef, $subpath,$filter) = @_;
@@ -820,7 +877,7 @@ $keysProc = {
 		return @r;	
 	} 
 };
-sub descendent2{
+sub descendent{
 	my ($data,$path) = @_;
 	#print 'context', Dumper \@context;
 	my @r = _getObjectSubset($data,$path);	
@@ -829,47 +886,84 @@ sub descendent2{
 	if (ref $data eq q|HASH|){
 			foreach (sort keys %$data){
 				push @context, {name => $_, data  => \$data->{$_}, order => qq|$order/$_|};
-				push @r, descendent2($data->{$_}, $path);
+				push @r, descendent($data->{$_}, $path);
 				pop @context;
 			}
 	}
 	if (ref $data eq q|ARRAY|){
 			foreach (0 .. $#$data){
 				push @context, {name => $_, data  => \$data->[$_], order =>  qq|${order}[]|};
-				push @r, descendent2($data->[$_], $path);
+				push @r, descendent($data->[$_], $path);
 				pop @context;
 			}
 	}
 	return @r;
 }
-sub descendent{
-	my $data = $_[0];
-	my $loc = $_[1] // '';
-	my $context = $_[2] // [];
-	my $step = $_[3];
-	return () unless ref $data;
-	push @$context, {name => $step, data  => \$data, order => $loc};
-	my @r1 = map { descendent($data->{$_},"$loc/$_",$context,$_) } (sort keys %$data) if (ref $data eq q|HASH|);
-	my @r2 = map { descendent($data->[$_],"${loc}[$_]", $context,$_) } (0 .. $#$data) if (ref $data eq q|ARRAY|);	
-	return ([$loc,$data,$context],@r1,@r2);
-}
+
+$indexesProc = {
+	index => sub{
+		my ($data, $index, $subpath,$filter) = @_;
+		$index += $#$data + 1 if $index < 0;						# -1 == $#data => last index
+		return () if $index < 0 or $index > $#$data;		# check bounds limits
+		my @r = ();	
+		my $order = $context[$#context]->{order}  // q||;
+		$order .= qq|[]|;
+		push @context, {name => $index, data  => \$data->[$index], order => $order};
+		sub{
+			return if defined $filter and !_check($filter); 
+			push @r, 
+				defined $subpath ? 
+					_getObjectSubset($data->[$index],$subpath)
+					: $context[$#context];
+		}->();
+		pop @context;
+		return @r;
+	},
+	range => sub{
+		my ($data, $range, $subpath, $filter) = @_;
+		my ($start, $stop) = @{$range};
+		$start += $#$data + 1 if $start < 0;
+		$stop += $#$data + 1 if $stop < 0;
+		my @indexes = grep {$_ >=0 and $_ <= $#$data } $start <= $stop ?
+			($start..$stop)
+			: reverse ($stop..$start);
+		my @r = ();
+		push @r, $indexesProc->{index}->($data,$_,$subpath,$filter)
+			foreach (@indexes);
+		return @r;
+	},
+	from => sub{
+		my ($data, $from, $subpath,$filter) = @_;
+		$from += $#$data + 1 if $from < 0;
+		$from = 0 if $from < 0;
+		my @indexes = ($from..$#$data);
+		my @r = ();
+		push @r, $indexesProc->{index}->($data,$_,$subpath,$filter)
+			foreach (@indexes);
+		return @r;			
+	},
+	to => sub{
+		my ($data, $to, $subpath,$filter) = @_;	
+		$to += $#$data + 1 if $to < 0;
+		$to = $#$data if $to > $#$data;
+		my @indexes = (0..$to);
+		my @r = ();
+		push @r, $indexesProc->{index}->($data,$_,$subpath,$filter)
+			foreach (@indexes);
+		return @r;	
+	},
+	all => sub{
+		my ($data, undef, $subpath,$filter) = @_;
+		my @indexes = (0..$#$data);
+		my @r = ();
+		push @r, $indexesProc->{index}->($data,$_,$subpath,$filter)
+			foreach (@indexes);
+		return @r;	
+	}
+};
+
 $Data::Dumper::Deepcopy = 1;
-sub anyChildType{
-	my ($data,$subpath,$filter) = @_;
-	return () unless defined $data;
-	#print 'anyChildType arg', Dumper \@_;
-	my @r = ();
-	if (ref $data eq q|HASH|){
-		foreach (sort keys %$data){
-			push @r, $keysProc->{step}->($data, $_, $subpath,$filter);			#process this key entry
-		}
-	}elsif (ref $data eq q|ARRAY|){
-		foreach (0..$#$data){
-			push @r, $indexesProc->{index}->($data,$_,$subpath,$filter);		#process this array index
-		}
-	};
-	return @r;	
-}
+
 sub _getObjectSubset{
 	my ($data,$path) = @_;
 	return () unless ref $path eq q|HASH|;
@@ -884,8 +978,8 @@ sub _getObjectSubset{
 			push @r, $indexesProc->{$_}->($data,$entry->{$_},$path->{subpath},$path->{filter})
 				foreach (grep {exists $indexesProc->{$_}} keys %$entry); 	#just in case use grep to filter out not supported indexes types
 		}
-	}elsif (exists $path->{dwildcard}){
-			push @r, $keysProc->{dwildcard}->($data, $path->{dwildcard}, $path->{subpath}, $path->{filter});
+	}elsif (exists $path->{wildcard}){
+			push @r, $keysProc->{wildcard}->($data, $path->{wildcard}, $path->{subpath}, $path->{filter});
 	}elsif (exists $path->{slashslash}){
 			push @r, $keysProc->{slashslash}->($data, $path->{slashslash}, $path->{subpath}, $path->{filter});
 	}elsif (exists $path->{q|..|}){
@@ -954,7 +1048,7 @@ sub compile{
 	$q =~ s/[#\N{U+A0}-\N{U+10FFFF}]/sprintf "#%d#", ord $&/ge; #code utf8 characters with sequece #utfcode#. Marpa problem? 
 	$reader->read(\$q);
 	my $qp = $reader->value;
-	#print "compile", Dumper $qp;
+	print "compile", Dumper $qp;
 	return Data::pQuery::Data->new(${$qp})
 }
 

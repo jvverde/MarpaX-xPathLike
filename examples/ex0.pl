@@ -16,6 +16,17 @@ my $d = {
 };
 
 my $data = Data::pQuery->data($d);
+#print $data->query(q|/*/*[isScalar()][count(s) == 3][name() eq 'nome']|)->getvalues();
+#print $data->query(q|/*/*/78|)->getvalues();
+#print $data->query(q|/*/*/*|)->getvalues();
+print $data->query(q|/*/*/*[value() ~ "o"][-2..9-13]|)->getvalues();
+print 'values', $data->query(q|/*/*/*|)->getvalues();
+print $data->query(q|lasts(/*/*/*)|)->getvalues();
+#print $data->query(q|/*[name() ~ "oo"]/*/*[+1]|)->getvalues();
+exit;
+
+
+
 my $results = $data->query(q|/*/*/[0]|);
 my @values = $results->getvalues();
 print @values;					
