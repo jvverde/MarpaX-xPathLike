@@ -76,9 +76,6 @@ step ::=
 # 	| IndexArray																action => _do_arg1	
 
 
-#IndexArray ::=  '[' IndexExprs ']'						action => _do_index_filter
-
-
 IndexExprs ::= IndexExpr+ 			separator => <comma>
 
 IndexExpr ::=
@@ -89,7 +86,6 @@ rangeExpr ::=
 	IntExpr '..' IntExpr 												action => _do_index_range
 	|IntExpr '..' 															action => _do_startRange
 	| '..' IntExpr															action => _do_endRange
-	| '..' 																			action => _do_allRange
 
 
 Filter ::= 
@@ -292,11 +288,20 @@ keyname ::=
 	| STRING            												action => _do_arg1
 
 keyword 
-	~ token
-	| token ':' token      #to allow replication of xml tags names with namespaces
+	~ ID
 
-token 
-	~ [^:./*,'"|\s\]\[\(\)\{\}\\+-]+
+ID 
+	~ token
+	| token ':' ID      #to allow replication of xml tags names with namespaces
+
+token 								#must have at least one non digit 
+	~ notreserved
+	| token [\d] 
+	| [\d] token
+
+notreserved 
+	~ [^\d:./*,'"|\s\]\[\(\)\{\}\\+-]*
+
 
 :discard 
 	~ WS
@@ -446,9 +451,6 @@ sub _do_startRange{
 }
 sub _do_endRange{
 	{to => $_[2]}
-}
-sub _do_allRange{
-	{all => 1}
 }
 sub  _do_vlen{
 	return {
@@ -722,7 +724,7 @@ sub _filter{
 	return $r;	
 }
 sub _getFilteredKeys{
-	my ($data,$subpath,$filter,@keys) = @_;
+	my ($data,$filter,@keys) = @_;
 
 	$filter = [] unless defined $filter and ref $filter eq q|ARRAY|;
 	my $order = $context[$#context]->{order} // q||;
@@ -744,7 +746,7 @@ sub _getFilteredKeys{
 	} @keyIndex	
 }
 sub _getFilteredIndexes{
-	my ($data,$subpath,$filter,@indexes) = @_;
+	my ($data,$filter,@indexes) = @_;
 
 	$filter = [] unless defined $filter and ref $filter eq q|ARRAY|;
 	my $order = $context[$#context]->{order} // q||;
@@ -767,10 +769,10 @@ sub _anyChildType{
 	my ($data,$subpath,$filter) = @_;
 	my %filterByDataType = (
 			HASH => sub{
-				return _getFilteredKeys($data,$subpath,$filter, sort keys %$data);
+				return _getFilteredKeys($data,$filter, sort keys %$data);
 			}
 			, ARRAY => sub{
-				return _getFilteredIndexes($data,$subpath,$filter, 0..$#$data);
+				return _getFilteredIndexes($data,$filter, 0..$#$data);
 			}
 	);
 	return 
@@ -784,10 +786,17 @@ sub _anyChildType{
 $keysProc = {
 	step => sub{
 		my ($data, $step, $subpath,$filter) = @_;
-		return () unless exists $data->{$step};
+		return () unless ref $data eq q|HASH| and exists $data->{$step};
 		return 
 			map {getStruct($_, $subpath)} 
-			_getFilteredKeys($data,$subpath,$filter, $step);
+			_getFilteredKeys($data,$filter, $step);
+	},
+	index => sub{
+		my ($data, $index, $subpath,$filter) = @_;
+		return () unless ref $data eq q|ARRAY| and $index >= 0 and $index <= $#$data;		# check bounds limits
+		return 
+			map {getStruct($_, $subpath)} 
+			_getFilteredIndexes($data,$filter, $index);
 	},
 	wildcard => sub{
 		my ($data, undef, $subpath,$filter) = @_;
@@ -878,113 +887,26 @@ sub descendent{
 	return @r;
 }
 
-$indexesProc = {
-	index => sub{
-		my ($data, $index, $subpath,$filter) = @_;
-		$index += $#$data + 1 if $index < 0;						# -1 == $#data => last index
-		return () if $index < 0 or $index > $#$data;		# check bounds limits
-		my @r = ();	
-		my $order = $context[$#context]->{order}  // q||;
-		$order .= qq|[]|;
-		push @context, {name => $index, data  => \$data->[$index], order => $order};
-		sub{
-			return if defined $filter and !_check($filter); 
-			push @r, 
-				defined $subpath ? 
-					_getObjectSubset($data->[$index],$subpath)
-					: $context[$#context];
-		}->();
-		pop @context;
-		return @r;
-	},
-	range => sub{
-		my ($data, $range, $subpath, $filter) = @_;
-		my ($start, $stop) = @{$range};
-		$start += $#$data + 1 if $start < 0;
-		$stop += $#$data + 1 if $stop < 0;
-		my @indexes = grep {$_ >=0 and $_ <= $#$data } $start <= $stop ?
-			($start..$stop)
-			: reverse ($stop..$start);
-		my @r = ();
-		push @r, $indexesProc->{index}->($data,$_,$subpath,$filter)
-			foreach (@indexes);
-		return @r;
-	},
-	from => sub{
-		my ($data, $from, $subpath,$filter) = @_;
-		$from += $#$data + 1 if $from < 0;
-		$from = 0 if $from < 0;
-		my @indexes = ($from..$#$data);
-		my @r = ();
-		push @r, $indexesProc->{index}->($data,$_,$subpath,$filter)
-			foreach (@indexes);
-		return @r;			
-	},
-	to => sub{
-		my ($data, $to, $subpath,$filter) = @_;	
-		$to += $#$data + 1 if $to < 0;
-		$to = $#$data if $to > $#$data;
-		my @indexes = (0..$to);
-		my @r = ();
-		push @r, $indexesProc->{index}->($data,$_,$subpath,$filter)
-			foreach (@indexes);
-		return @r;	
-	},
-	all => sub{
-		my ($data, undef, $subpath,$filter) = @_;
-		my @indexes = (0..$#$data);
-		my @r = ();
-		push @r, $indexesProc->{index}->($data,$_,$subpath,$filter)
-			foreach (@indexes);
-		return @r;	
-	}
-};
-
 $Data::Dumper::Deepcopy = 1;
 
 sub _getObjectSubset{
 	my ($data,$path) = @_;
-	return () unless ref $path eq q|HASH|;
-	my @r = ();
-	if (ref $data eq q|HASH|){
-		my @keys = grep{exists $path->{$_}} keys %$keysProc; 							
-		push @r, $keysProc->{$_}->($data, $path->{$_}, $path->{subpath}, $path->{filter})
-			foreach (@keys);		#$#keys = 1 always but let it to be generic
-	}elsif(ref $data eq q|ARRAY| and defined $path->{indexes} and ref $path->{indexes} eq q|ARRAY|){
-		my $indexes = $path->{indexes};
-		foreach my $entry (@$indexes){
-			push @r, $indexesProc->{$_}->($data,$entry->{$_},$path->{subpath},$path->{filter})
-				foreach (grep {exists $indexesProc->{$_}} keys %$entry); 	#just in case use grep to filter out not supported indexes types
-		}
-	}elsif (exists $path->{wildcard}){
-			push @r, $keysProc->{wildcard}->($data, $path->{wildcard}, $path->{subpath}, $path->{filter});
-	}elsif (exists $path->{slashslash}){
-			push @r, $keysProc->{slashslash}->($data, $path->{slashslash}, $path->{subpath}, $path->{filter});
-	}elsif (exists $path->{q|..|}){
-			push @r, $keysProc->{q|..|}->($data, $path->{q|..|}, $path->{subpath}, $path->{filter});
-	}elsif (exists $path->{q|.|}){
-			push @r, $keysProc->{q|.|}->($data, $path->{q|.|}, $path->{subpath}, $path->{filter});
-	}elsif (exists $path->{parentNamed}){
-			push @r, $keysProc->{parentNamed}->($data, $path->{parentNamed}, $path->{subpath}, $path->{filter});
-	}elsif (exists $path->{ancestor}){
-			push @r, $keysProc->{ancestor}->($data, $path->{ancestor}, $path->{subpath}, $path->{filter});
-	}elsif (exists $path->{ancestorNamed}){
-			push @r, $keysProc->{ancestorNamed}->($data, $path->{ancestorNamed}, $path->{subpath}, $path->{filter});
-	}else{ #aqui deve-se por outro teste para o caso .. e .
-		#do nothing. Nothing is ok
-		#print 'Nothing ', Dumper $data;
-	}
-	#print Dumper \@r;
+	$path //= {};						#if not defined $path
+
 	my %seen;
 	return 
 		sort {
 			$a->{order} cmp $b->{order}
 		}grep {
 			defined $_ 
-			and defined defined $_->{data} 
-			and defined defined $_->{order} 
+			and defined $_->{data} 
+			and defined $_->{order} 
 			and !$seen{$_->{data}}++
-		} @r;
+		} map {
+			$keysProc->{$_}->($data, $path->{$_}, $path->{subpath}, $path->{filter})
+		} grep{
+			exists $path->{$_}
+		} keys %$keysProc;
 }
 sub _getSubObjectsOrCurrent{
 	my $paths = $_[0];
@@ -1027,7 +949,7 @@ sub compile{
 	$q =~ s/[#\N{U+A0}-\N{U+10FFFF}]/sprintf "#%d#", ord $&/ge; #code utf8 characters with sequece #utfcode#. Marpa problem? 
 	$reader->read(\$q);
 	my $qp = $reader->value;
-	#print "compile", Dumper $qp;
+	print "compile", Dumper $qp;
 	return Data::pQuery::Data->new(${$qp})
 }
 
