@@ -57,7 +57,7 @@ stepPath ::=
 	| step																			action => _do_arg1
 
 step ::= 
-	UINT																				action => _do_index_single
+	index																				action => _do_arg1
 	| keyname 																	action => _do_keyname
 	| wildcard 																	action => _do_wildcard
 	|	'.'																				action => _do_dot
@@ -69,11 +69,9 @@ step ::=
 	| 'ancestor::' keyname											action => _do_ancestorNamed
 	| 'ancestor::[' IntExpr ']' 								action => _do_ancestorNamed
 
-# indexPath ::=
-# 	IndexArray Filter subPath 									action => _do_indexFilterSubpath	
-# 	| IndexArray Filter 												action => _do_indexFilter	
-# 	| IndexArray subPath 												action => _do_indexSubpath		
-# 	| IndexArray																action => _do_arg1	
+index ::=
+	UINT																				action => _do_array_hash_index
+	| '[' UINT ']'															action => _do_array_index
 
 
 IndexExprs ::= IndexExpr+ 			separator => <comma>
@@ -86,7 +84,6 @@ rangeExpr ::=
 	IntExpr '..' IntExpr 												action => _do_index_range
 	|IntExpr '..' 															action => _do_startRange
 	| '..' IntExpr															action => _do_endRange
-
 
 Filter ::= 
 	IndexFilter
@@ -261,7 +258,7 @@ STRING ::=
 	| single_quoted              								action => _do_single_quoted
 
 single_quoted        
-	~ [''] single_quoted_chars ['']
+	~ ['] single_quoted_chars [']
 
 single_quoted_chars      
  	~ single_quoted_char*
@@ -286,13 +283,25 @@ wildcard
 keyname ::= 
 	keyword																			action => _do_token
 	| STRING            												action => _do_arg1
+	| curly_delimited_string   									action => _do_curly_delimited_string
+
+curly_delimited_string
+	~ '{' curly_delimited_chars '}'
+
+curly_delimited_chars
+	~ curly_delimited_char*
+
+curly_delimited_char
+	~ [^}{]
+	| '\'	'{'
+	| '\'	'}'
 
 keyword 
 	~ ID
 
 ID 
 	~ token
-	| token ':' ID      #to allow replication of xml tags names with namespaces
+	| token ':' token      #to allow replication of xml tags names with namespaces
 
 token 								#must have at least one non digit 
 	~ notreserved
@@ -340,6 +349,14 @@ sub _do_single_quoted {
     $s =~ s/^'|'$//g;
     $s =~ s/\\'/'/g;
     return $s;
+}
+sub _do_curly_delimited_string{
+    my $s = $_[1];
+    $s =~ s/#([0-9]+)#/chr $1/ge; #recovery utf8 character 
+    $s =~ s/^{|}$//g;
+    $s =~ s/\\{/{/g;
+    $s =~ s/\\}/}/g;
+    return $s;	
 }
 sub _do_re{
 	my $re = $_[1];
@@ -397,24 +414,6 @@ sub _do_stepSubpath{
 	$step->{subpath} = $subpath;
 	return $step;
 }
-sub _do_indexFilterSubpath(){
-	my ($index, $filter, $subpath) = @_[1..3];
-	carp q|arg is not a hash ref| unless ref $index eq q|HASH|; 
-	@{$index}{qw|filter subpath|} = ($filter,$subpath);
-	return $index;
-}
-sub _do_indexFilter(){
-	my ($index, $filter) = @_[1,2];
-	carp q|arg is not a hash ref| unless ref $index eq q|HASH|; 
-	$index->{filter} = $filter;
-	return $index;
-}
-sub _do_indexSubpath{
-	my ($index,$subpath) = @_[1,2];
-	carp q|arg is not a hash ref| unless ref $index eq q|HASH|; 
-	$index->{subpath} = $subpath;
-	return $index;
-}
 sub _do_path{
 	return {paths => $_[1]}	
 }
@@ -436,6 +435,12 @@ sub _do_mergeFilters{
 	my ($filters1, $filters2) = @_[1,2];
 	my @filters = (@$filters1, @$filters2);
 	return \@filters; 
+}
+sub _do_array_index{
+	return {index => $_[2]}	
+}
+sub _do_array_hash_index{
+	return {index_or_step => $_[1]}	
 }
 sub _do_index_filter{
 	return {indexes => $_[2]}
@@ -782,7 +787,6 @@ sub _anyChildType{
 		(ref $data);
 }
 
-
 $keysProc = {
 	step => sub{
 		my ($data, $step, $subpath,$filter) = @_;
@@ -798,6 +802,21 @@ $keysProc = {
 			map {getStruct($_, $subpath)} 
 			_getFilteredIndexes($data,$filter, $index);
 	},
+	index_or_step => sub {
+		my ($data, $index, $subpath,$filter) = @_;
+		my %indexByType = (
+			HASH => sub {
+				return $keysProc->{step}->($data, $index, $subpath,$filter);
+			}
+			, ARRAY => sub{
+				return $keysProc->{index}->($data, $index, $subpath,$filter);
+			}
+		);
+		return 
+			map {$indexByType{$_}->()}	
+			grep {exists $indexByType{$_}} 
+			(ref $data)	
+	},
 	wildcard => sub{
 		my ($data, undef, $subpath,$filter) = @_;
 		return _anyChildType($data,$subpath,$filter);		
@@ -808,10 +827,12 @@ $keysProc = {
 	},
 	q|.| => sub{
 		my (undef, undef, $subpath,$filter) = @_;
-
+		my ($s,$t) = @{$context[$#context]}{qw|size pos|};
+		@{$context[$#context]}{qw|size pos|} = (1,1);
 		foreach my $filter (@$filter){
 			return () unless _filter($context[$#context],$filter);
 		}
+		@{$context[$#context]}{qw|size pos|} = ($s,$p);
 		return ($context[$#context]) unless defined $subpath;
 		return _getObjectSubset(${$context[$#context]->{data}}, $subpath);	
 	},
@@ -825,23 +846,26 @@ $keysProc = {
 	},
 	parentNamed => sub{
 		my (undef, $step, $subpath,$filter) = @_;
+		#print $step, Dumper \@context;
 		return () unless scalar @context > 1 and $context[$#context-1]->{name} eq $step;
 		return $keysProc->{q|..|}->(undef, undef, $subpath,$filter);
 	},
 	ancestor => sub{
 		my (undef, undef, $subpath,$filter) = @_;
-		my @r = ();
-		my @tmp = ();
-		while(scalar @context > 1){
+		my @tmp, @r;
+		my $size = scalar @context - 1;
+		my $pos = 1;
+		ancestor: while(scalar @context > 1){
 			push @tmp, pop @context;
-			sub{	
-				return if defined $filter and !_check($filter); 
-				push @r, 
-					defined $subpath ? 
-						_getObjectSubset(${$context[$#context]->{data}}, $subpath)
-						: $context[$#context];
-			}->();		
-		};
+			my ($s,$t) = @{$context[$#context]}{qw|size pos|};
+			@{$context[$#context]}{qw|size pos|} = ($size,$pos++);
+			foreach my $filter (@$filter){
+				next ancestor unless _filter($context[$#context],$filter);
+			}
+			push @r, defined $subpath ?
+				_getObjectSubset(${$context[$#context]->{data}}, $subpath)			
+				:($context[$#context]);
+		}
 		push @context, pop @tmp while(scalar @tmp > 0); #repo @context;	
 		return @r;		
 	},
@@ -949,7 +973,7 @@ sub compile{
 	$q =~ s/[#\N{U+A0}-\N{U+10FFFF}]/sprintf "#%d#", ord $&/ge; #code utf8 characters with sequece #utfcode#. Marpa problem? 
 	$reader->read(\$q);
 	my $qp = $reader->value;
-	print "compile", Dumper $qp;
+	#print "compile", Dumper $qp;
 	return Data::pQuery::Data->new(${$qp})
 }
 

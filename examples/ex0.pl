@@ -39,7 +39,8 @@ print Dumper $data->query(q|/..|)->getvalues();
 print $data->query(q|/*/*/parent::*[+1]/*/*|)->getvalues();
 print $data->query(q|/*/*/parent::*/*/*|)->getvalues();
 print $data->query(q|/*/*/parent::food/*/*|)->getvalues();
-print $data->query(q|/3444_/*/0|)->getvalues();
+print $data->query(q|/*/*/0|)->getvalues();
+print $data->query(q|/*/*/[0]|)->getvalues();
 exit;
 
 
