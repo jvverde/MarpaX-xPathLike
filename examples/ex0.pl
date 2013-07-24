@@ -2,8 +2,8 @@
 use strict;
 use Data::pQuery;
 use Data::Dumper;
-
 ($\,$,) = ("\n",",");
+
 my $d = {
 	drinks => {
 		q|Alcoholic beverage| => 'not allowed',
@@ -19,10 +19,22 @@ my $data = Data::pQuery->data($d);
 #print $data->query(q|/*/*[isScalar()][count(s) == 3][name() eq 'nome']|)->getvalues();
 #print $data->query(q|/*/*/78|)->getvalues();
 #print $data->query(q|/*/*/*|)->getvalues();
-print $data->query(q|/*/*/*[value() ~ "o"][-2..9-13]|)->getvalues();
-print 'values', $data->query(q|/*/*/*|)->getvalues();
-print $data->query(q|lasts(/*/*/*)|)->getvalues();
-#print $data->query(q|/*[name() ~ "oo"]/*/*[+1]|)->getvalues();
+#print 'values', $data->query(q|/*/*/*|)->getvalues();
+#print $data->query(q|lasts(/*/*/*)|)->getvalues();
+#print $data->query(q|/*[name() ~ "oo"]/*/*|)->getvalues();
+print $data->query(q|/*[+2]/*/*[value() ~ "o"][0..]|)->getvalues();
+print $data->query(q|/food[+2]/*/*[value() ~ "o"][0..]|)->getvalues();
+print $data->query(q|/food[+1]/*/*[value() ~ "o"][0..]|)->getvalues();
+print $data->query(q|/food[+1]/*/./*[value() ~ "o"][0..]|)->getvalues();
+print $data->query(q|/food[+1]/./*/*[value() ~ "o"][0..]|)->getvalues();
+print $data->query(q|/./food[+1]/*/*[value() ~ "o"][0..]|)->getvalues();
+print $data->query(q|/.[drinks]/food[+1]/*/*[value() ~ "o"][0..]|)->getvalues();
+print $data->query(q|.[drinks]/food[+1]/*/*[value() ~ "o"][0..]|)->getvalues();
+print $data->query(q|/.[+1]/food[+1]/*/*[value() ~ "o"][0..]|)->getvalues();
+print $data->query(q|/food/*/*[value() ~ "o"][0..]|)->getvalues();
+print $data->query(q|/food/*/..[+1]/*/*[value() ~ "o"][0..]|)->getvalues();
+print $data->query(q|/*[+2]/*/..[+1]/*/*|)->getvalues();
+print $data->query(q|/*/*/..[+1]/*/*|)->getvalues();
 exit;
 
 

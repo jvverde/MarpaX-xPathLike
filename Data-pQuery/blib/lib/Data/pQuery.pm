@@ -296,7 +296,7 @@ keyword
 	| token ':' token      #to allow replication of xml tags names with namespaces
 
 token 
-	~ [^0-9\d:./*,'"|\s\]\[\(\)\{\}\\+-]+
+	~ [^:./*,'"|\s\]\[\(\)\{\}\\+-]+
 
 :discard 
 	~ WS
@@ -661,113 +661,11 @@ sub _check{
 	return 1;	#true
 }
 
-sub _filter{
-	my ($filter) = @_;
-	return 1 unless defined $filter and ref $filter eq q|HASH|; #no filter, always returns true
-	foreach (@$filter){
-		return 0 if defined $_->{boolean} and !_operation($_->{boolean})
-	}
-	return 1;	#true
-}
 sub _evaluate{
 	my $x = $_[0];
 	return $x unless ref $x eq q|HASH| and exists $x->{oper};
 	return _operation($x);
 }
-my %filters = (
-	boolean => sub {
-		return  _operation($_[0]);
-	}
-	,indexes => sub{
-		sub positiveIndex{
-			my $index = 0 + _evaluate($_[0]);
-			return $index >= 0 ?
-				$index
-				: $index + 1 + $context[$#context]->{size};
-		}
-		my %proc = (
-			index => sub{
-				return $context[$#context]->{pos} == positiveIndex($_[0]);
-			}
-			,range => sub{
-				print 'range', Dumper $_[0];
-				my $pos = $context[$#context]->{pos};
-				my ($start, $end) = map {positiveIndex($_)} @{$_[0]};
-				return $pos >= $start && $pos <= $end;
-			}
-			,from => sub{
-				print 'from', Dumper $_[0];
-				return $context[$#context]->{pos} >= positiveIndex($_[0]);				
-			}
-			,to => sub{
-				print 'to', Dumper $_[0];
-				return $context[$#context]->{pos} <= positiveIndex($_[0]);				
-			}
-		);
-		#print 'indexes filter ',Dumper @_;
-		my $indexes = $_[0];
-		foreach my $index (@$indexes){
-			#print 'evaluate', Dumper $index;
-			return 1 if (map {$proc{$_}->($index->{$_})} grep {exists $proc{$_}} keys %$index)[0]; 
-		}
-		return 0;
-	}	
-);
-sub _validate{
-	my ($context,$filter) = @_;
-	#print 'validate -> ', Dumper \@_;
-	return 1 unless defined $filter and ref $filter eq q|HASH|;  #just in case
-	push @context, $context;
-	my ($r) = map {$filters{$_}->($filter->{$_})} grep {exists $filters{$_}} keys %$filter;
-	pop @context;
-	return $r;	
-}
-sub _anyChildType{
-	my ($data,$subpath,$filter) = @_;
-	return () unless defined $data;
-
-	$filter = [] unless defined $filter and ref $filter eq q|ARRAY|;
-	my $pos = 1;
-	my $order = $context[$#context]->{order} // q||;
-
-	if (ref $data eq q|HASH|){
-		my @keys = sort keys %$data;
-		print 'keys =', @keys;
-		my @skeys = (0..$#keys);
-		print 'skeys before =', @skeys;
-		foreach my $filter (@$filter){
-			$pos = 1;
-			@skeys = grep {_validate(
-						{name => $keys[$_], data  => \$data->{$keys[$_]}, order => qq|$order/$keys[$_]|, size => scalar @skeys, pos => $pos++}
-						,$filter
-			)} @skeys ;
-		}
-		$pos = 1;
-		print 'skeys after = ', @skeys;
-		return map {getStruct(
-				{name => $keys[$_], data  => \$data->{$keys[$_]}, order => qq|$order/$keys[$_]|, size => scalar @skeys, pos => $pos++}
-				,$subpath
-		)} @skeys;
-	}elsif (ref $data eq q|ARRAY|){
-		my @indexes = (0..$#$data);
-		print 'indexes before = ', @indexes;
-		foreach my $filter (@$filter){
-			$pos = 1;
-			@indexes = grep {_validate(
-						{name => $_, data  => \$data->[$_], order => qq|$order/$_|, size => scalar @indexes, pos => $pos++}
-						,$filter
-			)} @indexes ;
-		}
-		print 'indexes after = ', @indexes;
-		$pos = 1;
-		return map {getStruct(
-				{name => $_, data  => \$data->[$_], order => qq|$order/$_|, size => scalar @indexes, pos => $pos++}
-				,$subpath
-		)} @indexes;
-	};
-	return ();	
-}
-
 sub getStruct{
 	my ($context, $subpath) = @_;
 	return ($context) unless defined $subpath;
@@ -776,25 +674,120 @@ sub getStruct{
 	pop @context;
 	return @r; 
 }
+my %filterType = (
+	boolean => sub {
+		return  _operation($_[0]);
+	}
+	, indexes => sub{
+		sub computeIndex{
+			my $index = 0 + _evaluate($_[0]);
+			$index += 1 + $context[$#context]->{size} if $index < 0;
+			return $index;
+		}
+		my %indexType = (
+			index => sub{
+				return $context[$#context]->{pos} == computeIndex($_[0]);
+			}
+			, range => sub{
+				#print 'range', Dumper $_[0];
+				my $pos = $context[$#context]->{pos};
+				my ($start, $end) = map {computeIndex($_)} @{$_[0]};
+				return $pos >= $start && $pos <= $end;
+			}
+			, from => sub{
+				#print 'from', Dumper $_[0];
+				return $context[$#context]->{pos} >= computeIndex($_[0]);				
+			}
+			, to => sub{
+				#print 'to', Dumper $_[0];
+				return $context[$#context]->{pos} <= computeIndex($_[0]);				
+			}
+		);
+		#print 'indexes filter ',Dumper @_;
+		my $indexes = $_[0];
+		foreach my $index (@$indexes){
+			#print 'evaluate', Dumper $index;
+			return 1 if (map {$indexType{$_}->($index->{$_})} grep {exists $indexType{$_}} keys %$index)[0]; 
+		}
+		return 0;
+	}	
+);
+sub _filter{
+	my ($context,$filter) = @_;
+	#print 'validate -> ', Dumper \@_;
+	return 1 unless defined $filter and ref $filter eq q|HASH|;  #just in case
+	push @context, $context;
+	my ($r) = map {$filterType{$_}->($filter->{$_})} grep {exists $filterType{$_}} keys %$filter;
+	pop @context;
+	return $r;	
+}
+sub _getFilteredKeys{
+	my ($data,$subpath,$filter,@keys) = @_;
+
+	$filter = [] unless defined $filter and ref $filter eq q|ARRAY|;
+	my $order = $context[$#context]->{order} // q||;
+
+	my @keyIndex = (0..$#keys);
+
+	#print 'keyIndex before =', @keyIndex;
+	foreach my $filter (@$filter){
+		my $pos = 1;
+		@keyIndex = grep {_filter(
+					{name => $keys[$_], data  => \$data->{$keys[$_]}, order => qq|$order/$keys[$_]|, size => scalar @keyIndex, pos => $pos++}
+					,$filter
+		)} @keyIndex ;
+	}
+	my $pos = 1;
+	#print 'keyIndex after = ', @keyIndex;
+	return map {
+			{name => $keys[$_], data  => \$data->{$keys[$_]}, order => qq|$order/$keys[$_]|, size => scalar @keyIndex, pos => $pos++}
+	} @keyIndex	
+}
+sub _getFilteredIndexes{
+	my ($data,$subpath,$filter,@indexes) = @_;
+
+	$filter = [] unless defined $filter and ref $filter eq q|ARRAY|;
+	my $order = $context[$#context]->{order} // q||;
+
+	#print 'indexes before = ', @indexes;
+	foreach my $filter (@$filter){
+		my $pos = 1;
+		@indexes = grep {_filter(
+					{name => $_, data  => \$data->[$_], order => qq|$order/$_|, size => scalar @indexes, pos => $pos++}
+					,$filter
+		)} @indexes ;
+	}
+	#print 'indexes after = ', @indexes;
+	my $pos = 1;
+	return map{
+		{name => $_, data  => \$data->[$_], order => qq|$order/$_|, size => scalar @indexes, pos => $pos++}
+	} @indexes;
+}
+sub _anyChildType{
+	my ($data,$subpath,$filter) = @_;
+	my %filterByDataType = (
+			HASH => sub{
+				return _getFilteredKeys($data,$subpath,$filter, sort keys %$data);
+			}
+			, ARRAY => sub{
+				return _getFilteredIndexes($data,$subpath,$filter, 0..$#$data);
+			}
+	);
+	return 
+		map {getStruct($_, $subpath)} 
+		map { $filterByDataType{$_}->()} 
+		grep {exists $filterByDataType{$_}} 
+		(ref $data);
+}
+
 
 $keysProc = {
 	step => sub{
 		my ($data, $step, $subpath,$filter) = @_;
 		return () unless exists $data->{$step};
-
-		#my @r = ();
-		my $order = $context[$#context]->{order} // q||;
-		$order .= qq|/$step|;
-		my @keys = keys %$data;
-		push @context, {name => $step, data  => \$data->{$step}, order => $order, size => scalar @keys, pos => 1};
-		my @r = getStruct($data->{$step}, $subpath, $filter);
-		# sub{	
-		# 	return () if defined $filter and !_check($filter); 
-		# 	return _getObjectSubset($data->{$step}, $subpath) if defined $subpath; 
-		# 	return ($context[$#context]);
-		# }->();
-		pop @context;
-		return @r;
+		return 
+			map {getStruct($_, $subpath)} 
+			_getFilteredKeys($data,$subpath,$filter, $step);
 	},
 	wildcard => sub{
 		my ($data, undef, $subpath,$filter) = @_;
@@ -806,33 +799,18 @@ $keysProc = {
 	},
 	q|.| => sub{
 		my (undef, undef, $subpath,$filter) = @_;
-		my @r = ();
-		#print "q|.| args ->", Dumper \@_;
-		#print "q|.| context ->", Dumper \@context;
-		sub{	
-			return if defined $filter and !_check($filter); 
-			push @r, 
-				defined $subpath ? 
-					_getObjectSubset(${$context[$#context]->{data}}, $subpath)
-					: $context[$#context];
-		}->();		
-		#print "q|.| result ->", Dumper \@r;
-		return @r;	
+
+		foreach my $filter (@$filter){
+			return () unless _filter($context[$#context],$filter);
+		}
+		return ($context[$#context]) unless defined $subpath;
+		return _getObjectSubset(${$context[$#context]->{data}}, $subpath);	
 	},
 	qq|..| => sub{
 		my (undef, undef, $subpath,$filter) = @_;
-		#print 'context ->', Dumper \@context;
 		return () unless scalar @context > 1;
 		my $subcontext = pop @context;
-		#push @context, $context[$#context-1];
-		my @r = ();
-		sub{	
-			return if defined $filter and !_check($filter); 
-			push @r, 
-				defined $subpath ? 
-					_getObjectSubset(${$context[$#context]->{data}}, $subpath)
-					: $context[$#context];
-		}->();		
+		my @r = $keysProc->{q|.|}->(undef, undef, $subpath,$filter);		
 		push @context, $subcontext;
 		return @r;	
 	},
@@ -996,6 +974,7 @@ sub _getObjectSubset{
 		#do nothing. Nothing is ok
 		#print 'Nothing ', Dumper $data;
 	}
+	#print Dumper \@r;
 	my %seen;
 	return 
 		sort {
@@ -1027,7 +1006,7 @@ sub _execute{
 	my ($self,$data,$query) = @_;
 	return undef unless ref $data eq q|HASH| or ref $data eq q|ARRAY|; 
 	return undef unless defined $query and (defined $query->{oper} or defined $query->{paths});
-	push @context, {data  => \$data, order => '', name => '/'};
+	push @context, {data  => \$data, order => '', name => '/', size => 1, pos => 1};
 	my @r = defined $query->{oper} ? 
 		map {\$_} (_operation($query))								#if an operation	
 		: map {$_->{data}} sort {$a->{order} cmp $b->{order}} _getObjects(@{$query->{paths}}); 	#else is a path
@@ -1048,7 +1027,7 @@ sub compile{
 	$q =~ s/[#\N{U+A0}-\N{U+10FFFF}]/sprintf "#%d#", ord $&/ge; #code utf8 characters with sequece #utfcode#. Marpa problem? 
 	$reader->read(\$q);
 	my $qp = $reader->value;
-	print "compile", Dumper $qp;
+	#print "compile", Dumper $qp;
 	return Data::pQuery::Data->new(${$qp})
 }
 
