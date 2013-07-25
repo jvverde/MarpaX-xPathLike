@@ -659,14 +659,14 @@ $operatorBy = {
 		return $s;	
 	},
 };
-sub _check{
-	my ($filter) = @_;
-	return 1 unless defined $filter; #no filter, always returns true
-	foreach (@$filter){
-		return 0 unless _operation($_)
-	}
-	return 1;	#true
-}
+# sub _check{
+# 	my ($filter) = @_;
+# 	return 1 unless defined $filter; #no filter, always returns true
+# 	foreach (@$filter){
+# 		return 0 unless _operation($_)
+# 	}
+# 	return 1;	#true
+# }
 
 sub _evaluate{
 	my $x = $_[0];
@@ -730,13 +730,10 @@ sub _filter{
 }
 sub _getFilteredKeys{
 	my ($data,$filter,@keys) = @_;
-
-	$filter = [] unless defined $filter and ref $filter eq q|ARRAY|;
+	$filter //= [];
 	my $order = $context[$#context]->{order} // q||;
-
 	my @keyIndex = (0..$#keys);
 
-	#print 'keyIndex before =', @keyIndex;
 	foreach my $filter (@$filter){
 		my $pos = 1;
 		@keyIndex = grep {_filter(
@@ -744,19 +741,17 @@ sub _getFilteredKeys{
 					,$filter
 		)} @keyIndex ;
 	}
+
 	my $pos = 1;
-	#print 'keyIndex after = ', @keyIndex;
 	return map {
 			{name => $keys[$_], data  => \$data->{$keys[$_]}, order => qq|$order/$keys[$_]|, size => scalar @keyIndex, pos => $pos++}
 	} @keyIndex	
 }
 sub _getFilteredIndexes{
 	my ($data,$filter,@indexes) = @_;
-
-	$filter = [] unless defined $filter and ref $filter eq q|ARRAY|;
+	$filter //= [];
 	my $order = $context[$#context]->{order} // q||;
 
-	#print 'indexes before = ', @indexes;
 	foreach my $filter (@$filter){
 		my $pos = 1;
 		@indexes = grep {_filter(
@@ -764,7 +759,7 @@ sub _getFilteredIndexes{
 					,$filter
 		)} @indexes ;
 	}
-	#print 'indexes after = ', @indexes;
+
 	my $pos = 1;
 	return map{
 		{name => $_, data  => \$data->[$_], order => qq|$order/$_|, size => scalar @indexes, pos => $pos++}
@@ -786,7 +781,41 @@ sub _anyChildType{
 		grep {exists $filterByDataType{$_}} 
 		(ref $data);
 }
-
+sub _getAncestors{ #@_ = list of ancestors, $subpath
+	my $subpath = pop @_; #subpath is the last in the argument list
+	my @tmp = ();
+	my @r;
+	foreach (0..$#_){
+			if (defined $_[$_]){						#only is ancestor was selected
+					push @r, defined $subpath ?
+						_getObjectSubset(${$context[$#context]->{data}}, $subpath)
+						: ($context[$#context])						
+			}
+			push @tmp, pop @context;
+	}
+	push @context, pop @tmp while(scalar @tmp > 0); #repo @context
+	return @r;
+}
+sub _filterOutAncestors{
+	my($filter,$size,@ancestors) = @_;
+	foreach my $filter (@$filter){
+		my $pos = 1;
+		my @tmp = ();
+		my $cnt = 0;
+		foreach my $k (0..$#ancestors){
+			if (defined $ancestors[$k]){
+				my ($s,$p) = @{$context[$#context]}{qw|size pos|};
+		 		@{$context[$#context]}{qw|size pos|} = ($size,$pos++);		
+				$cnt++, undef $ancestors[$k] if !_filter($context[$#context],$filter);
+				@{$context[$#context]}{qw|size pos|} = ($s,$p);
+			}		
+			push @tmp, pop @context;
+		}
+		push @context, pop @tmp while(scalar @tmp > 0); #repo @context
+		$size -= $cnt; 				#adjust the group's size;
+	}
+	return @ancestors;
+} 
 $keysProc = {
 	step => sub{
 		my ($data, $step, $subpath,$filter) = @_;
@@ -827,10 +856,14 @@ $keysProc = {
 	},
 	q|.| => sub{
 		my (undef, undef, $subpath,$filter) = @_;
+		$filter //= [];
+
+		my ($s,$p) = @{$context[$#context]}{qw|size pos|};
 		@{$context[$#context]}{qw|size pos|} = (1,1);
 		foreach my $filter (@$filter){
 			return () unless _filter($context[$#context],$filter);
 		}
+		@{$context[$#context]}{qw|size pos|} = ($s,$p);
 		return ($context[$#context]) unless defined $subpath;
 		return _getObjectSubset(${$context[$#context]->{data}}, $subpath);	
 	},
@@ -850,38 +883,34 @@ $keysProc = {
 	},
 	ancestor => sub{
 		my (undef, undef, $subpath,$filter) = @_;
-		my @r = ();
-		my @tmp = ();
-		while(scalar @context > 1){
-			push @tmp, pop @context;
-			sub{	
-				return if defined $filter and !_check($filter); 
-				push @r, 
-					defined $subpath ? 
-						_getObjectSubset(${$context[$#context]->{data}}, $subpath)
-						: $context[$#context];
-			}->();		
-		};
-		push @context, pop @tmp while(scalar @tmp > 0); #repo @context;	
-		return @r;		
+		$filter //= [];
+		my $current = pop @context;
+
+		my @ancestors = map {1} (0..$#context);
+		my $size = scalar @context;
+
+		my @r = _getAncestors(_filterOutAncestors($filter,$size,@ancestors), $subpath);
+
+		push @context, $current;
+		return @r;
 	},
 	ancestorNamed => sub{
 		my (undef, $step, $subpath,$filter) = @_;
-		my @r = ();
-		my @tmp = ();
-		while(scalar @context > 1){
-			push @tmp, pop @context;
-			next unless $context[$#context]->{name} eq $step;
-			sub{	
-				return if defined $filter and !_check($filter); 
-				push @r, 
-					defined $subpath ? 
-						_getObjectSubset(${$context[$#context]->{data}}, $subpath)
-						: $context[$#context];
-			}->();		
-		};
-		push @context, pop @tmp while(scalar @tmp > 0); #repo @context;	
-		return @r;	
+		$filter //= [];
+		my $current = pop @context;
+
+		my @ancestors = map {1} (0..$#context);
+		my $size = scalar @context;
+		
+		foreach (0..$#ancestors){
+			$size--, undef $ancestors[$_] if $context[$_]->{name} ne $step;
+		}
+
+		my @r = _getAncestors(_filterOutAncestors($filter,$size,@ancestors), $subpath);
+
+		push @context, $current;
+		return @r;
+
 	} 
 };
 sub descendent{

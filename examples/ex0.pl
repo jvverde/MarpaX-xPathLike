@@ -41,6 +41,13 @@ print $data->query(q|/*/*/parent::*/*/*|)->getvalues();
 print $data->query(q|/*/*/parent::food/*/*|)->getvalues();
 print $data->query(q|/*/*/0|)->getvalues();
 print $data->query(q|/*/*/[0]|)->getvalues();
+print Dumper [$data->query(q|/*/*/[0]/..|)->getvalues()];
+print Dumper [$data->query(q|/*/fruit/0/ancestor::*|)->getvalues()];
+print Dumper [$data->query(q|/*/fruit/0/ancestor::*[+2]|)->getvalues()];
+print Dumper [$data->query(q|/*/fruit/0/ancestor::*[isHash()]|)->getvalues()];
+print Dumper [$data->query(q|/*/fruit/0/ancestor::*[isHash()][+2]|)->getvalues()];
+print Dumper [$data->query(q|/food/*/0/ancestor::*[+2]|)->getvalues()];
+print Dumper [$data->query(q|/*/*/0/ancestor::food|)->getvalues()];
 exit;
 
 
