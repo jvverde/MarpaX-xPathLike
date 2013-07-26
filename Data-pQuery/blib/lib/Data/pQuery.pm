@@ -79,6 +79,10 @@ step ::=
 	| 'preceding-sibling::' keyname 						action => _do_precedingSiblingNamed
 	| 'preceding-sibling::' UINT 								action => _do_precedingSiblingIndexedOrNamed
 	| 'preceding-sibling::[' UINT ']'						action => _do_precedingSiblingIndexed
+	| 'following-sibling::*' 										action => _do_followingSibling
+	| 'following-sibling::' keyname 						action => _do_followingSiblingNamed
+	| 'following-sibling::' UINT 								action => _do_followingSiblingIndexedOrNamed
+	| 'following-sibling::[' UINT ']'						action => _do_followingSiblingIndexed
 
 index ::=
 	UINT																				action => _do_array_hash_index
@@ -502,6 +506,18 @@ sub _do_precedingSiblingIndexed{
 }
 sub _do_precedingSiblingIndexedOrNamed{
 	return {precedingSiblingIndexedOrNamed => $_[2]};	
+}
+sub _do_followingSibling{
+	return {followingSibling => $_[1]};	
+}
+sub _do_followingSiblingNamed{
+	return {followingSiblingNamed => $_[2]};	
+}
+sub _do_followingSiblingIndexed{
+	return {followingSiblingIndexed => $_[2]};	
+}
+sub _do_followingSiblingIndexedOrNamed{
+	return {followingSiblingIndexedOrNamed => $_[2]};	
 }
 sub _do_wildcard{
 	my $k = $_[1];
@@ -975,7 +991,7 @@ sub _filterOutAncestors{
 	return $ancestors;
 } 
 sub _filterOutPrecedingSibling{
-	my ($type, $name, $subpath,$filter) = @_;
+	my ($type, $name, $subpath,$filter,$direction) = @_;
 	my $mySelf = $context[$#context]->{data};
 	my $context = pop @context;
 	my $data = ${$context[$#context]->{data}};
@@ -985,30 +1001,30 @@ sub _filterOutPrecedingSibling{
 				my @keys = sort keys %$data;
 				my $cnt = $#keys;
 				$cnt-- while($cnt >= 0 and \$data->{$keys[$cnt]} != $mySelf);	
-				$#keys = $cnt-1;
-				my @siblings = do{
-					if (defined $name and defined $type){
-						grep {q|HASH| eq $type and $_ eq $name} reverse @keys;
-					}elsif(defined $name){
-						grep {$_ eq $name} reverse @keys;	
-					}else{
-						reverse @keys;
+				my @siblings = do {
+					if ($direction eq q|preceding|){
+						$#keys = $cnt-1;
+						reverse @keys[0 .. $cnt-1];
+					}elsif($direction eq q|following|){
+						@keys[$cnt+1 .. $#keys]
 					}
 				};
-				return _getFilteredKeys($data,$filter, reverse @siblings);
+				@siblings = grep {$_ eq $name} @siblings if defined $name;
+				@siblings = grep {q|HASH| eq $type} @siblings if defined $type;
+				return _getFilteredKeys($data,$filter, @siblings);
 			}
 			, ARRAY => sub{
 				my $cnt = $#$data;
-				$cnt-- while($cnt >= 0 and \$data->[$cnt] != $mySelf);	
-				my @siblings = do{
-					if (defined $name and defined $type){
-						grep {q|ARRAY|  eq $type and $_ eq $name} reverse 0 .. $cnt-1;
-					}elsif(defined $name){
-						grep {$_ eq $name} reverse 0 .. $cnt-1;	
-					}else{
-						reverse 0 .. $cnt-1;
+				$cnt-- while($cnt >= 0 and \$data->[$cnt] != $mySelf);
+				my @siblings = do {
+					if ($direction eq q|preceding|){
+						reverse 0..$cnt-1
+					}elsif($direction eq q|following|){
+						$cnt+1 .. $#$data		
 					}
 				};
+				@siblings = grep {$_ eq $name} @siblings if defined $name;
+				@siblings = grep {q|ARRAY| eq $type} @siblings if defined $type;
 				return _getFilteredIndexes($data,$filter, @siblings);
 			}
 	);
@@ -1095,19 +1111,19 @@ $keysProc = {
 	},
 	precedingSibling => sub{
 		my ($data, undef, $subpath,$filter) = @_;
-		_filterOutPrecedingSibling(undef,undef,$subpath, $filter)		
+		_filterOutPrecedingSibling(undef,undef,$subpath, $filter,q|preceding|)		
 	},
 	precedingSiblingNamed => sub{
 		my ($data, $step, $subpath,$filter) = @_;
-		_filterOutPrecedingSibling(q|HASH|,$step,$subpath, $filter)		
+		_filterOutPrecedingSibling(q|HASH|,$step,$subpath, $filter,q|preceding|)		
 	},
 	precedingSiblingIndexed => sub{
 		my ($data, $index, $subpath,$filter) = @_;
-		_filterOutPrecedingSibling(q|ARRAY|,$index,$subpath, $filter)		
+		_filterOutPrecedingSibling(q|ARRAY|,$index,$subpath, $filter,q|preceding|)		
 	},
 	precedingSiblingIndexedOrNamed => sub{
 		my ($data, $index, $subpath,$filter) = @_;
-		_filterOutPrecedingSibling(undef,$index,$subpath, $filter)		
+		_filterOutPrecedingSibling(undef,$index,$subpath, $filter,q|preceding|)		
 	},
 	q|.| => sub{
 		my (undef, undef, $subpath,$filter) = @_;
