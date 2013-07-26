@@ -990,7 +990,7 @@ sub _filterOutAncestors{
 	}
 	return $ancestors;
 } 
-sub _filterOutPrecedingSibling{
+sub _filterOutSiblings{
 	my ($type, $name, $subpath,$filter,$direction) = @_;
 	my $mySelf = $context[$#context]->{data};
 	my $context = pop @context;
@@ -1111,19 +1111,35 @@ $keysProc = {
 	},
 	precedingSibling => sub{
 		my ($data, undef, $subpath,$filter) = @_;
-		_filterOutPrecedingSibling(undef,undef,$subpath, $filter,q|preceding|)		
+		_filterOutSiblings(undef,undef,$subpath, $filter,q|preceding|)		
 	},
 	precedingSiblingNamed => sub{
 		my ($data, $step, $subpath,$filter) = @_;
-		_filterOutPrecedingSibling(q|HASH|,$step,$subpath, $filter,q|preceding|)		
+		_filterOutSiblings(q|HASH|,$step,$subpath, $filter,q|preceding|)		
 	},
 	precedingSiblingIndexed => sub{
 		my ($data, $index, $subpath,$filter) = @_;
-		_filterOutPrecedingSibling(q|ARRAY|,$index,$subpath, $filter,q|preceding|)		
+		_filterOutSiblings(q|ARRAY|,$index,$subpath, $filter,q|preceding|)		
 	},
 	precedingSiblingIndexedOrNamed => sub{
 		my ($data, $index, $subpath,$filter) = @_;
-		_filterOutPrecedingSibling(undef,$index,$subpath, $filter,q|preceding|)		
+		_filterOutSiblings(undef,$index,$subpath, $filter,q|preceding|)		
+	},
+	followingSibling => sub{
+		my ($data, undef, $subpath,$filter) = @_;
+		_filterOutSiblings(undef,undef,$subpath, $filter,q|following|)		
+	},
+	followingSiblingNamed => sub{
+		my ($data, $step, $subpath,$filter) = @_;
+		_filterOutSiblings(q|HASH|,$step,$subpath, $filter,q|following|)		
+	},
+	followingSiblingIndexed => sub{
+		my ($data, $index, $subpath,$filter) = @_;
+		_filterOutSiblings(q|ARRAY|,$index,$subpath, $filter,q|following|)		
+	},
+	followingSiblingIndexedOrNamed => sub{
+		my ($data, $index, $subpath,$filter) = @_;
+		_filterOutSiblings(undef,$index,$subpath, $filter,q|following|)		
 	},
 	q|.| => sub{
 		my (undef, undef, $subpath,$filter) = @_;

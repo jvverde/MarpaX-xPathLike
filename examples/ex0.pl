@@ -92,10 +92,13 @@ print $d->query(q|/a//b/descendant::*[not(*)]|)->getvalues();
 print $d->query(q|/a//b/descendant::*[not(*)][+1]|)->getvalues();
 print $d->query(q|/a//b/descendant::*[not(*)][+2]|)->getvalues();
 print $d->query(q|/a//b/descendant::*[not(*)][2 == position()]|)->getvalues();
-print $d->query(q|positions(/a//b/descendant::*[not(*)])|)->getvalues();
-print $d->query(q|positions(/a//b/*)|)->getvalues();
-print Dumper [$d->query(q|//*/preceding-sibling::0|)->getvalues()];
-print Dumper [$d->query(q|//0//*/preceding-sibling::0|)->getvalues()];
+print $d->query(q|//0//*/preceding-sibling::0|)->getvalues();
+print $d->query(q|//0//*/preceding-sibling::9|)->getvalues();
+print $d->query(q|//0//*/following-sibling::0|)->getvalues();
+print $d->query(q|//0//*/following-sibling::1|)->getvalues();
+print $d->query(q|//0//*/following-sibling::2|)->getvalues();
+print $d->query(q|//c/*/following-sibling::*|)->getvalues();
+print $d->query(q|//c/*/preceding-sibling::*|)->getvalues();
 exit;
 
 print Dumper [$d->query(q|//b|)->getvalues()];
