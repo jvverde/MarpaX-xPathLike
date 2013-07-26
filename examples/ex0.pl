@@ -16,6 +16,9 @@ my $d = {
 };
 
 my $data = Data::pQuery->data($d);
+
+=pod
+
 #print $data->query(q|/*/*[isScalar()][count(s) == 3][name() eq 'nome']|)->getvalues();
 #print $data->query(q|/*/*/78|)->getvalues();
 #print $data->query(q|/*/*/*|)->getvalues();
@@ -48,9 +51,57 @@ print Dumper [$data->query(q|/*/fruit/0/ancestor::*[isHash()]|)->getvalues()];
 print Dumper [$data->query(q|/*/fruit/0/ancestor::*[isHash()][+2]|)->getvalues()];
 print Dumper [$data->query(q|/food/*/0/ancestor::*[+2]|)->getvalues()];
 print Dumper [$data->query(q|/*/*/0/ancestor::food|)->getvalues()];
+print $data->query(q|//*[not(*)][last()]|)->getvalues();
+print $data->query(q|//*[last()][parent::fruit]|)->getvalues();
+print Dumper [$data->query(q|//*[last()][parent::fruit]/ancestor::*|)->getvalues()];
+print Dumper [$data->query(q|//*[last()][parent::fruit]/ancestor-or-self::*|)->getvalues()];
+print Dumper [$data->query(q|//*[last()][parent::fruit]/ancestor-or-self::fruit|)->getvalues()];
+
+=cut
+
+my $d = Data::pQuery->data({
+	a => [
+		{
+			a => {
+							a=> 'a0aa',
+							b=> 'a0ab'
+						},
+			b =>{
+						0 => 'zero',
+						a=> 'a0ba',
+						b=> 'a0bb',
+						c=>[
+								0,
+								1,
+								2,
+						]
+			}
+		},
+		{
+			a => 'a0a',
+			b => 'a0b'
+		}
+	],
+	b => 'b'
+});
+
+print $d->query(q|/a//b/descendant::[0]|)->getvalues();
+print $d->query(q|/a//b/descendant::{0}|)->getvalues();
+print $d->query(q|/a//b/descendant::0|)->getvalues();
+print $d->query(q|/a//b/descendant::*[not(*)]|)->getvalues();
 exit;
 
-
+print Dumper [$d->query(q|//b|)->getvalues()];
+print Dumper [$d->query(q|/a//b|)->getvalues()];
+print Dumper [$d->query(q|/a/0/b//b|)->getvalues()];
+print Dumper [$d->query(q|/a/0/*//b|)->getvalues()];
+print $d->query(q|/a//*[not(*)]|)->getvalues();
+print $d->query(q|/a/descendent::*[not(*)]|)->getvalues();
+print Dumper [$d->query(q|/a//*|)->getvalues()];
+print Dumper [$d->query(q|/a/descendent::*|)->getvalues()];
+print Dumper [$d->query(q|/a/descendent::0|)->getvalues()];
+print Dumper [$d->query(q|/a/descendent::[0]|)->getvalues()];
+exit;
 
 my $results = $data->query(q|/*/*/[0]|);
 my @values = $results->getvalues();

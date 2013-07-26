@@ -64,10 +64,18 @@ step ::=
 	|	'..'																			action => _do_dotdot
 	| 'parent::*'																action => _do_dotdot
 	| 'parent::' keyname												action => _do_parentNamed			  
-	| 'parent::[' IntExpr	']'										action => _do_parentNamed			  
+	| 'parent::' UINT 													action => _do_parentNamed			  
 	| 'ancestor::*'															action => _do_ancestor
 	| 'ancestor::' keyname											action => _do_ancestorNamed
-	| 'ancestor::[' IntExpr ']' 								action => _do_ancestorNamed
+	| 'ancestor::' UINT													action => _do_ancestorNamed
+	| 'ancestor-or-self::*'											action => _do_ancestor_or_self
+	| 'ancestor-or-self::' 	keyname							action => _do_ancestor_or_selfNamed
+	| 'ancestor-or-self::' 	UINT						  	action => _do_ancestor_or_selfNamed
+	| 'descendant::*'														action => _do_descendant
+	| 'descendant::' keyname										action => _do_descendantNamed
+	| 'descendant::' UINT												action => _do_descendantIndexedOrNamed
+	| 'descendant::[' UINT ']'									action => _do_descendantIndexed
+	| 'descendant::{' UINT '}'									action => _do_descendantNamed
 
 index ::=
 	UINT																				action => _do_array_hash_index
@@ -190,7 +198,7 @@ CountFunction ::=
 	'count' '(' PathExpr ')'				 						action => _do_func
 
 LastFunction ::= 
-	'last' '(' PathExpr ')'					 						action => _do_func
+	'last' '(' PathArgs ')'					 						action => _do_func
 
 SumFunction ::= 
 	'sum' '(' PathExpr ')'				 							action => _do_func
@@ -463,6 +471,18 @@ sub  _do_vlen{
 			subpath => $_[2]
 	};
 }
+sub _do_descendant{
+	return {descendant => $_[1]};	
+}
+sub _do_descendantNamed{
+	return {descendantNamed => $_[2]};	
+}
+sub _do_descendantIndexed{
+	return {descendantIndexed => $_[2]};	
+}
+sub _do_descendantIndexedOrNamed{
+	return {descendantIndexedOrNamed => $_[2]};	
+}
 sub _do_wildcard{
 	my $k = $_[1];
 	return {wildcard => $k};
@@ -483,6 +503,12 @@ sub _do_ancestor{
 }
 sub _do_ancestorNamed{
 	return {ancestorNamed => $_[2]};	
+}
+sub _do_ancestor_or_self{
+	return {ancestor_or_self => $_[1]}	
+}
+sub _do_ancestor_or_selfNamed{
+	return {ancestor_or_selfNamed => $_[2]}		
 }
 #############################end of rules################################
 
@@ -781,12 +807,114 @@ sub _anyChildType{
 		grep {exists $filterByDataType{$_}} 
 		(ref $data);
 }
-sub _getAncestors{ #@_ = list of ancestors, $subpath
-	my $subpath = pop @_; #subpath is the last in the argument list
+sub _descendant{
+	my ($data,$path) = @_;
+	#print 'context', Dumper \@context;
+	my @r = _getObjectSubset($data,$path);	
+	my $order = $context[$#context]->{order} // q||;
+	#print "order = $order";
+	if (ref $data eq q|HASH|){
+			my @keys = sort keys %$data;
+			foreach (@keys){
+				push @context, {name => $_, data  => \$data->{$_}, order => qq|$order/$_|, pos =>1, size => scalar @keys };
+				push @r, _descendant($data->{$_}, $path);
+				pop @context;
+			}
+	}
+	if (ref $data eq q|ARRAY|){
+			foreach (0 .. $#$data){
+				push @context, {name => $_, data  => \$data->[$_], order =>  qq|$order/$_|, pos=> 1, size => scalar @$data};
+				push @r, _descendant($data->[$_], $path);
+				pop @context;
+			}
+	}
+	return @r;
+}
+sub _getDescendants{
+	my($descendants,$subpath) = @_;
+	my @r=();
+	foreach (0..$#$descendants){
+			if (defined $descendants->[$_]){						#only if descendants was selected
+					my $last = $#context;
+					#print "descendant of $_", Dumper $descendants->[$_];
+					#print "subpath", Dumper $subpath;
+					push @context, @{$descendants->[$_]};
+					push @r, defined $subpath ?
+						_getObjectSubset(${$context[$#context]->{data}}, $subpath)
+						: ($context[$#context]);
+					$#context = $last;						
+			}
+	}
+	return @r;
+}
+
+sub _getDescContexts{
+		my (@context) = @_;
+		my @r = ();
+		my $order = $context[$#context]->{order} // q||;
+		my $data = ${$context[$#context]->{data}};
+		if (ref $data eq q|HASH|){
+				my @keys = sort keys %$data;
+				foreach (@keys){
+					push @r, _getDescContexts(@context, {name => $_, data  => \$data->{$_}, order => qq|$order/$_|, pos =>1, size => scalar @keys });
+				}
+		}
+		if (ref $data eq q|ARRAY|){
+				foreach (0 .. $#$data){
+					push @r, _getDescContexts(@context, {name => $_, data  => \$data->[$_], order =>  qq|$order/$_|, pos=> 1, size => scalar @$data});
+				}
+		}
+		return (\@context, @r);
+}
+
+sub _filterOutDescendants{
+	my ($filters,$size,$descendants) = @_;
+	$filters //= [];
+
+	
+	#print 'descendants', scalar @$descendants, Dumper \@$descendants;
+	foreach my $filter (@$filters){
+		my $pos = 1;
+		my $cnt = 0;
+		foreach my $k (0..$#$descendants){
+			if (defined $descendants->[$k]){
+				my $last = $#context;
+				push @context, @{$descendants->[$k]};
+				my ($s,$p) = @{$context[$#context]}{qw|size pos|};
+				@{$context[$#context]}{qw|size pos|} = ($size,$pos++);	
+				$cnt++, undef $descendants->[$k] if !_filter($context[$#context],$filter);
+				@{$context[$#context]}{qw|size pos|} = ($s,$p);	
+				$#context = $last;
+			}
+		}
+		$size -= $cnt;
+	}
+	#print 'Selected descendants', scalar @$descendants, Dumper \@$descendants;
+	return $descendants;	
+}
+sub _getDescendantsByTypeAndName{
+		my ($type, $name, $subpath,$filter) = @_;
+		my @descendants = _getDescContexts($context[$#context]);
+		shift @descendants;
+		my $descendants = do {
+			if (defined $name and defined $type){
+				[grep {$_->[$#$_]->{name} eq $name and ref ${$_->[$#$_-1]->{data}} eq $type} @descendants];
+			}elsif(defined $name){
+				[grep {$_->[$#$_]->{name} eq $name} @descendants]	
+			}else{
+				\@descendants	
+			}
+		};
+		shift @{$descendants->[$_]} foreach (0..$#$descendants); #remove the current context from context list.
+		my $size = scalar @$descendants;
+		return _getDescendants(_filterOutDescendants($filter,$size,$descendants), $subpath);
+}
+sub _getAncestors{ 
+	my ($ancestors,$subpath) = @_; 
 	my @tmp = ();
 	my @r;
-	foreach (0..$#_){
-			if (defined $_[$_]){						#only is ancestor was selected
+	foreach (0..$#$ancestors){
+			if (defined $ancestors->[$_]){						#only if ancestor was selected
 					push @r, defined $subpath ?
 						_getObjectSubset(${$context[$#context]->{data}}, $subpath)
 						: ($context[$#context])						
@@ -797,16 +925,17 @@ sub _getAncestors{ #@_ = list of ancestors, $subpath
 	return @r;
 }
 sub _filterOutAncestors{
-	my($filter,$size,@ancestors) = @_;
+	my($filter,$size,$ancestors) = @_;
+	$filter //= [];
 	foreach my $filter (@$filter){
 		my $pos = 1;
 		my @tmp = ();
 		my $cnt = 0;
-		foreach my $k (0..$#ancestors){
-			if (defined $ancestors[$k]){
+		foreach my $k (0..$#$ancestors){
+			if (defined $ancestors->[$k]){
 				my ($s,$p) = @{$context[$#context]}{qw|size pos|};
 		 		@{$context[$#context]}{qw|size pos|} = ($size,$pos++);		
-				$cnt++, undef $ancestors[$k] if !_filter($context[$#context],$filter);
+				$cnt++, undef $ancestors->[$k] if !_filter($context[$#context],$filter);
 				@{$context[$#context]}{qw|size pos|} = ($s,$p);
 			}		
 			push @tmp, pop @context;
@@ -814,7 +943,7 @@ sub _filterOutAncestors{
 		push @context, pop @tmp while(scalar @tmp > 0); #repo @context
 		$size -= $cnt; 				#adjust the group's size;
 	}
-	return @ancestors;
+	return $ancestors;
 } 
 $keysProc = {
 	step => sub{
@@ -852,7 +981,23 @@ $keysProc = {
 	},
 	slashslash => sub{
 		my ($data, undef, $subpath,undef) = @_;
-		return descendent($data,$subpath);
+		return _descendant($data,$subpath);
+	},
+	descendant => sub{
+		my ($data, undef, $subpath,$filter) = @_;
+		return _getDescendantsByTypeAndName(undef,undef,$subpath,$filter)
+	},
+	descendantNamed => sub{
+		my ($data, $step, $subpath,$filter) = @_;
+		return _getDescendantsByTypeAndName(q|HASH|,$step,$subpath,$filter)
+	},
+	descendantIndexed => sub{
+		my ($data, $index, $subpath,$filter) = @_;
+		return _getDescendantsByTypeAndName(q|ARRAY|,$index,$subpath,$filter)
+	},
+	descendantIndexedOrNamed => sub{
+		my ($data, $index, $subpath,$filter) = @_;
+		return _getDescendantsByTypeAndName(undef,$index,$subpath,$filter)
 	},
 	q|.| => sub{
 		my (undef, undef, $subpath,$filter) = @_;
@@ -883,58 +1028,48 @@ $keysProc = {
 	},
 	ancestor => sub{
 		my (undef, undef, $subpath,$filter) = @_;
-		$filter //= [];
+
 		my $current = pop @context;
-
-		my @ancestors = map {1} (0..$#context);
+		my $ancestors = [map {1} (0..$#context)];
 		my $size = scalar @context;
-
-		my @r = _getAncestors(_filterOutAncestors($filter,$size,@ancestors), $subpath);
-
+		my @r = _getAncestors(_filterOutAncestors($filter,$size,$ancestors), $subpath);
 		push @context, $current;
 		return @r;
 	},
+	ancestor_or_self => sub{
+		my (undef, $step, $subpath,$filter) = @_;
+	
+		my $ancestors = [map {1} (0..$#context)];
+		my $size = scalar @context;
+		my @r = _getAncestors(_filterOutAncestors($filter,$size,$ancestors), $subpath);
+		return @r;		
+	}, 
 	ancestorNamed => sub{
 		my (undef, $step, $subpath,$filter) = @_;
-		$filter //= [];
+	
 		my $current = pop @context;
-
-		my @ancestors = map {1} (0..$#context);
+		my $ancestors = [map {1} (0..$#context)];
 		my $size = scalar @context;
-		
-		foreach (0..$#ancestors){
-			$size--, undef $ancestors[$_] if $context[$_]->{name} ne $step;
+		foreach (0..$#$ancestors){	#pre filter ancestors with named ones, only!
+			$size--, undef $ancestors->[$_] if $context[$_]->{name} ne $step;
 		}
-
-		my @r = _getAncestors(_filterOutAncestors($filter,$size,@ancestors), $subpath);
-
+		my @r = _getAncestors(_filterOutAncestors($filter,$size,$ancestors), $subpath);
 		push @context, $current;
 		return @r;
-
+	},
+	ancestor_or_selfNamed => sub{
+		my (undef, $step, $subpath,$filter) = @_;
+	
+		my $ancestors = [map {1} (0..$#context)];
+		my $size = scalar @context;
+		foreach (0..$#$ancestors){	#pre filter ancestors with named ones, only!
+			$size--, undef $ancestors->[$_] if $context[$_]->{name} ne $step;
+		}
+		my @r = _getAncestors(_filterOutAncestors($filter,$size,$ancestors), $subpath);
+		return @r;		
 	} 
 };
-sub descendent{
-	my ($data,$path) = @_;
-	#print 'context', Dumper \@context;
-	my @r = _getObjectSubset($data,$path);	
-	my $order = $context[$#context]->{order} // q||;
-	#print "order = $order";
-	if (ref $data eq q|HASH|){
-			foreach (sort keys %$data){
-				push @context, {name => $_, data  => \$data->{$_}, order => qq|$order/$_|};
-				push @r, descendent($data->{$_}, $path);
-				pop @context;
-			}
-	}
-	if (ref $data eq q|ARRAY|){
-			foreach (0 .. $#$data){
-				push @context, {name => $_, data  => \$data->[$_], order =>  qq|${order}[]|};
-				push @r, descendent($data->[$_], $path);
-				pop @context;
-			}
-	}
-	return @r;
-}
+
 
 $Data::Dumper::Deepcopy = 1;
 
