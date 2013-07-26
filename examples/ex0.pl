@@ -89,6 +89,12 @@ print $d->query(q|/a//b/descendant::[0]|)->getvalues();
 print $d->query(q|/a//b/descendant::{0}|)->getvalues();
 print $d->query(q|/a//b/descendant::0|)->getvalues();
 print $d->query(q|/a//b/descendant::*[not(*)]|)->getvalues();
+print $d->query(q|/a//b/descendant::*[not(*)][+1]|)->getvalues();
+print $d->query(q|/a//b/descendant::*[not(*)][+2]|)->getvalues();
+print $d->query(q|/a//b/descendant::*[not(*)][2 == position()]|)->getvalues();
+print $d->query(q|positions(/a//b/descendant::*[not(*)])|)->getvalues();
+print $d->query(q|positions(/a//b/*)|)->getvalues();
+print $d->query(q|/a/0/b//*/preceding-sibling::{0}|)->getvalues();
 exit;
 
 print Dumper [$d->query(q|//b|)->getvalues()];
