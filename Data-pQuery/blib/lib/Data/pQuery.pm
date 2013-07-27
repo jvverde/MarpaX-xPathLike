@@ -59,6 +59,8 @@ stepPath ::=
 step ::= 
 		'.'																				action => _do_self
 	| 'self::*'																	action => _do_self	
+	| 'self::[*]'																action => _do_selfArray	
+	| 'self::{*}'																action => _do_selfHash	
 	| 'self::' keyname													action => _do_selfNamed	
 	| 'self::' UINT															action => _do_selfIndexedOrNamed	
 	| 'self::[' UINT ']'												action => _do_selfIndexed	
@@ -66,6 +68,8 @@ step ::=
 	| '[*]' 																		action => _do_childArray
 	| '{*}' 																		action => _do_childHash
 	|	'child::*'																action => _do_child
+	|	'child::[*]'															action => _do_childArray
+	|	'child::{*}'															action => _do_childHash
 	| keyname 																	action => _do_keyname
 	| UINT																			action => _do_array_hash_index
 	| '[' UINT ']'															action => _do_array_index
@@ -74,31 +78,49 @@ step ::=
 	|	'child::[' UINT ']'												action => _do_childIndexed
 	|	'..'																			action => _do_parent
 	| 'parent::*'																action => _do_parent
+	| 'parent::[*]'															action => _do_parentArray
+	| 'parent::{*}'															action => _do_parentHash
 	| 'parent::' keyname												action => _do_parentNamed			  
-	| 'parent::' UINT 													action => _do_parentNamed			  
+	| 'parent::' UINT 													action => _do_parentIndexedOrNamed			  
+	| 'parent::[' UINT ']'											action => _do_parentIndexed			  
 	| 'ancestor::*'															action => _do_ancestor
+	| 'ancestor::[*]'														action => _do_ancestorArray
+	| 'ancestor::{*}'														action => _do_ancestorHash
 	| 'ancestor::' keyname											action => _do_ancestorNamed
-	| 'ancestor::' UINT													action => _do_ancestorNamed
+	| 'ancestor::' UINT													action => _do_ancestorIndexedOrNamed
+	| 'ancestor::[' UINT ']'										action => _do_ancestorIndexed
 	| 'ancestor-or-self::*'											action => _do_ancestorOrSelf
+	| 'ancestor-or-self::[*]'										action => _do_ancestorOrSelfArray
+	| 'ancestor-or-self::{*}'										action => _do_ancestorOrSelfHash
 	| 'ancestor-or-self::' 	keyname							action => _do_ancestorOrSelfNamed
-	| 'ancestor-or-self::' 	UINT						  	action => _do_ancestorOrSelfNamed
+	| 'ancestor-or-self::' 	UINT						  	action => _do_ancestorOrSelfIndexedOrNamed
+	| 'ancestor-or-self::[' UINT ']'				  	action => _do_ancestorOrSelfIndexed
 	| 'descendant::*'														action => _do_descendant
+	| 'descendant::[*]'													action => _do_descendantArray
+	| 'descendant::{*}'													action => _do_descendantHash
 	| 'descendant::' keyname										action => _do_descendantNamed
 	| 'descendant::' UINT												action => _do_descendantIndexedOrNamed
 	| 'descendant::[' UINT ']'									action => _do_descendantIndexed
 	| 'descendant-or-self::*'										action => _do_descendantOrSelf
-	| 'descendant-or-self::' keyname						action => _do_descendantNamedOrSelf
-	| 'descendant-or-self::' UINT								action => _do_descendantIndexedOrNamedOrSelf
-	| 'descendant-or-self::[' UINT ']'					action => _do_descendantIndexedOrSelf
+	| 'descendant-or-self::[*]'									action => _do_descendantOrSelfArray
+	| 'descendant-or-self::{*}'									action => _do_descendantOrSelfHash
+	| 'descendant-or-self::' keyname						action => _do_descendantOrSelfNamed
+	| 'descendant-or-self::' UINT								action => _do_descendantOrSelfIndexedOrNamed
+	| 'descendant-or-self::[' UINT ']'					action => _do_descendantOrSelfIndexed
 	| 'preceding-sibling::*' 										action => _do_precedingSibling
+	| 'preceding-sibling::[*]' 									action => _do_precedingSiblingArray
+	| 'preceding-sibling::{*}' 									action => _do_precedingSiblingHash
 	| 'preceding-sibling::' keyname 						action => _do_precedingSiblingNamed
 	| 'preceding-sibling::' UINT 								action => _do_precedingSiblingIndexedOrNamed
 	| 'preceding-sibling::[' UINT ']'						action => _do_precedingSiblingIndexed
 	| 'following-sibling::*' 										action => _do_followingSibling
+	| 'following-sibling::[*]' 									action => _do_followingSiblingArray
+	| 'following-sibling::{*}' 									action => _do_followingSiblingHash
 	| 'following-sibling::' keyname 						action => _do_followingSiblingNamed
 	| 'following-sibling::' UINT 								action => _do_followingSiblingIndexedOrNamed
 	| 'following-sibling::[' UINT ']'						action => _do_followingSiblingIndexed
 
+#não esquecer formatar o indices com 6 ou 8 caracteres no campo order do contexto
 
 IndexExprs ::= IndexExpr+ 			separator => <comma>
 
@@ -484,29 +506,47 @@ sub  _do_vlen{
 sub _do_descendant{
 	return {descendant => $_[1]};	
 }
-sub _do_descendantOrSelf{
-	return {descendantOrSelf => $_[1]};	
+sub _do_descendantArray{
+	return {descendantArray => $_[1]};	
+}
+sub _do_descendantHash{
+	return {descendantHash => $_[1]};	
 }
 sub _do_descendantNamed{
 	return {descendantNamed => $_[2]};	
 }
-sub _do_descendantNamedOrSelf{
-	return {descendantNamedOrSelf => $_[2]};	
-}
 sub _do_descendantIndexed{
 	return {descendantIndexed => $_[2]};	
-}
-sub _do_descendantIndexedOrSelf{
-	return {descendantIndexedOrSelf => $_[2]};	
 }
 sub _do_descendantIndexedOrNamed{
 	return {descendantIndexedOrNamed => $_[2]};	
 }
-sub _do_descendantIndexedOrNamedOrSelf{
-	return {descendantIndexedOrNamedOrSelf => $_[2]};	
+sub _do_descendantOrSelf{
+	return {descendantOrSelf => $_[1]};	
+}
+sub _do_descendantOrSelfArray{
+	return {descendantOrSelfArray => $_[1]};	
+}
+sub _do_descendantOrSelfHash{
+	return {descendantOrSelfHash => $_[1]};	
+}
+sub _do_descendantOrSelfNamed{
+	return {descendantOrSelfNamed => $_[2]};	
+}
+sub _do_descendantOrSelfIndexed{
+	return {descendantOrSelfIndexed => $_[2]};	
+}
+sub _do_descendantOrSelfIndexedOrNamed{
+	return {descendantOrSelfIndexedOrNamed => $_[2]};	
 }
 sub _do_precedingSibling{
 	return {precedingSibling => $_[1]};	
+}
+sub _do_precedingSiblingArray{
+	return {precedingSiblingArray => $_[1]};	
+}
+sub _do_precedingSiblingHash{
+	return {precedingSiblingHash => $_[1]};	
 }
 sub _do_precedingSiblingNamed{
 	return {precedingSiblingNamed => $_[2]};	
@@ -519,6 +559,12 @@ sub _do_precedingSiblingIndexedOrNamed{
 }
 sub _do_followingSibling{
 	return {followingSibling => $_[1]};	
+}
+sub _do_followingSiblingArray{
+	return {followingSiblingArray => $_[1]};	
+}
+sub _do_followingSiblingHash{
+	return {followingSiblingHash => $_[1]};	
 }
 sub _do_followingSiblingNamed{
 	return {followingSiblingNamed => $_[2]};	
@@ -559,6 +605,12 @@ sub _do_childIndexedOrNamed{
 sub _do_self{
 	return {self =>  $_[1]};	
 }
+sub _do_selfArray{
+	return {selfArray =>  $_[1]};	
+}
+sub _do_selfHash{
+	return {selfHash =>  $_[1]};	
+}
 sub _do_selfNamed{
 	return { selfNamed => $_[2]};	
 }
@@ -571,27 +623,63 @@ sub _do_selfIndexed{
 sub _do_parent{
 	return {parent => $_[1]};	
 }
+sub _do_parentArray{
+	return {parentArray => $_[1]};	
+}
+sub _do_parentHash{
+	return {parentHash => $_[1]};	
+}
 sub _do_parentNamed{
 	return {parentNamed => $_[2]};
+}
+sub _do_parentIndexed{
+	return {parentIndexed => $_[2]};
+}
+sub _do_parentIndexedOrNamed{
+	return {parentIndexedOrNamed => $_[2]};
 }
 sub _do_ancestor{
 	return {ancestor => $_[1]};
 }
+sub _do_ancestorArray{
+	return {ancestorArray => $_[1]};
+}
+sub _do_ancestorHash{
+	return {ancestorHash => $_[1]};
+}
 sub _do_ancestorNamed{
 	return {ancestorNamed => $_[2]};	
+}
+sub _do_ancestorIndexed{
+	return {ancestorIndexed => $_[2]};	
+}
+sub _do_ancestorIndexedOrNamed{
+	return {ancestorIndexedOrNamed => $_[2]};	
 }
 sub _do_ancestorOrSelf{
 	return {ancestorOrSelf => $_[1]}	
 }
+sub _do_ancestorOrSelfArray{
+	return {ancestorOrSelfArray => $_[1]}	
+}
+sub _do_ancestorOrSelfHash{
+	return {ancestorOrSelfHash => $_[1]}	
+}
 sub _do_ancestorOrSelfNamed{
 	return {ancestorOrSelfNamed => $_[2]}		
+}
+sub _do_ancestorOrSelfIndexed{
+	return {ancestorOrSelfIndexed => $_[2]}		
+}
+sub _do_ancestorOrSelfIndexedOrNamed{
+	return {ancestorOrSelfIndexedOrNamed => $_[2]}		
 }
 #############################end of rules################################
 
 my @context = ();
 my $operatorBy;
 my $indexesProc;
-my $keysProc;
+my $dispatcher;
 
 sub _operation($){
 	my $operData = $_[0];
@@ -842,38 +930,56 @@ sub _getFilteredKeys{
 	my ($data,$filter,@keys) = @_;
 	$filter //= [];
 	my $order = $context[$#context]->{order} // q||;
-	my @keyIndex = (0..$#keys);
+	my $size = scalar @keys;
 
+	my @keyIndex = map{{
+		name => $keys[$_], 
+		type => q|HASH|, 
+		data  => \$data->{$keys[$_]}, 
+		order => qq|$order/$keys[$_]|, 
+		size => scalar @keys
+	}} 0..$#keys;
 	foreach my $filter (@$filter){
 		my $pos = 1;
+		$size = scalar @keyIndex;
 		@keyIndex = grep {_filter(
-					{name => $keys[$_], type => q|HASH|, data  => \$data->{$keys[$_]}, order => qq|$order/$keys[$_]|, size => scalar @keyIndex, pos => $pos++}
+					$_
 					,$filter
-		)} @keyIndex ;
+		)} map {@{$_}{qw|pos size|} = ($pos++, $size); $_} @keyIndex ;
 	}
 
 	my $pos = 1;
-	return map {
-			{name => $keys[$_], type => q|HASH|,  data  => \$data->{$keys[$_]}, order => qq|$order/$keys[$_]|, size => scalar @keyIndex, pos => $pos++}
-	} @keyIndex	
+	$size = scalar @keyIndex;
+	return map {@{$_}{qw|pos size|} = ($pos++, $size); $_} @keyIndex	
 }
 sub _getFilteredIndexes{
 	my ($data,$filter,@indexes) = @_;
 	$filter //= [];
 	my $order = $context[$#context]->{order} // q||;
+	my $size = scalar @indexes;
+	my $large = 1;
+	{	use integer;	my $n = $size; $large++ while($n /= 10); } #a scope to do integer operations;
 
+	my @r = map {{															#init result array 	
+		name => $_, 
+		type => q|ARRAY|, 
+		data  => \$data->[$_], 
+		order => qq|$order/|.sprintf("%0*u",$large,$_), 
+		size => $size
+	}} @indexes;
+	
 	foreach my $filter (@$filter){
 		my $pos = 1;
-		@indexes = grep {_filter(
-					{name => $_, type => q|ARRAY|, data  => \$data->[$_], order => qq|$order/$_|, size => scalar @indexes, pos => $pos++}
+		$size = scalar @r;
+		@r = grep {_filter(												#filter out from result
+					$_				
 					,$filter
-		)} @indexes ;
+		)} map {@{$_}{qw|pos size|} = ($pos++, $size); $_} @r ;
 	}
 
 	my $pos = 1;
-	return map{
-		{name => $_, type => q|ARRAY|, data  => \$data->[$_], order => qq|$order/$_|, size => scalar @indexes, pos => $pos++}
-	} @indexes;
+	$size = scalar @r;
+	return map{	@{$_}{qw|pos size|} = ($pos++, $size); $_} @r; 			#compute final positions in context
 }
 sub _anyChildType{
 	my ($type,$name,$data,$subpath,$filter) = @_;
@@ -993,7 +1099,8 @@ sub _getDescendantsByTypeAndName{
 		my $size = scalar @$descendants;
 		return _getDescendants(_filterOutDescendants($filter,$size,$descendants), $subpath);
 }
-sub _getAncestors{ 
+
+sub _getAncestorsOrSelf{ 
 	my ($ancestors,$subpath) = @_; 
 	my @tmp = ();
 	my @r;
@@ -1008,18 +1115,36 @@ sub _getAncestors{
 	push @context, pop @tmp while(scalar @tmp > 0); #repo @context
 	return @r;
 }
-sub _filterOutAncestors{
-	my($filter,$size,$ancestors) = @_;
+		# foreach (0..$#$ancestors){	#pre filter ancestors with named ones, only!
+		# 	$size--, undef $ancestors->[$_] if $context[$_]->{name} ne $name;
+		# }
+sub _filterOutAncestorsOrSelf{
+	my($type,$name,$filter,$ancestorsIndex) = @_;
 	$filter //= [];
+
+	#as array of flags. Each position flags a correpondent ancestor
+	#my @ancestorsIndex = map {1} (0..$#context); 
+	my $size = scalar @$ancestorsIndex;
+
+	#filter out ancestors with a different name!
+	map {	
+		$size--, undef $ancestorsIndex->[$_] if $context[$#context - $_]->{name} ne $name;
+	} 0..$#$ancestorsIndex if defined $name;
+
+	#filter out ancestors of a different type!
+	map {	
+		$size--, undef $ancestorsIndex->[$_] if $context[$#context - $_]->{type} ne $type;
+	} 0..$#$ancestorsIndex if defined $type;
+
 	foreach my $filter (@$filter){
 		my $pos = 1;
 		my @tmp = ();
 		my $cnt = 0;
-		foreach my $k (0..$#$ancestors){
-			if (defined $ancestors->[$k]){
+		foreach my $k (0..$#$ancestorsIndex){
+			if (defined $ancestorsIndex->[$k]){
 				my ($s,$p) = @{$context[$#context]}{qw|size pos|};
 		 		@{$context[$#context]}{qw|size pos|} = ($size,$pos++);		
-				$cnt++, undef $ancestors->[$k] if !_filter($context[$#context],$filter);
+				$cnt++, undef $ancestorsIndex->[$k] if !_filter($context[$#context],$filter);
 				@{$context[$#context]}{qw|size pos|} = ($s,$p);
 			}		
 			push @tmp, pop @context;
@@ -1027,7 +1152,7 @@ sub _filterOutAncestors{
 		push @context, pop @tmp while(scalar @tmp > 0); #repo @context
 		$size -= $cnt; 				#adjust the group's size;
 	}
-	return $ancestors;
+	return $ancestorsIndex;
 } 
 sub _filterOutSiblings{
 	my ($type, $name, $subpath,$filter,$direction) = @_;
@@ -1076,36 +1201,158 @@ sub _filterOutSiblings{
 
 	return @r;
 }
-	# step => sub{
-	# 	my ($data, $step, $subpath,$filter) = @_;
-	# 	return () unless ref $data eq q|HASH| and exists $data->{$step};
-	# 	return 
-	# 		map {getStruct($_, $subpath)} 
-	# 		_getFilteredKeys($data,$filter, $step);
-	# },
-	# 	index => sub{
-	# 	my ($data, $index, $subpath,$filter) = @_;
-	# 	return () unless ref $data eq q|ARRAY| and $index >= 0 and $index <= $#$data;		# check bounds limits
-	# 	return 
-	# 		map {getStruct($_, $subpath)} 
-	# 		_getFilteredIndexes($data,$filter, $index);
-	# },
-	# indexOrstep => sub {
-	# 	my ($data, $index, $subpath,$filter) = @_;
-	# 	my %indexByType = (
-	# 		HASH => sub {
-	# 			return $keysProc->{childNamed}->($data, $index, $subpath,$filter);
-	# 		}
-	# 		, ARRAY => sub{
-	# 			return $keysProc->{childIndexed}->($data, $index, $subpath,$filter);
-	# 		}
-	# 	);
-	# 	return 
-	# 		map {$indexByType{$_}->()}	
-	# 		grep {exists $indexByType{$_}} 
-	# 		(ref $data)	
-	# },
-$keysProc = {
+
+$dispatcher = {
+	self => sub{
+		my (undef, undef, $subpath,$filter) = @_;
+		return _getAncestorsOrSelf(_filterOutAncestorsOrSelf(undef, undef, $filter, [0]), $subpath);
+	},
+	selfArray => sub{
+		my (undef, undef, $subpath,$filter) = @_;
+		return _getAncestorsOrSelf(_filterOutAncestorsOrSelf(q|ARRAY|, undef, $filter, [0]), $subpath);
+	},
+	selfHash => sub {
+		my (undef, undef, $subpath,$filter) = @_;
+		return _getAncestorsOrSelf(_filterOutAncestorsOrSelf(q|HASH|, undef, $filter, [0]), $subpath);
+	},
+	selfNamed => sub{
+		my (undef, $name, $subpath,$filter) = @_;
+		return _getAncestorsOrSelf(_filterOutAncestorsOrSelf(q|HASH|, $name, $filter, [0]), $subpath);
+	},
+	selfIndexed => sub{
+		my (undef, $index, $subpath,$filter) = @_;
+		return _getAncestorsOrSelf(_filterOutAncestorsOrSelf(q|ARRAY|, $index, $filter, [0]), $subpath);
+	},
+	selfIndexedOrNamed => sub{
+		my (undef, $index, $subpath,$filter) = @_;
+		return _getAncestorsOrSelf(_filterOutAncestorsOrSelf(undef, $index, $filter, [0]), $subpath);
+	},
+	parent => sub{
+		my (undef, undef, $subpath,$filter) = @_;
+
+		my $current = pop @context;
+		my @r = _getAncestorsOrSelf(_filterOutAncestorsOrSelf(undef, undef, $filter, [0]), $subpath);
+		push @context, $current;
+		return @r;
+	},
+	parentArray => sub{
+		my (undef, undef, $subpath,$filter) = @_;
+
+		my $current = pop @context;
+		my @r = _getAncestorsOrSelf(_filterOutAncestorsOrSelf(q|ARRAY|, undef, $filter, [0]), $subpath);
+		push @context, $current;
+		return @r;
+	},
+	parentHash => sub{
+		my (undef, undef, $subpath,$filter) = @_;
+
+		my $current = pop @context;
+		my @r = _getAncestorsOrSelf(_filterOutAncestorsOrSelf(q|HASH|, undef, $filter, [0]), $subpath);
+		push @context, $current;
+		return @r;
+	},
+	parentNamed => sub{
+		my (undef, $name, $subpath,$filter) = @_;
+
+		my $current = pop @context;
+		my @r = _getAncestorsOrSelf(_filterOutAncestorsOrSelf(q|HASH|, $name, $filter, [0]), $subpath);
+		push @context, $current;
+		return @r;
+	},
+	parentIndexed => sub{
+		my (undef, $index, $subpath,$filter) = @_;
+
+		my $current = pop @context;
+		my @r = _getAncestorsOrSelf(_filterOutAncestorsOrSelf(q|ARRAY|, $index, $filter, [0]), $subpath);
+		push @context, $current;
+		return @r;
+	},
+	parentIndexedOrNamed => sub{
+		my (undef, $index, $subpath,$filter) = @_;
+
+		my $current = pop @context;
+		my @r = _getAncestorsOrSelf(_filterOutAncestorsOrSelf(undef, $index, $filter, [0]), $subpath);
+		push @context, $current;
+		return @r;
+	},
+	ancestor => sub{
+		my (undef, undef, $subpath,$filter) = @_;
+
+		my $current = pop @context;
+		my @r = _getAncestorsOrSelf(_filterOutAncestorsOrSelf(undef, undef, $filter, [0..$#context]), $subpath);
+		push @context, $current;
+		return @r;
+	},
+	ancestorArray => sub{
+		my (undef, undef, $subpath,$filter) = @_;
+
+		my $current = pop @context;
+		my @r = _getAncestorsOrSelf(_filterOutAncestorsOrSelf(q|ARRAY|, undef, $filter, [0..$#context]), $subpath);
+		push @context, $current;
+		return @r;
+	},
+	ancestorHash => sub{
+		my (undef, undef, $subpath,$filter) = @_;
+
+		my $current = pop @context;
+		my @r = _getAncestorsOrSelf(_filterOutAncestorsOrSelf(q|HASH|, undef, $filter, [0..$#context]), $subpath);
+		push @context, $current;
+		return @r;
+	},
+	ancestorNamed => sub{
+		my (undef, $name, $subpath,$filter) = @_;
+	
+		my $current = pop @context;
+		my @r = _getAncestorsOrSelf(_filterOutAncestorsOrSelf(q|HASH|, $name, $filter, [0..$#context]), $subpath);
+		push @context, $current;
+		return @r;
+	},
+	ancestorIndexed => sub{
+		my (undef, $index, $subpath,$filter) = @_;
+	
+		my $current = pop @context;
+		my @r = _getAncestorsOrSelf(_filterOutAncestorsOrSelf(q|ARRAY|, $index, $filter, [0..$#context]), $subpath);
+		push @context, $current;
+		return @r;
+	},
+	ancestorIndexedOrNamed => sub{
+		my (undef, $index, $subpath,$filter) = @_;
+	
+		my $current = pop @context;
+		my @r = _getAncestorsOrSelf(_filterOutAncestorsOrSelf(undef, $index, $filter, [0..$#context]), $subpath);
+		push @context, $current;
+		return @r;
+	},
+	ancestorOrSelf => sub{
+		my (undef, undef, $subpath,$filter) = @_;
+	
+		return _getAncestorsOrSelf(_filterOutAncestorsOrSelf(undef, undef, $filter, [0..$#context]), $subpath);
+	}, 
+	ancestorOrSelfArray => sub{
+		my (undef, undef, $subpath,$filter) = @_;
+	
+		return _getAncestorsOrSelf(_filterOutAncestorsOrSelf(q|ARRAY|, undef, $filter, [0..$#context]), $subpath);
+	}, 
+	ancestorOrSelfHash => sub{
+		my (undef, undef, $subpath,$filter) = @_;
+	
+		return _getAncestorsOrSelf(_filterOutAncestorsOrSelf(q|HASH|, undef, $filter, [0..$#context]), $subpath);
+	}, 
+	ancestorOrSelfNamed => sub{
+		my (undef, $name, $subpath,$filter) = @_;
+	
+		return _getAncestorsOrSelf(_filterOutAncestorsOrSelf(q|HASH|,$name,$filter, [0..$#context]), $subpath);
+	}, 
+	ancestorOrSelfIndexed => sub{
+		my (undef, $index, $subpath,$filter) = @_;
+	
+		return _getAncestorsOrSelf(_filterOutAncestorsOrSelf(q|ARRAY|,$index,$filter, [0..$#context]), $subpath);
+	}, 
+	ancestorOrSelfIndexedOrNamed => sub{
+		my (undef, $index, $subpath,$filter) = @_;
+	
+		return _getAncestorsOrSelf(_filterOutAncestorsOrSelf(undef,$index,$filter,[0..$#context]), $subpath);
+	}, 
 	child => sub{
 		my ($data, undef, $subpath,$filter) = @_;
 		return _anyChildType(undef,undef,$data,$subpath,$filter);		
@@ -1130,153 +1377,102 @@ $keysProc = {
 		my ($data, $index, $subpath,$filter) = @_;
 		return _anyChildType(undef,$index,$data,$subpath,$filter);		
 	},
-	self => sub{
-		my (undef, undef, $subpath,$filter) = @_;
-		$filter //= [];
-
-		my ($s,$p) = @{$context[$#context]}{qw|size pos|};
-		@{$context[$#context]}{qw|size pos|} = (1,1);
-		foreach my $filter (@$filter){
-			return () unless _filter($context[$#context],$filter);
-		}
-		@{$context[$#context]}{qw|size pos|} = ($s,$p);
-		return ($context[$#context]) unless defined $subpath;
-		return _getObjectSubset(${$context[$#context]->{data}}, $subpath);	
-	},
-	selfNamed => sub{
-		my (undef, $name, $subpath,$filter) = @_;
-		return () if $context[$#context]->{name} ne $name or $context[$#context]->{type} ne q|HASH|;
-		return $keysProc->{self}->(undef, undef, $subpath,$filter);
-	},
-	selfIndexed => sub{
-		my (undef, $index, $subpath,$filter) = @_;
-		return () if $context[$#context]->{name} ne $index or $context[$#context]->{type} ne q|ARRAY|;
-		return $keysProc->{self}->(undef, undef, $subpath,$filter);
-	},
-	selfIndexedOrNamed => sub{
-		my (undef, $index, $subpath,$filter) = @_;
-		return () if $context[$#context]->{name} ne $index;
-		return $keysProc->{self}->(undef, undef, $subpath,$filter);
-	},
-	parent => sub{
-		my (undef, undef, $subpath,$filter) = @_;
-		return () unless scalar @context > 1;
-		my $subcontext = pop @context;
-		my @r = $keysProc->{self}->(undef, undef, $subpath,$filter);		
-		push @context, $subcontext;
-		return @r;	
-	},
-	parentNamed => sub{
-		my (undef, $name, $subpath,$filter) = @_;
-		#print $step, Dumper \@context;
-		return () unless scalar @context > 1 and $context[$#context-1]->{name} eq $name;
-		return $keysProc->{parent}->(undef, undef, $subpath,$filter);
-	},
-	ancestor => sub{
-		my (undef, undef, $subpath,$filter) = @_;
-
-		my $current = pop @context;
-		my $ancestors = [map {1} (0..$#context)];
-		my $size = scalar @context;
-		my @r = _getAncestors(_filterOutAncestors($filter,$size,$ancestors), $subpath);
-		push @context, $current;
-		return @r;
-	},
-	ancestorOrSelf => sub{
-		my (undef, undef, $subpath,$filter) = @_;
-	
-		my $ancestors = [map {1} (0..$#context)];
-		my $size = scalar @context;
-		my @r = _getAncestors(_filterOutAncestors($filter,$size,$ancestors), $subpath);
-		return @r;		
-	}, 
-	ancestorNamed => sub{
-		my (undef, $name, $subpath,$filter) = @_;
-	
-		my $current = pop @context;
-		my $ancestors = [map {1} (0..$#context)];
-		my $size = scalar @context;
-		foreach (0..$#$ancestors){	#pre filter ancestors with named ones, only!
-			$size--, undef $ancestors->[$_] if $context[$_]->{name} ne $name;
-		}
-		my @r = _getAncestors(_filterOutAncestors($filter,$size,$ancestors), $subpath);
-		push @context, $current;
-		return @r;
-	},
-	ancestorOrSelfNamed => sub{
-		my (undef, $name, $subpath,$filter) = @_;
-	
-		my $ancestors = [map {1} (0..$#context)];
-		my $size = scalar @context;
-		foreach (0..$#$ancestors){	#pre filter ancestors with named ones, only!
-			$size--, undef $ancestors->[$_] if $context[$_]->{name} ne $name;
-		}
-		my @r = _getAncestors(_filterOutAncestors($filter,$size,$ancestors), $subpath);
-		return @r;		
-	}, 
 	descendant => sub{
 		my ($data, undef, $subpath,$filter) = @_;
 		return _getDescendantsByTypeAndName(undef,undef,$subpath,$filter)
 	},
-	descendantOrSelf => sub{
+	descendantArray => sub{
 		my ($data, undef, $subpath,$filter) = @_;
-		return _getDescendantsByTypeAndName(undef,undef,$subpath,$filter,1)
+		return _getDescendantsByTypeAndName(q|ARRAY|,undef,$subpath,$filter)
+	},
+	descendantHash => sub{
+		my ($data, undef, $subpath,$filter) = @_;
+		print "AQUI";
+		return _getDescendantsByTypeAndName(q|HASH|,undef,$subpath,$filter)
 	},
 	descendantNamed => sub{
 		my ($data, $name, $subpath,$filter) = @_;
 		return _getDescendantsByTypeAndName(q|HASH|,$name,$subpath,$filter)
 	},
-	descendantNamedOrSelf => sub{
-		my ($data, $name, $subpath,$filter) = @_;
-		return _getDescendantsByTypeAndName(q|HASH|,$name,$subpath,$filter,1)
-	},
 	descendantIndexed => sub{
 		my ($data, $index, $subpath,$filter) = @_;
 		return _getDescendantsByTypeAndName(q|ARRAY|,$index,$subpath,$filter)
-	},
-	descendantIndexedOrSelf => sub{
-		my ($data, $index, $subpath,$filter) = @_;
-		return _getDescendantsByTypeAndName(q|ARRAY|,$index,$subpath,$filter,1)
 	},
 	descendantIndexedOrNamed => sub{
 		my ($data, $index, $subpath,$filter) = @_;
 		return _getDescendantsByTypeAndName(undef,$index,$subpath,$filter)
 	},
-	descendantIndexedOrNamedOrSelf => sub{
+	descendantOrSelf => sub{
+		my ($data, undef, $subpath,$filter) = @_;
+		return _getDescendantsByTypeAndName(undef,undef,$subpath,$filter,1)
+	},
+	descendantOrSelfArray => sub{
+		my ($data, undef, $subpath,$filter) = @_;
+		return _getDescendantsByTypeAndName(q|ARRAY|,undef,$subpath,$filter,1)
+	},
+	descendantOrSelfHash => sub{
+		my ($data, undef, $subpath,$filter) = @_;
+		return _getDescendantsByTypeAndName(q|HASH|,undef,$subpath,$filter,1)
+	},
+	descendantOrSelfNamed => sub{
+		my ($data, $name, $subpath,$filter) = @_;
+		return _getDescendantsByTypeAndName(q|HASH|,$name,$subpath,$filter,1)
+	},
+	descendantOrSelfIndexed => sub{
+		my ($data, $index, $subpath,$filter) = @_;
+		return _getDescendantsByTypeAndName(q|ARRAY|,$index,$subpath,$filter,1)
+	},
+	descendantOrSelfIndexedOrNamed => sub{
 		my ($data, $index, $subpath,$filter) = @_;
 		return _getDescendantsByTypeAndName(undef,$index,$subpath,$filter,1)
 	},
 	precedingSibling => sub{
 		my ($data, undef, $subpath,$filter) = @_;
-		_filterOutSiblings(undef,undef,$subpath, $filter,q|preceding|)		
+		return _filterOutSiblings(undef,undef,$subpath, $filter,q|preceding|)		
+	},
+	precedingSiblingArray => sub{
+		my ($data, undef, $subpath,$filter) = @_;
+		return _filterOutSiblings(q|ARRAY|,undef,$subpath, $filter,q|preceding|)		
+	},
+	precedingSiblingHash => sub{
+		my ($data, undef, $subpath,$filter) = @_;
+		_filterOutSiblings(q|HASH|,undef,$subpath, $filter,q|preceding|)		
 	},
 	precedingSiblingNamed => sub{
 		my ($data, $name, $subpath,$filter) = @_;
-		_filterOutSiblings(q|HASH|,$name,$subpath, $filter,q|preceding|)		
+		return _filterOutSiblings(q|HASH|,$name,$subpath, $filter,q|preceding|)		
 	},
 	precedingSiblingIndexed => sub{
 		my ($data, $index, $subpath,$filter) = @_;
-		_filterOutSiblings(q|ARRAY|,$index,$subpath, $filter,q|preceding|)		
+		return _filterOutSiblings(q|ARRAY|,$index,$subpath, $filter,q|preceding|)		
 	},
 	precedingSiblingIndexedOrNamed => sub{
 		my ($data, $index, $subpath,$filter) = @_;
-		_filterOutSiblings(undef,$index,$subpath, $filter,q|preceding|)		
+		return _filterOutSiblings(undef,$index,$subpath, $filter,q|preceding|)		
 	},
 	followingSibling => sub{
 		my ($data, undef, $subpath,$filter) = @_;
-		_filterOutSiblings(undef,undef,$subpath, $filter,q|following|)		
+		return _filterOutSiblings(undef,undef,$subpath, $filter,q|following|)		
+	},
+	followingSiblingArray => sub{
+		my ($data, undef, $subpath,$filter) = @_;
+		return _filterOutSiblings(q|ARRAY|,undef,$subpath, $filter,q|following|)		
+	},
+	followingSiblingHash => sub{
+		my ($data, undef, $subpath,$filter) = @_;
+		return _filterOutSiblings(q|HASH|,undef,$subpath, $filter,q|following|)		
 	},
 	followingSiblingNamed => sub{
 		my ($data, $name, $subpath,$filter) = @_;
-		_filterOutSiblings(q|HASH|,$name,$subpath, $filter,q|following|)		
+		return _filterOutSiblings(q|HASH|,$name,$subpath, $filter,q|following|)		
 	},
 	followingSiblingIndexed => sub{
 		my ($data, $index, $subpath,$filter) = @_;
-		_filterOutSiblings(q|ARRAY|,$index,$subpath, $filter,q|following|)		
+		return _filterOutSiblings(q|ARRAY|,$index,$subpath, $filter,q|following|)		
 	},
 	followingSiblingIndexedOrNamed => sub{
 		my ($data, $index, $subpath,$filter) = @_;
-		_filterOutSiblings(undef,$index,$subpath, $filter,q|following|)		
+		return _filterOutSiblings(undef,$index,$subpath, $filter,q|following|)		
 	},
 	slashslash => sub{
 		my ($data, undef, $subpath,undef) = @_;
@@ -1301,10 +1497,10 @@ sub _getObjectSubset{
 			and defined $_->{order} 
 			and !$seen{$_->{data}}++
 		} map {
-			$keysProc->{$_}->($data, $path->{$_}, $path->{subpath}, $path->{filter})
+			$dispatcher->{$_}->($data, $path->{$_}, $path->{subpath}, $path->{filter})
 		} grep{
 			exists $path->{$_}
-		} keys %$keysProc;
+		} keys %$dispatcher;
 }
 sub _getSubObjectsOrCurrent{
 	my $paths = $_[0];

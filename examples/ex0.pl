@@ -68,13 +68,11 @@ my $d = Data::pQuery->data({
 						},
 			b =>{
 						0 => 'zero',
+						1=>[ [qw|A B C D E|], [qw|X Y Z V W|]],
 						a=> 'a0ba',
 						b=> 'a0bb',
-						c=>[
-								0,
-								1,
-								2,
-						]
+						c=>[ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 ],
+						d=>[ [qw|a b c d e|], [qw|x y z v w|]],
 			}
 		},
 		{
@@ -85,19 +83,14 @@ my $d = Data::pQuery->data({
 	b => 'b'
 });
 
-print $d->query(q|/a//b/descendant::[0]|)->getvalues();
-print $d->query(q|/a//b/descendant::{0}|)->getvalues();
-print $d->query(q|/a//b/descendant::0|)->getvalues();
-print $d->query(q|/a//b/descendant::*[not(*)]|)->getvalues();
-print $d->query(q|/a//b/descendant::*[not(*)][+1]|)->getvalues();
-print $d->query(q|/a//b/descendant::*[not(*)][+2]|)->getvalues();
-print $d->query(q|/a//b/descendant::*[not(*)][2 == position()]|)->getvalues();
-print Dumper [$d->query(q|/a//b/descendant-or-self::*|)->getvalues()];
-print Dumper [$d->query(q|/a//b/descendant-or-self::*[+1]|)->getvalues()];
-print $d->query(q|/a/1/b/descendant-or-self::*|)->getvalues();
-print $d->query(q|/a//b/descendant-or-self::0|)->getvalues();
-print $d->query(q|/a//b/descendant-or-self::[0]|)->getvalues();
-print $d->query(q|/a//b/descendant-or-self::{0}|)->getvalues();
+print '----ancestores----';
+print $d->query(q|//[4]/ancestor::c/2|)->getvalues();
+print $d->query(q|//[4]/ancestor::d/1/2|)->getvalues();
+print $d->query(q|//[4]/ancestor::1//2|)->getvalues();
+print $d->query(q|//[4]/ancestor::[1]//2|)->getvalues();
+print $d->query(q|//[4]/ancestor::{1}//2|)->getvalues();
+
+exit;
 print '----sibling----';
 print $d->query(q|//0//*/preceding-sibling::0|)->getvalues();
 print $d->query(q|//0//*/preceding-sibling::9|)->getvalues();
@@ -126,6 +119,16 @@ print $d->query(q|/b|)->getvalues();
 print $d->query(q|/a/1/b|)->getvalues();
 print $d->query(q|/a/0/b/0|)->getvalues();
 print $d->query(q|/a/0/b/c/0|)->getvalues();
+print '----position filter----';
+print $d->query(q|//c/*|)->getvalues();
+print $d->query(q|//c/*[position() > 3 and position() < 7]|)->getvalues();
+print $d->query(q|//c/*[position() > 3 and position() < 7][+2]|)->getvalues();
+print $d->query(q|//*[position() > 2][not(*)]|)->getvalues();
+print $d->query(q|//*[position() > 2][+1][not(*)]|)->getvalues();
+print $d->query(q|/descendant::*[not(*)]|)->getvalues();
+print $d->query(q|/descendant::*[not(*)][position() > 2]|)->getvalues();
+print $d->query(q|/descendant::*[not(*)][position() > 2][+1]|)->getvalues();
+print $d->query(q|/descendant::*[position() > 2][+1][not(*)]|)->getvalues();
 exit;
 
 print Dumper [$d->query(q|//b|)->getvalues()];
