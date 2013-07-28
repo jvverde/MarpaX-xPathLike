@@ -7,8 +7,7 @@ use Carp;
 use warnings FATAL => 'all';
 use Marpa::R2;
 use Data::Dumper;
-use Scalar::Util qw{looks_like_number};
-
+use Scalar::Util qw{looks_like_number weaken};
 
 require Exporter;
 our @ISA = qw(Exporter);
@@ -677,37 +676,21 @@ sub _do_ancestorOrSelfIndexedOrNamed{
 #############################end of rules################################
 
 my @context = ();
-my $operatorBy;
-my $indexesProc;
-my $dispatcher;
-
-sub _operation($){
-	my $operData = $_[0];
-	return undef unless defined $operData and ref $operData eq q|HASH| and exists $operData->{oper};
-	my ($oper, @args) = @{$operData->{oper}};
-	#my $oper = $params[0];
-	return undef unless defined $oper and exists $operatorBy->{$oper};
-	#my @args = @params[1..$#params];
-	return $operatorBy->{$oper}->(@args);  
+sub _names{
+			return map {$_->{name}} _getSubObjectsOrCurrent(@_);
 }
-sub _arithmeticOper(&$$;@){
-		my ($oper,$x,$y,@e) = @_;
-		$x = _operation($x) if ref $x;
-		$y = _operation($y) if ref $y;
-		my $res = $oper->($x,$y);
-		foreach my $e (@e){
-			$e = _operation($e) if ref $e;
-			$res = $oper->($res,$e);
-		}
-		return $res
+sub _values{
+	return map {${$_->{data}}} _getSubObjectsOrCurrent(@_);
 }
-sub _logicalOper(&$$){
-		my ($oper,$x,$y) = @_;
-		$x = _operation($x) if ref $x and ref $x ne q|Regexp|;
-		$y = _operation($y) if ref $y and ref $y ne q|Regexp|;
-		return $oper->($x,$y)
+sub _positions{
+	my @r = _getSubObjectsOrCurrent(@_);
+	return map {$_->{pos}} @r;			
 }
-$operatorBy = {
+sub _lasts{
+	my @r = _getSubObjectsOrCurrent(@_);
+	return map {$_->{size}} @r;	
+}
+my $operatorBy = {
 	'eq' => sub($$){
 		return _logicalOper(sub {$_[0] eq $_[1]}, $_[0], $_[1]);
 	},
@@ -774,19 +757,21 @@ $operatorBy = {
 	'%' => sub($$;@){
 		return _arithmeticOper(sub {$_[0] % $_[1]}, $_[0], $_[1], @_[2..$#_]);
 	},
-	names => sub{
-		return map {$_->{name}} _getSubObjectsOrCurrent(@_);
-	},
-	name => sub{
-		my @r = $operatorBy->{names}->(@_);
-		return $r[0] // q||;
+	# names => sub{
+	# 	return map {$_->{name}} _getSubObjectsOrCurrent(@_);
+	# },
+	names => \&_names,
+	name => sub {
+		return (_names(@_))[0] // q||;
 	},
 	values => sub{
 		return map {${$_->{data}}} _getSubObjectsOrCurrent(@_);
 	},
+	values => \&_values,
 	value => sub(){
-		my @r = $operatorBy->{values}->(@_);
-		return $r[0] // q||;
+		# my @r = $operatorBy->{values}->(@_);
+		# return $r[0] // q||;
+		return (_values(@_))[0] // q||;
 	},
 	isHash => sub{
 		my @r = grep {ref ${$_->{data}} eq q|HASH|} _getSubObjectsOrCurrent(@_);
@@ -816,20 +801,14 @@ $operatorBy = {
 		my @r = _getSubObjectsOrCurrent(@_);
 		return scalar @r > 0;		
 	},
-	positions => sub{
-		my @r = _getSubObjectsOrCurrent(@_);
-		return map {$_->{pos}} @r;			
-	},
+	positions => \&_positions,
 	position => sub{
-		my @r = $operatorBy->{positions}->(@_);
+		my @r = _positions(@_);
 		return $r[$#r] // 0;		
 	},
-	lasts => sub{
-		my @r = _getSubObjectsOrCurrent(@_);
-		return map {$_->{size}} @r;	
-	},
+	lasts => \&_lasts,
 	last => sub{
-		my @r = $operatorBy->{lasts}->(@_);
+		my @r = _lasts(@_);
 		return $r[$#r] // 0;
 	},
 	not => sub{
@@ -857,6 +836,34 @@ $operatorBy = {
 		return $s;	
 	},
 };
+sub _operation($){
+	my $operData = $_[0];
+	return undef unless defined $operData and ref $operData eq q|HASH| and exists $operData->{oper};
+	my ($oper, @args) = @{$operData->{oper}};
+	#my $oper = $params[0];
+	return undef unless defined $oper and exists $operatorBy->{$oper};
+	#my @args = @params[1..$#params];
+	return $operatorBy->{$oper}->(@args);  
+}
+sub _arithmeticOper(&$$;@){
+		my ($oper,$x,$y,@e) = @_;
+		$x = _operation($x) if ref $x;
+		$y = _operation($y) if ref $y;
+		my $res = $oper->($x,$y);
+		foreach my $e (@e){
+			$e = _operation($e) if ref $e;
+			$res = $oper->($res,$e);
+		}
+		return $res
+}
+sub _logicalOper(&$$){
+		my ($oper,$x,$y) = @_;
+		$x = _operation($x) if ref $x and ref $x ne q|Regexp|;
+		$y = _operation($y) if ref $y and ref $y ne q|Regexp|;
+		return $oper->($x,$y)
+}
+
+#weaken($operatorBy);
 # sub _check{
 # 	my ($filter) = @_;
 # 	return 1 unless defined $filter; #no filter, always returns true
@@ -1124,17 +1131,20 @@ sub _filterOutAncestorsOrSelf{
 
 	#as array of flags. Each position flags a correpondent ancestor
 	#my @ancestorsIndex = map {1} (0..$#context); 
-	my $size = scalar @$ancestorsIndex;
+	
 
 	#filter out ancestors with a different name!
 	map {	
-		$size--, undef $ancestorsIndex->[$_] if $context[$#context - $_]->{name} ne $name;
+		undef $ancestorsIndex->[$_] if $context[$#context - $_]->{name} ne $name;
 	} 0..$#$ancestorsIndex if defined $name;
 
 	#filter out ancestors of a different type!
 	map {	
-		$size--, undef $ancestorsIndex->[$_] if $context[$#context - $_]->{type} ne $type;
+		undef $ancestorsIndex->[$_] if $context[$#context - $_]->{type} ne $type;#Não se devia decrementar duplamente
 	} 0..$#$ancestorsIndex if defined $type;
+	
+	my $size = 0;
+	map {$size++ if defined $_} @$ancestorsIndex;
 
 	foreach my $filter (@$filter){
 		my $pos = 1;
@@ -1198,11 +1208,10 @@ sub _filterOutSiblings{
 		grep {exists $filterByDataType{$_}} 
 		(ref $data);
 	push @context, $context;
-
 	return @r;
 }
 
-$dispatcher = {
+my $dispatcher = {
 	self => sub{
 		my (undef, undef, $subpath,$filter) = @_;
 		return _getAncestorsOrSelf(_filterOutAncestorsOrSelf(undef, undef, $filter, [0]), $subpath);
@@ -1481,6 +1490,10 @@ $dispatcher = {
 };
 
 
+# find_cycle($operatorBy);
+# find_cycle($dispatcher);
+# find_cycle(\@context);
+
 $Data::Dumper::Deepcopy = 1;
 
 sub _getObjectSubset{
@@ -1574,6 +1587,7 @@ sub DESTROY{
 
 package Data::pQuery::Data;
 use Data::Dumper;
+
 
 sub new{
 	my ($self,$pQuery) = @_;
