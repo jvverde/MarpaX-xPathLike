@@ -57,6 +57,8 @@ stepPath ::=
 
 step ::= 
 		'.'																				action => _do_self
+	|	'[.]'																			action => _do_selfArray
+	|	'{.}'																			action => _do_selfHash
 	| 'self::*'																	action => _do_self	
 	| 'self::[*]'																action => _do_selfArray	
 	| 'self::{*}'																action => _do_selfHash	
@@ -76,6 +78,8 @@ step ::=
 	|	'child::'	UINT														action => _do_childIndexedOrNamed
 	|	'child::[' UINT ']'												action => _do_childIndexed
 	|	'..'																			action => _do_parent
+	|	'[..]'																		action => _do_parentArray
+	|	'{..}'																		action => _do_parentHash
 	| 'parent::*'																action => _do_parent
 	| 'parent::[*]'															action => _do_parentArray
 	| 'parent::{*}'															action => _do_parentHash
