@@ -4,7 +4,8 @@ use open ":std", ":encoding(UTF-8)";
 use 5.006;
 use strict;
 use Carp;
-use warnings FATAL => 'all';
+#use warnings FATAL => 'all';
+use warnings;
 use Marpa::R2;
 use Data::Dumper;
 use Scalar::Util qw{looks_like_number weaken};
@@ -13,7 +14,7 @@ require Exporter;
 our @ISA = qw(Exporter);
 our @EXPORT = qw();
 
-our $VERSION = '0.02';
+our $VERSION = '0.1';
 
 my $grammar = Marpa::R2::Scanless::G->new({
 	#default_action => '::first',
@@ -39,6 +40,12 @@ PathExpr ::=
 	| relativePath															action => _do_relativePath
 	| PathExpr '|' PathExpr											action => _do_pushArgs2array
 
+PredPathExpr ::=
+	absolutePath																action => _do_absolutePath
+	| stepPathNoDigitStart											action => _do_relativePath
+	| './' stepPath															action => _do_relativePath2
+	| PredPathExpr '|' PredPathExpr							action => _do_pushArgs2array
+
 relativePath ::=	
 	stepPath 																		action => _do_arg1
 
@@ -55,8 +62,25 @@ stepPath ::=
 	| step subPath 															action => _do_stepSubpath
 	| step																			action => _do_arg1
 
+
 step ::= 
-		'.'																				action => _do_self
+	keyOrAxis																		action => _do_arg1			
+	|index 																			action => _do_arg1
+
+index ::=
+	UINT																				action => _do_array_hash_index
+
+stepPathNoDigitStart ::= 	
+	keyOrAxis Filter subPath 										action => _do_stepFilterSubpath
+	| keyOrAxis Filter 													action => _do_stepFilter
+	| keyOrAxis subPath 												action => _do_stepSubpath
+	| keyOrAxis																	action => _do_arg1
+
+
+keyOrAxis ::= 
+	keyname 																	  action => _do_keyname
+	| '[' UINT ']'															action => _do_array_index
+	|	'.'																				action => _do_self
 	|	'[.]'																			action => _do_selfArray
 	|	'{.}'																			action => _do_selfHash
 	| 'self::*'																	action => _do_self	
@@ -71,9 +95,6 @@ step ::=
 	|	'child::*'																action => _do_child
 	|	'child::[*]'															action => _do_childArray
 	|	'child::{*}'															action => _do_childHash
-	| keyname 																	action => _do_keyname
-	| UINT																			action => _do_array_hash_index
-	| '[' UINT ']'															action => _do_array_index
 	|	'child::' keyname													action => _do_childNamed
 	|	'child::'	UINT														action => _do_childIndexedOrNamed
 	|	'child::[' UINT ']'												action => _do_childIndexed
@@ -123,8 +144,6 @@ step ::=
 	| 'following-sibling::' UINT 								action => _do_followingSiblingIndexedOrNamed
 	| 'following-sibling::[' UINT ']'						action => _do_followingSiblingIndexed
 
-#não esquecer formatar o indices com 6 ou 8 caracteres no campo order do contexto
-
 IndexExprs ::= IndexExpr+ 			separator => <comma>
 
 IndexExpr ::=
@@ -166,9 +185,11 @@ IntExpr ::=
 
 NumericExpr ::=
   ArithmeticExpr 															action => _do_arg1
+  || PredPathExpr 														action => _do_getValueOperator 
 
 ArithmeticExpr ::=
 	NUMBER 																			action => _do_arg1
+	|| PredPathExpr															action => _do_getValueOperator
 	| NumericFunction														action => _do_arg1
 	| '(' NumericExpr ')' 											action => _do_group
 	|| '-' ArithmeticExpr 											action => _do_unaryOperator
@@ -184,7 +205,7 @@ LogicalExpr ::=
 	|| compareExpr															action => _do_arg1
 
 compareExpr ::=	
-	PathExpr 																		action => _do_exists
+	PredPathExpr																action => _do_exists
 	|| NumericExpr '<' NumericExpr							action => _do_binaryOperation
 	 | NumericExpr '<=' NumericExpr							action => _do_binaryOperation
 	 | NumericExpr '>' NumericExpr							action => _do_binaryOperation
@@ -207,6 +228,7 @@ compareExpr ::=
 StringExpr ::=
 	STRING 																			action => _do_arg1
  	| StringFunction 														action => _do_arg1
+ 	| PredPathExpr 													  	action => _do_getValueOperator 
  	|| StringExpr '||' StringExpr  							action => _do_binaryOperation
 
 
@@ -280,6 +302,8 @@ unumber
 	| uint frac
 	| uint exp
 	| uint frac exp
+	| frac
+	| frac exp
  
 uint            
 	~ digits
@@ -362,7 +386,7 @@ token 								#must have at least one non digit
 	| [\d] token
 
 notreserved 
-	~ [^\d:./*,'"|\s\]\[\(\)\{\}\\+-]*
+	~ [^\d:./*,'"|\s\]\[\(\)\{\}\\+-<>=!]+
 
 
 :discard 
@@ -427,6 +451,9 @@ sub _do_group{
 sub _do_unaryOperator{
 	return {oper => [@_[1,2]]}
 }
+sub _do_getValueOperator{
+	return {values => $_[1]}
+}
 sub _do_binaryOperation{
 	my $oper = 	[$_[2]];
 	my $args = 	[@_[1,3]];
@@ -476,6 +503,9 @@ sub _do_absolutePath{
 }
 sub _do_relativePath{
 	return [{relative => 1, path => $_[1]}];
+}
+sub _do_relativePath2{
+	return [{relative => 1, path => $_[2]}];
 }
 sub _do_boolean_filter{ 
 	return {boolean => $_[2]}
@@ -684,6 +714,7 @@ sub _names{
 			return map {$_->{name}} _getSubObjectsOrCurrent(@_);
 }
 sub _values{
+	#print 'Values arg = ', Dumper \@_;
 	return map {${$_->{data}}} _getSubObjectsOrCurrent(@_);
 }
 sub _positions{
@@ -694,6 +725,9 @@ sub _lasts{
 	my @r = _getSubObjectsOrCurrent(@_);
 	return map {$_->{size}} @r;	
 }
+
+no warnings qw{uninitialized numeric};
+
 my $operatorBy = {
 	'eq' => sub($$){
 		return _logicalOper(sub {$_[0] eq $_[1]}, $_[0], $_[1]);
@@ -761,21 +795,23 @@ my $operatorBy = {
 	'%' => sub($$;@){
 		return _arithmeticOper(sub {$_[0] % $_[1]}, $_[0], $_[1], @_[2..$#_]);
 	},
-	# names => sub{
-	# 	return map {$_->{name}} _getSubObjectsOrCurrent(@_);
-	# },
 	names => \&_names,
+	values => \&_values,
+	positions => \&_positions,
+	lasts => \&_lasts,
 	name => sub {
 		return (_names(@_))[0] // q||;
 	},
-	values => sub{
-		return map {${$_->{data}}} _getSubObjectsOrCurrent(@_);
-	},
-	values => \&_values,
 	value => sub(){
-		# my @r = $operatorBy->{values}->(@_);
-		# return $r[0] // q||;
 		return (_values(@_))[0] // q||;
+	},
+	position => sub{
+		my @r = _positions(@_);
+		return $r[$#r] // 0;		
+	},
+	last => sub{
+		my @r = _lasts(@_);
+		return $r[$#r] // 0;
 	},
 	isHash => sub{
 		my @r = grep {ref ${$_->{data}} eq q|HASH|} _getSubObjectsOrCurrent(@_);
@@ -805,16 +841,6 @@ my $operatorBy = {
 		my @r = _getSubObjectsOrCurrent(@_);
 		return scalar @r > 0;		
 	},
-	positions => \&_positions,
-	position => sub{
-		my @r = _positions(@_);
-		return $r[$#r] // 0;		
-	},
-	lasts => \&_lasts,
-	last => sub{
-		my @r = _lasts(@_);
-		return $r[$#r] // 0;
-	},
 	not => sub{
 		return !_operation($_[0]);
 	},
@@ -842,12 +868,25 @@ my $operatorBy = {
 };
 sub _operation($){
 	my $operData = $_[0];
-	return undef unless defined $operData and ref $operData eq q|HASH| and exists $operData->{oper};
-	my ($oper, @args) = @{$operData->{oper}};
-	#my $oper = $params[0];
-	return undef unless defined $oper and exists $operatorBy->{$oper};
-	#my @args = @params[1..$#params];
-	return $operatorBy->{$oper}->(@args);  
+	return undef unless defined $operData and ref $operData eq q|HASH|;
+	my %types = (
+		oper => sub{
+			my ($oper, @args) = @{$operData->{oper}};
+			#print "oper=$oper";
+			#my $oper = $params[0];
+			return undef unless defined $oper and exists $operatorBy->{$oper};
+			#my @args = @params[1..$#params];
+			return $operatorBy->{$oper}->(@args);  			
+		},
+		values =>sub{
+			my @r = $operatorBy->{values}->($operData->{values});
+			return @r;
+		}
+	);
+	#print 'operdata = ', Dumper $operData;
+	my @r = map {$types{$_}->()} grep {exists $types{$_}} keys %$operData;
+	return @r if wantarray();
+	return $r[0];
 }
 sub _arithmeticOper(&$$;@){
 		my ($oper,$x,$y,@e) = @_;
@@ -862,20 +901,23 @@ sub _arithmeticOper(&$$;@){
 }
 sub _logicalOper(&$$){
 		my ($oper,$x,$y) = @_;
-		$x = _operation($x) if ref $x and ref $x ne q|Regexp|;
-		$y = _operation($y) if ref $y and ref $y ne q|Regexp|;
-		return $oper->($x,$y)
+		#print "x=", Dumper $x;
+		#print "y=", Dumper $y;
+		my @x = ($x);
+		my @y = ($y);
+		@x = _operation($x) if ref $x and ref $x ne q|Regexp|;
+		@y = _operation($y) if ref $y and ref $y ne q|Regexp|;
+		#my @r = eval {};
+		#warn qq|Warning: $@| if $@;
+		foreach my $x (@x){
+			foreach my $y (@y){
+				return 1 if $oper->($x,$y)
+			}	
+		}
+		return 0;
+		#return $oper->($x,$y);
 }
 
-#weaken($operatorBy);
-# sub _check{
-# 	my ($filter) = @_;
-# 	return 1 unless defined $filter; #no filter, always returns true
-# 	foreach (@$filter){
-# 		return 0 unless _operation($_)
-# 	}
-# 	return 1;	#true
-# }
 
 sub _evaluate{
 	my $x = $_[0];
@@ -1592,7 +1634,6 @@ sub DESTROY{
 package Data::pQuery::Data;
 use Data::Dumper;
 
-
 sub new{
 	my ($self,$pQuery) = @_;
 	return undef unless defined $pQuery and (defined $pQuery->{oper} or defined $pQuery->{paths});
@@ -1681,8 +1722,14 @@ For the data structure below we can easily achieve it with this code:
 	        //invoice[value(Total) != value(Amount) * (1 + value(Tax))]
 	$)->getvalues();
 
-The pQuery syntax is very similar to the xpath but with some minor exceptions,
-as showed in examples bellow.
+The pQuery uses the xpath syntax to query any set of complex data structures, 
+using keys or indexes for defining the path.
+Examples:
+
+	/0/invoice/Total
+	/2
+	/*/invoice[Total>100]/Total
+
 
 
 =head1 SYNOPSIS

@@ -15,8 +15,14 @@ my $d = {
 	} 
 };
 
+
 my $data = Data::pQuery->data($d);
 
+print $data->query(q|/0/invoice/Total|)->getvalues();
+print $data->query(q|/2|)->getvalues();
+print $data->query(q|/*/invoice[Total>100]/Total|)->getvalues();
+
+exit;
 =pod
 
 #print $data->query(q|/*/*[isScalar()][count(s) == 3][name() eq 'nome']|)->getvalues();

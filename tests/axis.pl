@@ -9,13 +9,16 @@ use Test::LeakTrace;
 
 ($\,$,) = ("\n",",");
 
+my $prob = shift;
+$prob ||= 1;
+
 my $d = [
 	{ map { $_ => qq|a$_|} 0..2},
 	['a'..'b', {
 				q|two words key| => [qw|Σ Φ Ψ Ω Δ|], 
 				q|!$%#&/()=?[]'"| => q|some text|
 			},
-			[{q|Σ| => q|sigma|, q|Ψ| => q|psi|}, [], [[[[[[[{q|λμνρ| => 'others'}]]]]]]]]
+			[{Σ => q|sigma|, Ψ => q|psi|, others => [qw|ω τ ξ|]}, [{λμνρ => 'others'}]]
 	],
 	{ map { $_ => qq|b$_|} 0..3},
 ];
@@ -34,6 +37,7 @@ sub escape{
 sub verify{
 	my ($data, undef,$xpath, $path) = @_;
 	sub test{
+		return if rand(100) > $prob;
 		my ($data,$query, $expectedString) = @_;
 		#print "expectedString -> $expectedString";
 		my @expected = (eval $expectedString);
@@ -47,13 +51,13 @@ sub verify{
 	my $query = qq|${xpath}/self::*|;
 	my $expectedString = qq|$path|;
 	test($data,$query, $expectedString);
-	my $query = qq|${xpath}/self::*[+1]|;
+	my $query = qq|${xpath}/self::*[1]|;
 	my $expectedString = qq|$path|;
 	test($data,$query, $expectedString);
 	my $query = qq|${xpath}/.|;
 	my $expectedString = qq|$path|;
 	test($data,$query, $expectedString);
-	my $query = qq|${xpath}/.[+1]|;
+	my $query = qq|${xpath}/.[1]|;
 	my $expectedString = qq|$path|;
 	test($data,$query, $expectedString);
 	if (!ref $d){
@@ -63,10 +67,10 @@ sub verify{
 		my $query = qq|${xpath}/.[not(*)]|;
 		my $expectedString = qq|$path|;
 		test($data,$query, $expectedString);
-		my $query = qq|${xpath}/self::*[+1][not(*)]|;
+		my $query = qq|${xpath}/self::*[1][not(*)]|;
 		my $expectedString = qq|$path|;
 		test($data,$query, $expectedString);
-		my $query = qq|${xpath}/.[+1][not(*)]|;
+		my $query = qq|${xpath}/.[1][not(*)]|;
 		my $expectedString = qq|$path|;
 		test($data,$query, $expectedString);
 	}elsif (ref $d eq q|ARRAY|){
@@ -100,19 +104,19 @@ sub verify{
 		}
 		foreach (0..$#$d){
 			my $p = $_+1;
-			my $query = qq|${xpath}/*[+$p]|;
+			my $query = qq|${xpath}/*[$p]|;
 			my $expectedString = $path.qq|->[$_]|;
 			test($data,$query, $expectedString);
 		}
 		foreach (0..$#$d){
 			my $p = $_+1;
-			my $query = qq|${xpath}/[*][+$p]|;
+			my $query = qq|${xpath}/[*][$p]|;
 			my $expectedString = $path.qq|->[$_]|;
 			test($data,$query, $expectedString);
 		}
 		foreach (0..$#$d){
 			my $p = $_+1;
-			my $query = qq|${xpath}/{*}[+$p]|;
+			my $query = qq|${xpath}/{*}[$p]|;
 			my $expectedString = qq||;
 			test($data,$query, $expectedString);
 		}
@@ -164,7 +168,7 @@ sub verify{
 			test($data,$query, $expectedString);
 		}
 		foreach (0..$#$d){
-			my $query = qq|${xpath}/$_/preceding-sibling::*[+1]|;
+			my $query = qq|${xpath}/$_/preceding-sibling::*[1]|;
 			my $f = $_ - 1;
 			my $expectedString = $_ > 0 ? $path.qq|->[$f]| : q||;
 			test($data,$query, $expectedString);
@@ -182,7 +186,7 @@ sub verify{
 			test($data,$query, $expectedString);
 		}
 		foreach (0..$#$d){
-			my $query = qq|${xpath}/$_/following-sibling::*[+1]|;
+			my $query = qq|${xpath}/$_/following-sibling::*[1]|;
 			my $i = $_+1;
 			my $expectedString =  $_ < $#$d ? $path.qq|->[$i]| : q||;
 			test($data,$query, $expectedString);
@@ -204,7 +208,7 @@ sub verify{
 			test($data,$query, $expectedString);
 		}
 		foreach (0..$#$d){
-			my $query = qq|${xpath}/$_/ancestor::*[+1]|;
+			my $query = qq|${xpath}/$_/ancestor::*[1]|;
 			my $expectedString =  $path;
 			test($data,$query, $expectedString);
 		}
@@ -216,10 +220,10 @@ sub verify{
 		foreach (0..$#$d){
 			verify($data, $d->[$_],qq|${xpath}/$_|,$path.qq|->[$_]|);	
 			my $p = $_ + 1;
-			verify($data, $d->[$_],qq|${xpath}/*\[+$p\]|,$path.qq|->[$_]|);	
-			verify($data, $d->[$_],qq|${xpath}/[*]\[+$p\]|,$path.qq|->[$_]|);	
-			verify($data, $d->[$_],qq|${xpath}/child::*\[+$p\]|,$path.qq|->[$_]|);	
-			verify($data, $d->[$_],qq|${xpath}/child::[*]\[+$p\]|,$path.qq|->[$_]|);	
+			verify($data, $d->[$_],qq|${xpath}/*\[$p\]|,$path.qq|->[$_]|);	
+			verify($data, $d->[$_],qq|${xpath}/[*]\[$p\]|,$path.qq|->[$_]|);	
+			verify($data, $d->[$_],qq|${xpath}/child::*\[$p\]|,$path.qq|->[$_]|);	
+			verify($data, $d->[$_],qq|${xpath}/child::[*]\[$p\]|,$path.qq|->[$_]|);	
 			verify($data, $d->[$_],qq|${xpath}/self::*/$_|,$path.qq|->[$_]|);	
 		}
 	}elsif(ref $d eq q|HASH|){
@@ -255,7 +259,7 @@ sub verify{
 		}
 		my $p = 1;
 		foreach (sort keys %{$d}){
-			my $query = qq|${xpath}/*[+$p]|;
+			my $query = qq|${xpath}/*[$p]|;
 			my $k = escape($_);
 			my $expectedString = $path.qq|->{qq/$k/}|;
 			test($data,$query, $expectedString);
@@ -263,7 +267,7 @@ sub verify{
 		}
 		my $p = 1;
 		foreach (sort keys %{$d}){
-			my $query = qq|${xpath}/{*}[+$p]|;
+			my $query = qq|${xpath}/{*}[$p]|;
 			my $k = escape($_);
 			my $expectedString = $path.qq|->{qq/$k/}|;
 			test($data,$query, $expectedString);
@@ -271,7 +275,7 @@ sub verify{
 		}
 		my $p = 1;
 		foreach (sort keys %{$d}){
-			my $query = qq|${xpath}/[*][+$p]|;
+			my $query = qq|${xpath}/[*][$p]|;
 			my $expectedString = qq||;
 			test($data,$query, $expectedString);
 			$p++;
@@ -344,7 +348,7 @@ sub verify{
 		}
 		my @keys = sort keys %{$d};
 		foreach (0..$#keys){
-			my $query = qq|${xpath}/{$keys[$_]}/preceding-sibling::*[+1]|;
+			my $query = qq|${xpath}/{$keys[$_]}/preceding-sibling::*[1]|;
 			my $expectedString =  $_ > 0 ? sprintf('%1$s->{qq/%2$s/}', $path, escape($keys[$_-1])) : q||;
 			test($data,$query, $expectedString);
 		}
@@ -368,7 +372,7 @@ sub verify{
 		}
 		my @keys = sort keys %{$d};
 		foreach (0..$#keys){
-			my $query = qq|${xpath}/{$keys[$_]}/following-sibling::*[+1]|;
+			my $query = qq|${xpath}/{$keys[$_]}/following-sibling::*[1]|;
 			my $expectedString =  $_ < $#keys ? sprintf('%1$s->{qq/%2$s/}', $path, escape($keys[$_+1])) : q||;
 			test($data,$query, $expectedString);
 		}
@@ -389,7 +393,7 @@ sub verify{
 			test($data,$query, $expectedString);
 		}
 		foreach (keys %{$d}){
-			my $query = qq|${xpath}/{$_}/ancestor::*[+1]|;
+			my $query = qq|${xpath}/{$_}/ancestor::*[1]|;
 			my $expectedString =  $path;
 			test($data,$query, $expectedString);
 		}
@@ -403,10 +407,10 @@ sub verify{
 		foreach (sort keys %{$d}){
 			my $k = escape($_);
 			verify($data, $d->{$_},qq|${xpath}/{$_}|,$path.qq|->{qq/$k/}|);	
-		 	verify($data, $d->{$_},qq|${xpath}/*\[+$p\]|,$path.qq|->{qq/$k/}|);	
-		 	verify($data, $d->{$_},qq|${xpath}/{*}\[+$p\]|,$path.qq|->{qq/$k/}|);	
-			verify($data, $d->{$_},qq|${xpath}/child::*\[+$p\]|,$path.qq|->{qq/$k/}|);	
-		 	verify($data, $d->{$_},qq|${xpath}/child::{*}\[+$p\]|,$path.qq|->{qq/$k/}|);	
+		 	verify($data, $d->{$_},qq|${xpath}/*\[$p\]|,$path.qq|->{qq/$k/}|);	
+		 	verify($data, $d->{$_},qq|${xpath}/{*}\[$p\]|,$path.qq|->{qq/$k/}|);	
+			verify($data, $d->{$_},qq|${xpath}/child::*\[$p\]|,$path.qq|->{qq/$k/}|);	
+		 	verify($data, $d->{$_},qq|${xpath}/child::{*}\[$p\]|,$path.qq|->{qq/$k/}|);	
 		 	verify($data, $d->{$_},qq|${xpath}/self::*/{$_}|,$path.qq|->{qq/$k/}|);	
 		 	$p++;
 		}

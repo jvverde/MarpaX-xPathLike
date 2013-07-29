@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "Data::pQuery 3"
-.TH Data::pQuery 3 "2013-07-28" "perl v5.14.2" "User Contributed Perl Documentation"
+.TH Data::pQuery 3 "2013-07-30" "perl v5.14.2" "User Contributed Perl Documentation"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -173,8 +173,15 @@ For the data structure below we can easily achieve it with this code:
 \&        $)\->getvalues();
 .Ve
 .PP
-The pQuery syntax is very similar to the xpath but with some minor exceptions,
-as showed in examples bellow.
+The pQuery uses the xpath syntax to query any set of complex data structures, 
+using keys or indexes for defining the path.
+Examples:
+.PP
+.Vb 3
+\&        /0/invoice/Total
+\&        /2
+\&        /*/invoice[Total>100]/Total
+.Ve
 .SH "SYNOPSIS"
 .IX Header "SYNOPSIS"
 How to use it.
