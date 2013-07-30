@@ -232,91 +232,91 @@ compareExpr ::=
 
 
 AnyTypeExpr ::=
-    WS allTypeExp WS                                                         action => _do_arg2    
+    WS allTypeExp WS                                   action => _do_arg2    
 
 allTypeExp ::=
-    NumericExpr                                                                 action => _do_arg1
-    |StringExpr                                                                 action => _do_arg1                    
-  || PredPathExpr                                                         action => _do_getValueOperator 
+    NumericExpr                                        action => _do_arg1
+    |StringExpr                                        action => _do_arg1                    
+  || PredPathExpr                                      action => _do_getValueOperator 
 
 
 StringExpr ::=
-    WS allStringsExp WS                                                     action => _do_arg2
+    WS allStringsExp WS                                action => _do_arg2
 
 allStringsExp ::=
-    STRING                                                                              action => _do_arg1
-     | StringFunction                                                        action => _do_arg1
-     | PredPathExpr                                                            action => _do_getValueOperator
-     || StringExpr '||' StringExpr                              action => _do_binaryOperation
+    STRING                                             action => _do_arg1
+     | StringFunction                                  action => _do_arg1
+     | PredPathExpr                                    action => _do_getValueOperator
+     || StringExpr '||' StringExpr                     action => _do_binaryOperation
 
 
 RegularExpr ::= 
-    WS STRING    WS                                                                action => _do_re
+    WS STRING    WS                                    action => _do_re
 
 LogicalFunction ::=
-    'not' '(' LogicalExpr ')'                                         action => _do_func
-    | 'isRef' '('  OptionalPathArgs  ')'                 action => _do_func
-    | 'isScalar' '(' OptionalPathArgs ')'                 action => _do_func
-    | 'isArray' '(' OptionalPathArgs ')'                 action => _do_func
-    | 'isHash' '(' OptionalPathArgs ')'                     action => _do_func
-    | 'isCode' '(' OptionalPathArgs ')'                    action => _do_func
+    'not' '(' LogicalExpr ')'                          action => _do_func
+    | 'isRef' '('  OptionalPathArgs  ')'               action => _do_func
+    | 'isScalar' '(' OptionalPathArgs ')'              action => _do_func
+    | 'isArray' '(' OptionalPathArgs ')'               action => _do_func
+    | 'isHash' '(' OptionalPathArgs ')'                action => _do_func
+    | 'isCode' '(' OptionalPathArgs ')'                action => _do_func
 
 StringFunction ::=
-    NameFunction                                                                action => _do_arg1
-    | ValueFunction                                                            action => _do_arg1
+    NameFunction                                       action => _do_arg1
+    | ValueFunction                                    action => _do_arg1
 
 NameFunction ::= 
-    'name' '(' OptionalPathArgs ')'                             action => _do_func
+    'name' '(' OptionalPathArgs ')'                    action => _do_func
 
 OptionalPathArgs ::= 
-    RequiredPathArgs                                                      action => _do_arg1
-    | EMPTY                                                                            action => _do_arg1
+    RequiredPathArgs                                   action => _do_arg1
+    | EMPTY                                            action => _do_arg1
 
 RequiredPathArgs ::=
-    WS PathExpr WS                                                          action => _do_arg2
+    WS PathExpr WS                                     action => _do_arg2
 
 EMPTY ::= 
 
 ValueFunction ::= 
-    'value' '(' OptionalPathArgs ')'                         action => _do_func
+    'value' '(' OptionalPathArgs ')'                   action => _do_func
 
 CountFunction ::= 
-    'count' '(' RequiredPathArgs ')'                         action => _do_func
+    'count' '(' RequiredPathArgs ')'                   action => _do_func
 
 LastFunction ::= 
-    'last' '(' OptionalPathArgs ')'                             action => _do_func
+    'last' '(' OptionalPathArgs ')'                    action => _do_func
 
 PositionFunction ::= 
-    'position' '(' OptionalPathArgs ')'                     action => _do_func
+    'position' '(' OptionalPathArgs ')'                action => _do_func
 
 SumFunction ::= 
-    'sum' '(' RequiredPathArgs ')'                             action => _do_func
+    'sum' '(' RequiredPathArgs ')'                     action => _do_func
 
 SumProductFunction ::= 
     'sumproduct' '(' RequiredPathArgs ',' RequiredPathArgs ')'    action => _do_funcw2args
 
 NumericFunction ::=
-    IntegerFunction                                                            action => _do_arg1
-    |ValueFunction                                                            action => _do_arg1
-    |SumFunction                                                                action => _do_arg1
-    |SumProductFunction                                                    action => _do_arg1
+    IntegerFunction                                    action => _do_arg1
+    |ValueFunction                                     action => _do_arg1
+    |SumFunction                                       action => _do_arg1
+    |SumProductFunction                                action => _do_arg1
 
 IntegerFunction ::=
-    CountFunction                                                                action => _do_arg1
-    |LastFunction                                                                action => _do_arg1
-    |PositionFunction                                                        action => _do_arg1
+    CountFunction                                      action => _do_arg1
+    |LastFunction                                      action => _do_arg1
+    |PositionFunction                                  action => _do_arg1
 
 ListFunction ::=
-    'names' '(' OptionalPathArgs ')'                     action => _do_func
-    | 'values' '(' OptionalPathArgs ')'                 action => _do_func
+    'names' '(' OptionalPathArgs ')'                   action => _do_func
+    | 'values' '(' OptionalPathArgs ')'                action => _do_func
     | 'lasts' '(' OptionalPathArgs ')'                 action => _do_func
-    | 'positions' '(' OptionalPathArgs ')'        action => _do_func
+    | 'positions' '(' OptionalPathArgs ')'             action => _do_func
 
 
  NUMBER ::= 
-     unumber                                                                         action => _do_arg1
-     | '-' unumber                                                             action => _do_join
-     | '+' unumber                                                             action => _do_join
+     unumber                                           action => _do_arg1
+     | '-' unumber                                     action => _do_join
+     | '+' unumber                                     action => _do_join
 
 unumber    
     ~ uint
@@ -347,16 +347,16 @@ e
     | 'E-'
 
 INT ::= 
-    UINT                                                                         action => _do_arg1
-    | '+' UINT                                                          action => _do_join    #avoid ambiguity
-    | '-' UINT                                                          action => _do_join    #avoid ambiguity
+    UINT                                               action => _do_arg1
+    | '+' UINT                                         action => _do_join    #avoid ambiguity
+    | '-' UINT                                         action => _do_join    #avoid ambiguity
 
 UINT
     ~digits
 
 STRING ::= 
-    double_quoted                                               action => _do_double_quoted
-    | single_quoted                                              action => _do_single_quoted
+    double_quoted                                      action => _do_double_quoted
+    | single_quoted                                    action => _do_single_quoted
 
 single_quoted        
     ~ ['] single_quoted_chars [']
@@ -379,9 +379,9 @@ double_quoted_char
     | '\' '"'
 
 keyname ::= 
-    keyword                                                                            action => _do_token
-    | STRING                                                            action => _do_arg1
-    | curly_delimited_string                                       action => _do_curly_delimited_string
+    keyword                                           action => _do_token
+    | STRING                                          action => _do_arg1
+    | curly_delimited_string                          action => _do_curly_delimited_string
 
 curly_delimited_string
     ~ '{' curly_delimited_chars '}'
