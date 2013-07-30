@@ -2,20 +2,32 @@
 use strict;
 use Data::pQuery;
 use Data::Dumper;
-
+use warnings;
 ($\,$,) = ("\n",",");
 
-my $query = Data::pQuery->compile('/*');
-my @values1 = $query->data({fruit => 'bananas'})->getvalues();
-print @values1;
+use strict;
+use Data::pQuery;
+use Data::Dumper;
 
-my @values2 = $query->data({
-	fruit => 'bananas', 
-	vegetables => 'orions'
-})->getvalues();
-print @values2;
+($\,$,) = ("\n",",");
+my $d = {
+        drinks => {
+                q|Alcoholic beverage| => 'not allowed',
+                q|Soft drinks| => [qw|Soda Coke|]
+        },
+        food => { 
+                fruit => [qw|bananas apples oranges pears|], 
+                vegetables  => [qw|potatoes  carrots tomatoes|]
+        } 
+};
 
-my @values3 = $query->data({
-	food => {fruit => 'bananas'}
-})->getvalues();
-print Dumper @values3;
+my $data = Data::pQuery->data($d);
+my $results = $data->query(q|/*/*/0|);
+my @values = $results->getvalues();
+print @values;                                  
+#Soda,bananas,potatoes
+
+my $ref = $results->getref();
+$$ref = 'Tonic';
+print $d->{drinks}->{q|Soft drinks|}->[0];      
+#Tonic
