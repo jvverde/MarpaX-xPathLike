@@ -256,7 +256,7 @@ Returns the value of first matched data;
 
 Unless some xpath functions, not yet implemented, and xpath axis preceding:: 
 and following:: directions everything else is implemented. Probably buggly, 
-sorry. I hope to fixe them as soon someone identify them
+sorry. I hope to fixe them as soon someone (?) identify them.
 
 ## Supported axis 
 
@@ -282,9 +282,9 @@ sorry. I hope to fixe them as soon someone identify them
 - values(path?)\*
 - value(path?)\*
 
-(\*) not a xpath 1.0 functiona. 
+(\*) not a xpath 1.0 function. 
 
-names is like name but returns a list o names.
+names is like name but returns a list of names.
 
 We don't support the text() funcions as we don't know what that should mean 
 in perl data-structures context, but the value and values functiosn as provided
