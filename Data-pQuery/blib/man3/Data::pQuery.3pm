@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "Data::pQuery 3"
-.TH Data::pQuery 3 "2013-07-30" "perl v5.14.2" "User Contributed Perl Documentation"
+.TH Data::pQuery 3 "2013-07-31" "perl v5.14.2" "User Contributed Perl Documentation"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -373,7 +373,7 @@ Compile a pQuery string, query the data and returns a Data::pQuery::Results obje
 .IX Header "Xpath Compability"
 Unless some xpath functions, not yet implemented, and xpath axis preceding:: 
 and following:: directions everything else is implemented. Probably buggly, 
-sorry. I hope to fixe them as soon someone identify them
+sorry. I hope to fixe them as soon someone (?) identify them.
 .SS "Supported axis"
 .IX Subsection "Supported axis"
 .IP "self::" 4
@@ -411,16 +411,17 @@ sorry. I hope to fixe them as soon someone identify them
 .IX Item "last()"
 .IP "not(expr)" 4
 .IX Item "not(expr)"
+.IP "names(path?)*" 4
+.IX Item "names(path?)*"
+.IP "values(path?)*" 4
+.IX Item "values(path?)*"
+.IP "value(path?)*" 4
+.IX Item "value(path?)*"
 .PD
-=names(path?)*
-.Sp
-=values(path?)*
-.Sp
-=value(path?)*
 .PP
-(*) not a xpath 1.0 functiona.
+(*) not a xpath 1.0 function.
 .PP
-names is like name but returns a list o names.
+names is like name but returns a list of names.
 .PP
 We don't support the \fItext()\fR funcions as we don't know what that should mean 
 in perl data-structures context, but the value and values functiosn as provided
@@ -432,8 +433,8 @@ be scalar(s) or hash/array reference(s).
 The xpath supported operators are the following:
 .PP
 .Vb 3
-\&    +, \-, *, div, %, =, !=, (), "", \*(Aq\*(Aq, +, \-, ., .., /, //, ::, <, <=, >, >=, 
-\&    [], and, or and 
+\&    +, \-, *, div, %, =, !=, (), "", \*(Aq\*(Aq, +, \-, ., .., /, //, ::, <, <=, >, >=, [], and, or 
+\&      and 
 \&    | (paths union)
 .Ve
 .PP
@@ -446,16 +447,16 @@ Addicionaly pQuery also supports the following operators
 The ~ is the matching operator
 .SS "Support for data types"
 .IX Subsection "Support for data types"
-I a pQuery path expression a digit step coul mean a array index or a hash's key name.
+In pQuery path expression, a digit step could mean a array index or a hash's key name.
 ex:
 .PP
 .Vb 1
 \&    /a/0/b
 .Ve
 .PP
-may refere to a \f(CW$d\fR\->{a}\->[0]\->{b} or to a \f(CW$d\fR\->{a}\->{0}\->{b}. 
+may refere to a \f(CW\*(C`$d\-\*(C'\fR{a}\->[0]\->{b}> or to a \f(CW\*(C`$d\-\*(C'\fR{a}\->{0}\->{b}>. 
 If a enforcement is required for select only array's index 0
-the pQuery expression shloud be
+the pQuery expression shoudl be
 .PP
 .Vb 1
 \&    /a/[0]/b
@@ -471,7 +472,7 @@ The curly bracket could also be useful to refere to keys with spaces or any spec
 character. Some examples
 .PP
 .Vb 1
-\&    /{two words as a keys}//{key with a \*(Aq/\*(Aq or +}/*
+\&    /{two words as a keys}//{key with a / or a +}/*
 .Ve
 .PP
 The curly and square brackets could also be used with axis and wildcard *. Examples:
@@ -482,6 +483,33 @@ The curly and square brackets could also be used with axis and wildcard *. Examp
 \&    //*/parent::[b]
 \&    //a//parent::{*}
 \&    //*[self::{*} = 3 or self::[*] > 10]
+.Ve
+.PP
+If a hash key is just a * the path expression is also posible using instead curly 
+brackets, quotes (double or single)
+.PP
+.Vb 2
+\&    //"*"/b
+\&    //a/\*(Aq*\*(Aq
+.Ve
+.PP
+Inside curly brackets, or quotes a backslash is used to escape { or } if the step 
+delimited by those characters and " when used inside doubles quotes or  ' 
+for single quotes delimitation,or escape itself. In any other situation is 
+literaly interpreted
+.PP
+.Vb 3
+\&    //"2\e""
+\&    //\*(Aqhash\e\*(Aqs key\*(Aq
+\&    //{\e{}/
+\&    
+\&    //\*(Aq2"\*(Aq
+\&    //"hash\e\*(Aqs key"
+\&    //\*(Aq{\*(Aq
+\&    
+\&    //{\e\e}
+\&    //"\e\e"
+\&    //\*(Aq\e\e\*(Aq
 .Ve
 .SH "AUTHOR"
 .IX Header "AUTHOR"

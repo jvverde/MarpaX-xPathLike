@@ -317,9 +317,9 @@ ex:
 
     /a/0/b
 
-may refere to a $d->{a}->\[0\]->{b} or to a $d->{a}->{0}->{b}. 
+may refere to a `$d-`{a}->\[0\]->{b}> or to a `$d-`{a}->{0}->{b}>. 
 If a enforcement is required for select only array's index 0
-the pQuery expression shloud be       
+the pQuery expression shoudl be       
 
     /a/[0]/b
 

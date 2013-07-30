@@ -232,91 +232,91 @@ compareExpr ::=
 
 
 AnyTypeExpr ::=
-    WS allTypeExp WS                                                         action => _do_arg2    
+    WS allTypeExp WS                                   action => _do_arg2    
 
 allTypeExp ::=
-    NumericExpr                                                                 action => _do_arg1
-    |StringExpr                                                                 action => _do_arg1                    
-  || PredPathExpr                                                         action => _do_getValueOperator 
+    NumericExpr                                        action => _do_arg1
+    |StringExpr                                        action => _do_arg1                    
+  || PredPathExpr                                      action => _do_getValueOperator 
 
 
 StringExpr ::=
-    WS allStringsExp WS                                                     action => _do_arg2
+    WS allStringsExp WS                                action => _do_arg2
 
 allStringsExp ::=
-    STRING                                                                              action => _do_arg1
-     | StringFunction                                                        action => _do_arg1
-     | PredPathExpr                                                            action => _do_getValueOperator
-     || StringExpr '||' StringExpr                              action => _do_binaryOperation
+    STRING                                             action => _do_arg1
+     | StringFunction                                  action => _do_arg1
+     | PredPathExpr                                    action => _do_getValueOperator
+     || StringExpr '||' StringExpr                     action => _do_binaryOperation
 
 
 RegularExpr ::= 
-    WS STRING    WS                                                                action => _do_re
+    WS STRING    WS                                    action => _do_re
 
 LogicalFunction ::=
-    'not' '(' LogicalExpr ')'                                         action => _do_func
-    | 'isRef' '('  OptionalPathArgs  ')'                 action => _do_func
-    | 'isScalar' '(' OptionalPathArgs ')'                 action => _do_func
-    | 'isArray' '(' OptionalPathArgs ')'                 action => _do_func
-    | 'isHash' '(' OptionalPathArgs ')'                     action => _do_func
-    | 'isCode' '(' OptionalPathArgs ')'                    action => _do_func
+    'not' '(' LogicalExpr ')'                          action => _do_func
+    | 'isRef' '('  OptionalPathArgs  ')'               action => _do_func
+    | 'isScalar' '(' OptionalPathArgs ')'              action => _do_func
+    | 'isArray' '(' OptionalPathArgs ')'               action => _do_func
+    | 'isHash' '(' OptionalPathArgs ')'                action => _do_func
+    | 'isCode' '(' OptionalPathArgs ')'                action => _do_func
 
 StringFunction ::=
-    NameFunction                                                                action => _do_arg1
-    | ValueFunction                                                            action => _do_arg1
+    NameFunction                                       action => _do_arg1
+    | ValueFunction                                    action => _do_arg1
 
 NameFunction ::= 
-    'name' '(' OptionalPathArgs ')'                             action => _do_func
+    'name' '(' OptionalPathArgs ')'                    action => _do_func
 
 OptionalPathArgs ::= 
-    RequiredPathArgs                                                      action => _do_arg1
-    | EMPTY                                                                            action => _do_arg1
+    RequiredPathArgs                                   action => _do_arg1
+    | EMPTY                                            action => _do_arg1
 
 RequiredPathArgs ::=
-    WS PathExpr WS                                                          action => _do_arg2
+    WS PathExpr WS                                     action => _do_arg2
 
 EMPTY ::= 
 
 ValueFunction ::= 
-    'value' '(' OptionalPathArgs ')'                         action => _do_func
+    'value' '(' OptionalPathArgs ')'                   action => _do_func
 
 CountFunction ::= 
-    'count' '(' RequiredPathArgs ')'                         action => _do_func
+    'count' '(' RequiredPathArgs ')'                   action => _do_func
 
 LastFunction ::= 
-    'last' '(' OptionalPathArgs ')'                             action => _do_func
+    'last' '(' OptionalPathArgs ')'                    action => _do_func
 
 PositionFunction ::= 
-    'position' '(' OptionalPathArgs ')'                     action => _do_func
+    'position' '(' OptionalPathArgs ')'                action => _do_func
 
 SumFunction ::= 
-    'sum' '(' RequiredPathArgs ')'                             action => _do_func
+    'sum' '(' RequiredPathArgs ')'                     action => _do_func
 
 SumProductFunction ::= 
     'sumproduct' '(' RequiredPathArgs ',' RequiredPathArgs ')'    action => _do_funcw2args
 
 NumericFunction ::=
-    IntegerFunction                                                            action => _do_arg1
-    |ValueFunction                                                            action => _do_arg1
-    |SumFunction                                                                action => _do_arg1
-    |SumProductFunction                                                    action => _do_arg1
+    IntegerFunction                                    action => _do_arg1
+    |ValueFunction                                     action => _do_arg1
+    |SumFunction                                       action => _do_arg1
+    |SumProductFunction                                action => _do_arg1
 
 IntegerFunction ::=
-    CountFunction                                                                action => _do_arg1
-    |LastFunction                                                                action => _do_arg1
-    |PositionFunction                                                        action => _do_arg1
+    CountFunction                                      action => _do_arg1
+    |LastFunction                                      action => _do_arg1
+    |PositionFunction                                  action => _do_arg1
 
 ListFunction ::=
-    'names' '(' OptionalPathArgs ')'                     action => _do_func
-    | 'values' '(' OptionalPathArgs ')'                 action => _do_func
+    'names' '(' OptionalPathArgs ')'                   action => _do_func
+    | 'values' '(' OptionalPathArgs ')'                action => _do_func
     | 'lasts' '(' OptionalPathArgs ')'                 action => _do_func
-    | 'positions' '(' OptionalPathArgs ')'        action => _do_func
+    | 'positions' '(' OptionalPathArgs ')'             action => _do_func
 
 
  NUMBER ::= 
-     unumber                                                                         action => _do_arg1
-     | '-' unumber                                                             action => _do_join
-     | '+' unumber                                                             action => _do_join
+     unumber                                           action => _do_arg1
+     | '-' unumber                                     action => _do_join
+     | '+' unumber                                     action => _do_join
 
 unumber    
     ~ uint
@@ -347,16 +347,16 @@ e
     | 'E-'
 
 INT ::= 
-    UINT                                                                         action => _do_arg1
-    | '+' UINT                                                          action => _do_join    #avoid ambiguity
-    | '-' UINT                                                          action => _do_join    #avoid ambiguity
+    UINT                                               action => _do_arg1
+    | '+' UINT                                         action => _do_join    #avoid ambiguity
+    | '-' UINT                                         action => _do_join    #avoid ambiguity
 
 UINT
     ~digits
 
 STRING ::= 
-    double_quoted                                               action => _do_double_quoted
-    | single_quoted                                              action => _do_single_quoted
+    double_quoted                                      action => _do_double_quoted
+    | single_quoted                                    action => _do_single_quoted
 
 single_quoted        
     ~ ['] single_quoted_chars [']
@@ -379,9 +379,9 @@ double_quoted_char
     | '\' '"'
 
 keyname ::= 
-    keyword                                                                            action => _do_token
-    | STRING                                                            action => _do_arg1
-    | curly_delimited_string                                       action => _do_curly_delimited_string
+    keyword                                           action => _do_token
+    | STRING                                          action => _do_arg1
+    | curly_delimited_string                          action => _do_curly_delimited_string
 
 curly_delimited_string
     ~ '{' curly_delimited_chars '}'
@@ -1977,7 +1977,7 @@ Returns the value of first matched data;
 
 Unless some xpath functions, not yet implemented, and xpath axis preceding:: 
 and following:: directions everything else is implemented. Probably buggly, 
-sorry. I hope to fixe them as soon someone identify them
+sorry. I hope to fixe them as soon someone (?) identify them.
 
 =head2 Supported axis 
 
@@ -2019,17 +2019,17 @@ sorry. I hope to fixe them as soon someone identify them
 
 =item not(expr)
 
-=names(path?)*
+=item names(path?)*
 
-=values(path?)*
+=item values(path?)*
 
-=value(path?)*
+=item value(path?)*
 
 =back
 
-(*) not a xpath 1.0 functiona. 
+(*) not a xpath 1.0 function. 
 
-names is like name but returns a list o names.
+names is like name but returns a list of names.
 
 We don't support the text() funcions as we don't know what that should mean 
 in perl data-structures context, but the value and values functiosn as provided
@@ -2043,8 +2043,8 @@ be scalar(s) or hash/array reference(s).
 
 The xpath supported operators are the following: 
 
-    +, -, *, div, %, =, !=, (), "", '', +, -, ., .., /, //, ::, <, <=, >, >=, 
-    [], and, or and 
+    +, -, *, div, %, =, !=, (), "", '', +, -, ., .., /, //, ::, <, <=, >, >=, [], and, or 
+      and 
     | (paths union)
 
 Addicionaly pQuery also supports the following operators
@@ -2055,14 +2055,14 @@ The ~ is the matching operator
 
 =head2 Support for data types
 
-I a pQuery path expression a digit step coul mean a array index or a hash's key name.
+In pQuery path expression, a digit step could mean a array index or a hash's key name.
 ex:
 
     /a/0/b
 
-may refere to a $d->{a}->[0]->{b} or to a $d->{a}->{0}->{b}. 
+may refere to a C<$d->{a}->[0]->{b}> or to a C<$d->{a}->{0}->{b}>. 
 If a enforcement is required for select only array's index 0
-the pQuery expression shloud be       
+the pQuery expression shoudl be       
 
     /a/[0]/b
 
@@ -2073,7 +2073,7 @@ And similarity for hash' key '0'
 The curly bracket could also be useful to refere to keys with spaces or any special 
 character. Some examples
 
-    /{two words as a keys}//{key with a '/' or +}/*
+    /{two words as a keys}//{key with a / or a +}/*
 
 The curly and square brackets could also be used with axis and wildcard *. Examples:
 
@@ -2082,6 +2082,31 @@ The curly and square brackets could also be used with axis and wildcard *. Examp
     //*/parent::[b]
     //a//parent::{*}
     //*[self::{*} = 3 or self::[*] > 10]
+
+If a hash key is just a * the path expression is also posible using instead curly 
+brackets, quotes (double or single)
+
+    //"*"/b
+    //a/'*'
+
+Inside curly brackets, or quotes a backslash is used to escape { or } if the step 
+delimited by those characters and " when used inside doubles quotes or  ' 
+for single quotes delimitation,or escape itself. In any other situation is 
+literaly interpreted
+
+    //"2\""
+    //'hash\'s key'
+    //{\{}/
+    
+    //'2"'
+    //"hash\'s key"
+    //'{'
+    
+    //{\\}
+    //"\\"
+    //'\\'
+
+
 
 =head1 AUTHOR
 
