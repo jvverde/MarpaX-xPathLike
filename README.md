@@ -300,8 +300,8 @@ be scalar(s) or hash/array reference(s).
 
 The xpath supported operators are the following: 
 
-    +, -, *, div, %, =, !=, (), "", '', +, -, ., .., /, //, ::, <, <=, >, >=, 
-    [], and, or and 
+    +, -, *, div, %, =, !=, (), "", '', +, -, ., .., /, //, ::, <, <=, >, >=, [], and, or 
+      and 
     | (paths union)
 
 Addicionaly pQuery also supports the following operators
@@ -312,7 +312,7 @@ The ~ is the matching operator
 
 ## Support for data types
 
-I a pQuery path expression a digit step coul mean a array index or a hash's key name.
+In pQuery path expression, a digit step could mean a array index or a hash's key name.
 ex:
 
     /a/0/b
@@ -330,7 +330,7 @@ And similarity for hash' key '0'
 The curly bracket could also be useful to refere to keys with spaces or any special 
 character. Some examples
 
-    /{two words as a keys}//{key with a '/' or +}/*
+    /{two words as a keys}//{key with a / or a +}/*
 
 The curly and square brackets could also be used with axis and wildcard \*. Examples:
 
@@ -339,6 +339,35 @@ The curly and square brackets could also be used with axis and wildcard \*. Exam
     //*/parent::[b]
     //a//parent::{*}
     //*[self::{*} = 3 or self::[*] > 10]
+
+If a hash key is just a \* the path expression is also posible using instead curly 
+brackets, quotes (double or single)
+
+    //"*"/b
+    //a/'*'
+
+Inside curly brackets, or quotes a backslash is used to escape { or } if the step 
+delimited by those characters and " when used inside doubles quotes or  ' 
+for single quotes delimitation,or escape itself. In any other situation is 
+literaly interpreted
+
+    //"2\""
+    //'hash\'s key'
+    //{\{}/
+    
+
+    //'2"'
+    //"hash\'s key"
+    //'{'
+    
+
+    //{\\}
+    //"\\"
+    //'\\'
+
+
+
+
 
 # AUTHOR
 
