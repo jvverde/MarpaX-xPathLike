@@ -97,10 +97,16 @@ How to use it.
      print $d->{drinks}->{q|Soft drinks|}->[0];     
      #Tonic
 
-To get values we can invoke the getvalues ou getvalue methods o obtain a 
+To get values we can invoke the getvalues ou getvalue methods to obtain a 
 list/element matched. If what we need is to change the values we can use
 getrefs or getref methods to obtain a reference to the matched 
-data-structures. 
+data-structures. The getref(s) methods always returns a reference to 
+matched data-structure. If the matched element is a scalar a reference to 
+that scalar is returned. If the matched element is a reference array (or 
+hash) a reference to that reference is returned, so we can change it and 
+not only nested data-structures.
+
+
 
 # DESCRIPTION
 
@@ -111,7 +117,25 @@ and returns a list of matched data-structures.
 
 Like xpath it is possible to deal with any logical or arithmetic 
 expressions, ex: \*{count(a) == count(c) / 2 \* (1 + count(b)) or d}, or even 
-query xpath path functions (ex: count, name, sum, etc.)
+query xpath path functions (ex: count, name, sum, etc.). 
+
+Additionally some extensions are implemented to deal with perl data-structures,
+namely to choose between arrays and hashes.
+
+Example:
+
+Get all structures but only one which are arrays
+
+     //[*]
+
+Similarly to get all of hash structures, we can write
+
+     //{*}
+
+Besides that, some extra functions are also provide to check data type in
+predicates, ex: 
+
+     //*[isScalar()]
 
 
 
