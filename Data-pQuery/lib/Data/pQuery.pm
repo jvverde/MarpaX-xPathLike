@@ -1737,11 +1737,9 @@ __END__
 
 Data::pQuery - a xpath like processor for perl data-structures (hashes and arrays)! 
 
-
 =head1 VERSION
 
 Version 0.1
-
 
 =head1 Why we need another one
 
@@ -1751,8 +1749,8 @@ Nevertheless we still missing some of powerfull constructions as provided by
 xpath.
 Suppose, for example, we have an array of invoices with Total, Amount and Tax 
 and need to check which one does not comply to the rule "Total = Amount * (1+Tax)".
-
 For the data structure below we can easily achieve it with this code:
+
 
      use Data::pQuery;
      use Data::Dumper;
@@ -1779,10 +1777,11 @@ For the data structure below we can easily achieve it with this code:
              //invoice[value(Total) != value(Amount) * (1 + value(Tax))]
      $)->getvalues();
 
+
 The pQuery uses the xpath 1.0 syntax to query any set of complex perl 
 data structures, using keys or indexes for defining the path.
-
 Examples:
+
 
      /0/invoice/Total
      /2
@@ -1791,6 +1790,7 @@ Examples:
      //Total[../Tax = .2]
      //*[count(itens/*) > 1][1]
      sum(//Total)
+
 
 Like as in xpath it's possible to query a function instead of  quering for a 
 set of data structures. 
