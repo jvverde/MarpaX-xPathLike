@@ -1828,23 +1828,26 @@ How to use it.
      print $d->{drinks}->{q|Soft drinks|}->[0];     
      #Tonic
 
-As we can see above the hashes structures and array indexes are indexed like
-an element node in xpath.
+To get values we can invoke the getvalues ou getvalue methods o obtain a 
+list/element matched. If what we need is to change the values we can use
+getrefs or getref methods to obtain a reference to the matched 
+data-structures. 
 
 =head1 DESCRIPTION
 
-It looks for data-structures which match the pQuery expression and returns a list
-of matched data-structures.
+It looks for complex perl data-structures which match the pQuery expression 
+and returns a list of matched data-structures.
 
 
 Like xpath it is possible to deal with any logical or arithmetic 
-expressions, ex: *{count(a) == count(c) / 2 * (1 + count(b)) or d}
+expressions, ex: *{count(a) == count(c) / 2 * (1 + count(b)) or d}, or even 
+query xpath path functions (ex: count, name, sum, etc.)
 
 
 =head1 METHODS
 
 The Data::pQuery just provides two useful methods, compile and data. 
-The first is used to complie a pQuery expression and the second is used
+The first is used to compile a pQuery expression and the second is used
 to prepare data to be queried. 
 
 =head2 Data::pQuery methods
@@ -1876,38 +1879,39 @@ This is the prefered method to run the same query over several data-structures.
 
 =head3 data(dataRef)
 
-     my $data = Data::pQuery->data({
-             food => {
-                     fruit => 'bananas',
-                     vegetables => 'unions'
-             },
-             drinks => {
-                     wine => 'Porto',
-                     water => 'Evian'
-             }
-     });
-	
+  my $data = Data::pQuery->data({
+    food => {
+      fruit => 'bananas',
+      vegetables => 'unions'
+    },
+    drinks => {
+      wine => 'Porto',
+      water => 'Evian'
+    }
+  });
+
 
 	my @values1 = $data->query('/*/*')->getvalues();
-	print @values1; # Evian,Porto,bananas,unions
+  print @values1; # Evian,Porto,bananas,unions
 
-	my @values2 = $data->query('/*/wine')->getvalues();
-	print @values2; #Porto
+  my @values2 = $data->query('/*/wine')->getvalues();
+  print @values2; #Porto
 
-	#using a predicate, to get only first level entry which contains a fruit key
-	my @values3 = $data->query('/*[fruit]/*')->getvalues();
-	print @values3; #bananas,unions
-	#using another filter to return only elements which have the value matching 
-	#a /an/ pattern
-	my @values4 = $data->query('/*/*[value() ~ "an"]')->getvalues();
-	print @values4;# Evian,bananas
+  #using a predicate, to get only first level entry which contains a fruit key
+  my @values3 = $data->query('/*[fruit]/*')->getvalues();
+  print @values3; #bananas,unions
 
-	my @values5 = $data->query('//*[isScalar()]')->getvalues();
-	print @values5;#Evian,Porto,bananas,unions
+  #using another filter to return only elements which have the value matching 
+  #a /an/ pattern
+  my @values4 = $data->query('/*/*[value() ~ "an"]')->getvalues();
+  print @values4;# Evian,bananas
+
+  my @values5 = $data->query('//*[isScalar()]')->getvalues();
+  print @values5;#Evian,Porto,bananas,unions
 
                   
 
-The method data receives a hash or array reference and returns a Data::pQuery::Compile object. 
+The method data receives a hash (or array) reference and returns a Data::pQuery::Compile object. 
 This is the prefered method to run several query over same data.
 
 =head2 Data::pQuery::Data methods
@@ -1936,6 +1940,10 @@ Returns a list of values for each matched data;
 =head3 getvalue()
 Returns the value of first matched data;
 
+
+=head1 Xpath Compability
+
+TODO
 
 =head1 AUTHOR
 
