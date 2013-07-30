@@ -2060,7 +2060,7 @@ ex:
 
     /a/0/b
 
-may refere to a C<$d-E<gt>{a}->[0]->{b}> or to a C<$d-E<gt>{a}->{0}->{b}>. 
+may refere to a C<$d-E<gt>{a}-E<gt>[0]-E<gt>{b}> or to a C<$d-E<gt>{a}-E<gt>{0}-E<gt>{b}>. 
 If a enforcement is required for select only array's index 0
 the pQuery expression shoudl be       
 
