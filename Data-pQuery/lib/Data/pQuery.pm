@@ -24,7 +24,8 @@ my $grammar = Marpa::R2::Scanless::G->new({
 :default ::= action => ::array
 :start ::= Start
 
-Start	::= OperExp															action => _do_arg1
+Start	::= 
+	WS OperExp WS																action => _do_arg2
 
 OperExp ::=
 	PathExpr 																		action => _do_path
@@ -417,7 +418,7 @@ WS ::=
 	|EMPTY
 
 whitespace
-	~ [\s]+
+	~ [\s\n\r]+
 
 comma 
 	~ ','
@@ -1749,6 +1750,7 @@ Nevertheless we still missing some of powerfull constructions as provided by
 xpath.
 Suppose, for example, we have an array of invoices with Total, Amount and Tax 
 and need to check which one does not comply to the rule "Total = Amount * (1+Tax)".
+
 For the data structure below we can easily achieve it with this code:
 
 
@@ -1774,7 +1776,7 @@ For the data structure below we can easily achieve it with this code:
      ]);
 
      print Dumper $data->query(q$
-             //invoice[value(Total) != value(Amount) * (1 + value(Tax))]
+             //invoice[Total != Amount * (1 + Tax)]
      $)->getvalues();
 
 
@@ -1792,8 +1794,7 @@ Examples:
      sum(//Total)
 
 
-Like as in xpath it's possible to query a function instead of  quering for a 
-set of data structures. 
+Like as in xpath it's also possible to query a function.
 
 
 =head1 SYNOPSIS

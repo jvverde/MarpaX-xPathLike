@@ -140,87 +140,84 @@ There are already some good approaches to xpath syntax, namely the Data::dPath
 and Data::Path. 
 Nevertheless we still missing some of powerfull constructions as provided by 
 xpath.
-.PP
 Suppose, for example, we have an array of invoices with Total, Amount and Tax 
 and need to check which one does not comply to the rule \*(L"Total = Amount * (1+Tax)\*(R".
 .PP
 For the data structure below we can easily achieve it with this code:
 .PP
 .Vb 2
-\&        use Data::pQuery;
-\&        use Data::Dumper;
+\&     use Data::pQuery;
+\&     use Data::Dumper;
 \&
-\&        ($\e,$,) = (qq|\en|, q|,|);
-\&        my $data = Data::pQuery\->data([
-\&                {invoice => {
-\&                                Amount => 100,
-\&                                Tax => 0.2,
-\&                                Total => 120
-\&                        }
-\&                },
-\&                {invoice => {
-\&                                Amount => 200,
-\&                                Tax => 0.15,
-\&                                Total => 240
-\&                        }       
-\&                },
-\&                receipt =>{ 
-\&                }
-\&        ]);
+\&     ($\e,$,) = (qq|\en|, q|,|);
+\&     my $data = Data::pQuery\->data([
+\&             {invoice => {
+\&                             Amount => 100,
+\&                             Tax => 0.2,
+\&                             Total => 120
+\&                     }
+\&             },
+\&             {invoice => {
+\&                             Amount => 200,
+\&                             Tax => 0.15,
+\&                             Total => 240
+\&                     }       
+\&             },
+\&             receipt =>{ 
+\&             }
+\&     ]);
 \&
-\&        print Dumper $data\->query(q$
-\&                //invoice[value(Total) != value(Amount) * (1 + value(Tax))]
-\&        $)\->getvalues();
+\&     print Dumper $data\->query(q$
+\&             //invoice[Total != Amount * (1 + Tax)]
+\&     $)\->getvalues();
 .Ve
 .PP
 The pQuery uses the xpath 1.0 syntax to query any set of complex perl 
 data structures, using keys or indexes for defining the path.
-.PP
 Examples:
 .PP
 .Vb 7
-\&        /0/invoice/Total
-\&        /2
-\&        /*/invoice[Total>100]/Total
-\&        //Tax
-\&        //Total[../Tax = .2]
-\&        //*[count(itens/*) > 1][1]
-\&        sum(//Total)
+\&     /0/invoice/Total
+\&     /2
+\&     /*/invoice[Total>100]/Total
+\&     //Tax
+\&     //Total[../Tax = .2]
+\&     //*[count(itens/*) > 1][1]
+\&     sum(//Total)
 .Ve
 .PP
-Like as in xpath it's possible to query a function instead of  quering for a 
-set of data structures.
+Like as in xpath it's also possible to query a function.
 .SH "SYNOPSIS"
 .IX Header "SYNOPSIS"
 How to use it.
 .PP
 .Vb 3
-\&        use strict;
-\&        use Data::pQuery;
-\&        use Data::Dumper;
+\&     use strict;
+\&     use Data::pQuery;
+\&     use Data::Dumper;
 \&
-\&        ($\e,$,) = ("\en",",");
-\&        my $d = {
-\&                drinks => {
-\&                        q|Alcoholic beverage| => \*(Aqnot allowed\*(Aq,
-\&                        q|Soft drinks| => [qw|Soda Coke|]
-\&                },
-\&                food => { 
-\&                        fruit => [qw|bananas apples oranges pears|], 
-\&                        vegetables  => [qw|potatoes  carrots tomatoes|]
-\&                } 
-\&        };
+\&     ($\e,$,) = ("\en",",");
+\&     my $d = {
+\&          drinks => {
+\&               q|Alcoholic beverage| => \*(Aqnot allowed\*(Aq,
+\&               q|Soft drinks| => [qw|Soda Coke|]
+\&          },
+\&          food => { 
+\&               fruit => [qw|bananas apples oranges pears|], 
+\&               vegetables  => [qw|potatoes  carrots tomatoes|]
+\&          } 
+\&     };
 \&
-\&        my $data = Data::pQuery\->data($d);
-\&        my $results = $data\->query(q|/*/*/0|);
-\&        my @values = $results\->getvalues();
-\&        print @values;                                  
-\&        #Soda,bananas,potatoes
+\&     my $data = Data::pQuery\->data($d);
+\&     my $results = $data\->query(q|/*/*/0|);
+\&     my @values = $results\->getvalues();
+\&     print @values;                         
+\&     #Soda,bananas,potatoes
 \&
-\&        my $ref = $results\->getref();
-\&        $$ref = \*(AqTonic\*(Aq;
-\&        print $d\->{drinks}\->{q|Soft drinks|}\->[0];      
-\&        #Tonic
+\&     my $ref = $results\->getref();
+\&     $$ref = \*(AqTonic\*(Aq;
+\&     print $d\->{drinks}\->{q|Soft drinks|}\->[0];     
+\&     #Tonic
 .Ve
 .PP
 As we can see above the hashes structures and array indexes are indexed like
@@ -248,21 +245,21 @@ Used only internally!!! Do nothing;
 .IX Subsection "compile(pQueryString)"
 .PP
 .Vb 1
-\&        my $query = Data::pQuery\->compile(\*(Aq*\*(Aq);                         #compile the query
-\&        
-\&        my @values1 = $query\->data({fruit => \*(Aqbananas\*(Aq})\->getvalues();
-\&        # @values1 = (bananas)
+\&     my $query = Data::pQuery\->compile(\*(Aq*\*(Aq);                #compile the query
+\&     
+\&     my @values1 = $query\->data({fruit => \*(Aqbananas\*(Aq})\->getvalues();
+\&     # @values1 = (bananas)
 \&
-\&        my @values2 = $query\->data({
-\&                fruit => \*(Aqbananas\*(Aq, 
-\&                vegetables => \*(Aqorions\*(Aq
-\&        })\->getvalues();
-\&        # @values2 = (bananas, orions)
+\&     my @values2 = $query\->data({
+\&          fruit => \*(Aqbananas\*(Aq, 
+\&          vegetables => \*(Aqorions\*(Aq
+\&     })\->getvalues();
+\&     # @values2 = (bananas, orions)
 \&
-\&        my @values3 = $query\->data({
-\&                food => {fruit => \*(Aqbananas\*(Aq}
-\&        })\->getvalues();
-\&        # @values3 = ({fruit => \*(Aqbananas\*(Aq})
+\&     my @values3 = $query\->data({
+\&          food => {fruit => \*(Aqbananas\*(Aq}
+\&     })\->getvalues();
+\&     # @values3 = ({fruit => \*(Aqbananas\*(Aq})
 .Ve
 .PP
 The compile method receives a pQuery string, compiles it and returns a Data::pQuery::Data object.
@@ -271,17 +268,19 @@ This is the prefered method to run the same query over several data-structures.
 \fIdata(dataRef)\fR
 .IX Subsection "data(dataRef)"
 .PP
-.Vb 12
-\&        my $data = Data::pQuery\->data({
-\&                food => {
-\&                        fruit => \*(Aqbananas\*(Aq,
-\&                        vegetables => \*(Aqunions\*(Aq
-\&                },
-\&                drinks => {
-\&                        wine => \*(AqPorto\*(Aq,
-\&                        water => \*(AqEvian\*(Aq
-\&                }
-\&        });
+.Vb 10
+\&     my $data = Data::pQuery\->data({
+\&             food => {
+\&                     fruit => \*(Aqbananas\*(Aq,
+\&                     vegetables => \*(Aqunions\*(Aq
+\&             },
+\&             drinks => {
+\&                     wine => \*(AqPorto\*(Aq,
+\&                     water => \*(AqEvian\*(Aq
+\&             }
+\&     });
+\&        
+\&
 \&        my @values1 = $data\->query(\*(Aq/*/*\*(Aq)\->getvalues();
 \&        print @values1; # Evian,Porto,bananas,unions
 \&
@@ -327,405 +326,6 @@ Compile a pQuery string, query the data and returns a Data::pQuery::Results obje
 .PP
 \fI\fIgetvalue()\fI Returns the value of first matched data;\fR
 .IX Subsection "getvalue() Returns the value of first matched data;"
-.SS "pQuery grammar"
-.IX Subsection "pQuery grammar"
-Marpa::R2 is used to parse the pQuery expression. Bellow is the complete grammar
-.PP
-:default ::= action => ::array
-:start ::= Start
-.PP
-Start	::= OperExp															action => _do_arg1
-.PP
-OperExp ::=
-	PathExpr 																		action => _do_path
-	|Function 																	action => _do_arg1
-.PP
-Function ::=
-	NumericFunction															action => _do_arg1
-	| StringFunction 														action => _do_arg1
-	| ListFunction 															action => _do_arg1
-.PP
-PathExpr ::=
-	absolutePath																action => _do_absolutePath
-	| relativePath															action => _do_relativePath
-	| PathExpr '|' PathExpr											action => _do_pushArgs2array
-.PP
-PredPathExpr ::=
-	absolutePath																action => _do_absolutePath
-	| stepPathNoDigitStart											action => _do_relativePath
-	| './' stepPath															action => _do_relativePath2
-	| PredPathExpr '|' PredPathExpr							action => _do_pushArgs2array
-.PP
-relativePath ::=	
-	stepPath 																		action => _do_arg1
-.PP
-absolutePath ::=	
-	subPath 																		action => _do_arg1
-.PP
-subPath ::=	
-	'/' stepPath 																action => _do_arg2
-	| '//' stepPath															action => _do_vlen
-.PP
-stepPath ::=
-	step Filter subPath 												action => _do_stepFilterSubpath
-	| step Filter 															action => _do_stepFilter
-	| step subPath 															action => _do_stepSubpath
-	| step																			action => _do_arg1
-.PP
-step ::= 
-	keyOrAxis																		action => _do_arg1			
-	|index 																			action => _do_arg1
-.PP
-index ::=
-	\s-1UINT\s0																				action => _do_array_hash_index
-.PP
-stepPathNoDigitStart ::= 	
-	keyOrAxis Filter subPath 										action => _do_stepFilterSubpath
-	| keyOrAxis Filter 													action => _do_stepFilter
-	| keyOrAxis subPath 												action => _do_stepSubpath
-	| keyOrAxis																	action => _do_arg1
-.PP
-keyOrAxis ::= 
-	keyname 																	  action => _do_keyname
-	| '[' \s-1UINT\s0 ']'															action => _do_array_index
-	|	'.'																				action => _do_self
-	|	'[.]'																			action => _do_selfArray
-	|	'{.}'																			action => _do_selfHash
-	| 'self::*'																	action => _do_self	
-	| 'self::[*]'																action => _do_selfArray	
-	| 'self::{*}'																action => _do_selfHash	
-	| 'self::' keyname													action => _do_selfNamed	
-	| 'self::' \s-1UINT\s0															action => _do_selfIndexedOrNamed	
-	| 'self::[' \s-1UINT\s0 ']'												action => _do_selfIndexed	
-	| '*' 																			action => _do_child
-	| '[*]' 																		action => _do_childArray
-	| '{*}' 																		action => _do_childHash
-	|	'child::*'																action => _do_child
-	|	'child::[*]'															action => _do_childArray
-	|	'child::{*}'															action => _do_childHash
-	|	'child::' keyname													action => _do_childNamed
-	|	'child::'	\s-1UINT\s0														action => _do_childIndexedOrNamed
-	|	'child::[' \s-1UINT\s0 ']'												action => _do_childIndexed
-	|	'..'																			action => _do_parent
-	|	'[..]'																		action => _do_parentArray
-	|	'{..}'																		action => _do_parentHash
-	| 'parent::*'																action => _do_parent
-	| 'parent::[*]'															action => _do_parentArray
-	| 'parent::{*}'															action => _do_parentHash
-	| 'parent::' keyname												action => _do_parentNamed			  
-	| 'parent::' \s-1UINT\s0 													action => _do_parentIndexedOrNamed			  
-	| 'parent::[' \s-1UINT\s0 ']'											action => _do_parentIndexed			  
-	| 'ancestor::*'															action => _do_ancestor
-	| 'ancestor::[*]'														action => _do_ancestorArray
-	| 'ancestor::{*}'														action => _do_ancestorHash
-	| 'ancestor::' keyname											action => _do_ancestorNamed
-	| 'ancestor::' \s-1UINT\s0													action => _do_ancestorIndexedOrNamed
-	| 'ancestor::[' \s-1UINT\s0 ']'										action => _do_ancestorIndexed
-	| 'ancestor\-or\-self::*'											action => _do_ancestorOrSelf
-	| 'ancestor\-or\-self::[*]'										action => _do_ancestorOrSelfArray
-	| 'ancestor\-or\-self::{*}'										action => _do_ancestorOrSelfHash
-	| 'ancestor\-or\-self::' 	keyname							action => _do_ancestorOrSelfNamed
-	| 'ancestor\-or\-self::' 	\s-1UINT\s0						  	action => _do_ancestorOrSelfIndexedOrNamed
-	| 'ancestor\-or\-self::[' \s-1UINT\s0 ']'				  	action => _do_ancestorOrSelfIndexed
-	| 'descendant::*'														action => _do_descendant
-	| 'descendant::[*]'													action => _do_descendantArray
-	| 'descendant::{*}'													action => _do_descendantHash
-	| 'descendant::' keyname										action => _do_descendantNamed
-	| 'descendant::' \s-1UINT\s0												action => _do_descendantIndexedOrNamed
-	| 'descendant::[' \s-1UINT\s0 ']'									action => _do_descendantIndexed
-	| 'descendant\-or\-self::*'										action => _do_descendantOrSelf
-	| 'descendant\-or\-self::[*]'									action => _do_descendantOrSelfArray
-	| 'descendant\-or\-self::{*}'									action => _do_descendantOrSelfHash
-	| 'descendant\-or\-self::' keyname						action => _do_descendantOrSelfNamed
-	| 'descendant\-or\-self::' \s-1UINT\s0								action => _do_descendantOrSelfIndexedOrNamed
-	| 'descendant\-or\-self::[' \s-1UINT\s0 ']'					action => _do_descendantOrSelfIndexed
-	| 'preceding\-sibling::*' 										action => _do_precedingSibling
-	| 'preceding\-sibling::[*]' 									action => _do_precedingSiblingArray
-	| 'preceding\-sibling::{*}' 									action => _do_precedingSiblingHash
-	| 'preceding\-sibling::' keyname 						action => _do_precedingSiblingNamed
-	| 'preceding\-sibling::' \s-1UINT\s0 								action => _do_precedingSiblingIndexedOrNamed
-	| 'preceding\-sibling::[' \s-1UINT\s0 ']'						action => _do_precedingSiblingIndexed
-	| 'following\-sibling::*' 										action => _do_followingSibling
-	| 'following\-sibling::[*]' 									action => _do_followingSiblingArray
-	| 'following\-sibling::{*}' 									action => _do_followingSiblingHash
-	| 'following\-sibling::' keyname 						action => _do_followingSiblingNamed
-	| 'following\-sibling::' \s-1UINT\s0 								action => _do_followingSiblingIndexedOrNamed
-	| 'following\-sibling::[' \s-1UINT\s0 ']'						action => _do_followingSiblingIndexed
-.PP
-IndexExprs ::= IndexExpr+ 			separator => <comma>
-.PP
-IndexExpr ::=
-	IntExpr																			action => _do_index_single
-	| rangeExpr																	action => _do_arg1
-.PP
-rangeExpr ::= 
-	IntExpr '..' IntExpr 												action => _do_index_range
-	|IntExpr '..' 															action => _do_startRange
-	| '..' IntExpr															action => _do_endRange
-.PP
-Filter ::= 
-	IndexFilter
-	| LogicalFilter
-	| Filter Filter 														action => _do_mergeFilters
-.PP
-LogicalFilter ::= 	
-	'[' LogicalExpr ']' 												action => _do_boolean_filter
-.PP
-IndexFilter ::= 	
-	'[' IndexExprs ']'													action => _do_index_filter
-.PP
-IntExpr ::=
-  \s-1WS\s0 ArithmeticIntExpr \s-1WS\s0											action => _do_arg2
-.PP
-.Vb 10
-\& ArithmeticIntExpr ::=
-\&        INT                                                                                                                                                             action => _do_arg1
-\&        | IntegerFunction                                                                                                               action => _do_arg1
-\&        | \*(Aq(\*(Aq IntExpr \*(Aq)\*(Aq                                                                                                       action => _do_group
-\&        || \*(Aq\-\*(Aq ArithmeticIntExpr                                                                                action => _do_unaryOperator
-\&         | \*(Aq+\*(Aq ArithmeticIntExpr                                                                                action => _do_unaryOperator
-\&        || IntExpr \*(Aq*\*(Aq IntExpr                                                                                  action => _do_binaryOperation
-\&         | IntExpr \*(Aqdiv\*(Aq IntExpr                                                                                action => _do_binaryOperation
-\&#        | IntExpr \*(Aq /\*(Aq IntExpr                                                                                 action => _do_binaryOperation 
-\&#        | IntExpr \*(Aq/ \*(Aq IntExpr                                                                                 action => _do_binaryOperation 
-\&         | IntExpr \*(Aq%\*(Aq IntExpr                                                                                  action => _do_binaryOperation
-\&        || IntExpr \*(Aq+\*(Aq IntExpr                                                                                  action => _do_binaryOperation
-\&         | IntExpr \*(Aq\-\*(Aq IntExpr                                                                                  action => _do_binaryOperation
-.Ve
-.PP
-NumericExpr ::=
-  \s-1WS\s0 ArithmeticExpr \s-1WS\s0 												action => _do_arg2
-.PP
-ArithmeticExpr ::=
-	\s-1NUMBER\s0 																			action => _do_arg1
-	|| PredPathExpr															action => _do_getValueOperator
-	| NumericFunction														action => _do_arg1
-	| '(' NumericExpr ')' 											action => _do_group
-	|| '\-' ArithmeticExpr 											action => _do_unaryOperator
-	 | '+' ArithmeticExpr 											action => _do_unaryOperator
-	|| NumericExpr '*' NumericExpr							action => _do_binaryOperation
-	 | NumericExpr 'div' NumericExpr						action => _do_binaryOperation
-#	 | NumericExpr ' /' NumericExpr							action => _do_binaryOperation
-#	 | NumericExpr '/ ' NumericExpr							action => _do_binaryOperation
-	 | NumericExpr '%' NumericExpr							action => _do_binaryOperation
-	|| NumericExpr '+' NumericExpr							action => _do_binaryOperation
-	 | NumericExpr '\-' NumericExpr							action => _do_binaryOperation
-.PP
-LogicalExpr ::=
-	\s-1WS\s0 LogicalFunction \s-1WS\s0												action => _do_arg2
-	|| \s-1WS\s0 compareExpr \s-1WS\s0												action => _do_arg2
-.PP
-compareExpr ::=	
-	PredPathExpr																action => _do_exists
-	|| AnyTypeExpr '<' AnyTypeExpr							action => _do_binaryOperation
-	 | AnyTypeExpr '<=' AnyTypeExpr							action => _do_binaryOperation
-	 | AnyTypeExpr '>' AnyTypeExpr							action => _do_binaryOperation
-	 | AnyTypeExpr '>=' AnyTypeExpr							action => _do_binaryOperation
-	 | StringExpr 'lt' StringExpr								action => _do_binaryOperation
-	 | StringExpr 'le' StringExpr								action => _do_binaryOperation
-	 | StringExpr 'gt' StringExpr								action => _do_binaryOperation
-	 | StringExpr 'ge' StringExpr								action => _do_binaryOperation
-	 | StringExpr '~' RegularExpr								action => _do_binaryOperation
-	 | StringExpr '!~' RegularExpr							action => _do_binaryOperation
-	 | NumericExpr '===' NumericExpr						action => _do_binaryOperation
-	 | NumericExpr '!==' NumericExpr						action => _do_binaryOperation
-	 | AnyTypeExpr '==' AnyTypeExpr							action => _do_binaryOperation 
-	 | AnyTypeExpr '=' AnyTypeExpr							action => _do_binaryOperation #to be xpath compatible
-	 | AnyTypeExpr '!=' AnyTypeExpr							action => _do_binaryOperation
-	 | StringExpr 'eq' StringExpr								action => _do_binaryOperation
-	 | StringExpr 'ne' StringExpr								action => _do_binaryOperation
-	|| LogicalExpr 'and' LogicalExpr						action => _do_binaryOperation
-	|| LogicalExpr 'or' LogicalExpr							action => _do_binaryOperation
-.PP
-AnyTypeExpr ::=
-	\s-1WS\s0 allTypeExp \s-1WS\s0 														action => _do_arg2
-.PP
-allTypeExp ::=
-	NumericExpr 																action => _do_arg1
-	|StringExpr 																action => _do_arg1					
-  || PredPathExpr 														action => _do_getValueOperator
-.PP
-StringExpr ::=
-	\s-1WS\s0 allStringsExp \s-1WS\s0 													action => _do_arg2
-.PP
-allStringsExp ::=
-	\s-1STRING\s0 			 																action => _do_arg1
- 	| StringFunction														action => _do_arg1
- 	| PredPathExpr															action => _do_getValueOperator
- 	|| StringExpr '||' StringExpr  							action => _do_binaryOperation
-.PP
-RegularExpr ::= 
-	\s-1WS\s0 \s-1STRING\s0	\s-1WS\s0																action => _do_re
-.PP
-LogicalFunction ::=
-	'not' '(' LogicalExpr ')'			 							action => _do_func
-	| 'isRef' '('  OptionalPathArgs  ')'			 	action => _do_func
-	| 'isScalar' '(' OptionalPathArgs ')'			 	action => _do_func
-	| 'isArray' '(' OptionalPathArgs ')'			 	action => _do_func
-	| 'isHash' '(' OptionalPathArgs ')'			 		action => _do_func
-	| 'isCode' '(' OptionalPathArgs ')'					action => _do_func
-.PP
-StringFunction ::=
-	NameFunction																action => _do_arg1
-	| ValueFunction															action => _do_arg1
-.PP
-NameFunction ::= 
-	'name' '(' OptionalPathArgs ')'				 			action => _do_func
-.PP
-OptionalPathArgs ::= 
-	RequiredPathArgs						  							action => _do_arg1
-	| \s-1EMPTY\s0																			action => _do_arg1
-.PP
-RequiredPathArgs ::=
-	\s-1WS\s0 PathExpr \s-1WS\s0						  								action => _do_arg2
-.PP
-\&\s-1EMPTY\s0 ::=
-.PP
-ValueFunction ::= 
-	'value' '(' OptionalPathArgs ')'				 		action => _do_func
-.PP
-CountFunction ::= 
-	'count' '(' RequiredPathArgs ')'				 		action => _do_func
-.PP
-LastFunction ::= 
-	'last' '(' OptionalPathArgs ')'					 		action => _do_func
-.PP
-PositionFunction ::= 
-	'position' '(' OptionalPathArgs ')'			 		action => _do_func
-.PP
-SumFunction ::= 
-	'sum' '(' RequiredPathArgs ')'				 			action => _do_func
-.PP
-SumProductFunction ::= 
-	'sumproduct' '(' RequiredPathArgs ',' RequiredPathArgs ')'	action => _do_funcw2args
-.PP
-NumericFunction ::=
-	IntegerFunction															action => _do_arg1
-	|ValueFunction															action => _do_arg1
-	|SumFunction																action => _do_arg1
-	|SumProductFunction													action => _do_arg1
-.PP
-IntegerFunction ::=
-	CountFunction																action => _do_arg1
-	|LastFunction																action => _do_arg1
-	|PositionFunction														action => _do_arg1
-.PP
-ListFunction ::=
-	'names' '(' OptionalPathArgs ')'    		 		action => _do_func
-	| 'values' '(' OptionalPathArgs ')'    		 	action => _do_func
-	| 'lasts' '(' OptionalPathArgs ')'    		 	action => _do_func
-	| 'positions' '(' OptionalPathArgs ')'    	action => _do_func
-.PP
-.Vb 4
-\& NUMBER ::= 
-\&        unumber                                                                                                                                                 action => _do_arg1
-\&        | \*(Aq\-\*(Aq unumber                                                                                                                   action => _do_join
-\&        | \*(Aq+\*(Aq unumber                                                                                                                   action => _do_join
-.Ve
-.PP
-unumber	
-	~ uint
-	| uint frac
-	| uint exp
-	| uint frac exp
-	| frac
-	| frac exp
-.PP
-uint            
-	~ digits
-.PP
-digits 
-	~ [\ed]+
-.PP
-frac
-	~ '.' digits
-.PP
-exp
-	~ e digits
-.PP
-e
-	~ 'e'
-	| 'e+'
-	| 'e\-'
-	| 'E'
-	| 'E+'
-	| 'E\-'
-.PP
-\&\s-1INT\s0 ::= 
-	\s-1UINT\s0 																		action => _do_arg1
-	| '+' \s-1UINT\s0  														action => _do_join	#avoid ambiguity
-	| '\-' \s-1UINT\s0  														action => _do_join	#avoid ambiguity
-.PP
-\&\s-1UINT\s0
-	~digits
-.PP
-\&\s-1STRING\s0 ::= 
-	double_quoted               								action => _do_double_quoted
-	| single_quoted              								action => _do_single_quoted
-.PP
-single_quoted        
-	~ ['] single_quoted_chars [']
-.PP
-single_quoted_chars      
- 	~ single_quoted_char*
-.PP
-single_quoted_char  
-	~ [^']
-	| '\e' [']
-.PP
-double_quoted        
-	~ [\*(L"] double_quoted_chars [\*(R"]
-.PP
-double_quoted_chars      
- 	~ double_quoted_char*
-.PP
-double_quoted_char  
-	~ [^\*(L"]
-	| '\e' '\*(R"'
-.PP
-keyname ::= 
-	keyword																			action => _do_token
-	| \s-1STRING\s0            												action => _do_arg1
-	| curly_delimited_string   									action => _do_curly_delimited_string
-.PP
-curly_delimited_string
-	~ '{' curly_delimited_chars '}'
-.PP
-curly_delimited_chars
-	~ curly_delimited_char*
-.PP
-curly_delimited_char
-	~ [^}{]
-	| '\e'	'{'
-	| '\e'	'}'
-.PP
-keyword 
-	~ \s-1ID\s0
-.PP
-\&\s-1ID\s0 
-	~ token
-	| token ':' token      #to allow replication of xml tags names with namespaces
-.PP
-token 								#must have at least one non digit 
-	~ notreserved
-	| token [\ed] 
-	| [\ed] token
-.PP
-notreserved 
-	~ [^\ed:./*,'"|\es\e]\e[\e(\e)\e{\e}\e\e+\-<>=!]+
-.PP
-# :discard 
-# 	~ \s-1WS\s0
-.PP
-\&\s-1WS\s0 ::= 
-	whitespace
-	|EMPTY
-.PP
-whitespace
-	~ [\es]+
-.PP
-comma 
-	~ ','
 .SH "AUTHOR"
 .IX Header "AUTHOR"
 Isidro Vila Verde, \f(CW\*(C`<jvverde at gmail.com>\*(C'\fR

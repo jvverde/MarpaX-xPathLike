@@ -14,6 +14,7 @@ Nevertheless we still missing some of powerfull constructions as provided by
 xpath.
 Suppose, for example, we have an array of invoices with Total, Amount and Tax 
 and need to check which one does not comply to the rule "Total = Amount \* (1+Tax)".
+
 For the data structure below we can easily achieve it with this code:
 
 
@@ -40,7 +41,7 @@ For the data structure below we can easily achieve it with this code:
      ]);
 
      print Dumper $data->query(q$
-             //invoice[value(Total) != value(Amount) * (1 + value(Tax))]
+             //invoice[Total != Amount * (1 + Tax)]
      $)->getvalues();
 
 
@@ -61,8 +62,7 @@ Examples:
 
 
 
-Like as in xpath it's possible to query a function instead of  quering for a 
-set of data structures. 
+Like as in xpath it's also possible to query a function.
 
 
 

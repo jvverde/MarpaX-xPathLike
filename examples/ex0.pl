@@ -24,9 +24,9 @@ my $data = Data::pQuery->data([
         }
 ]);
 
-#print Dumper $data->query(q$
-#        //invoice[value(Total) != value(Amount) * (1 + value(Tax))]
-#$)->getvalues();
+print Dumper $data->query(q$
+       //invoice[Total != Amount * (1 + Tax)]
+$)->getvalues();
 
 print $data->query(q|/0/invoice/Total|)->getvalues();
 print $data->query(q|/2|)->getvalues();
