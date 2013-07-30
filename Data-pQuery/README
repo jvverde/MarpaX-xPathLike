@@ -96,8 +96,15 @@ DESCRIPTION
     expression and returns a list of matched data-structures.
 
     Like xpath it is possible to deal with any logical or arithmetic
-    expressions, ex: *{count(a) == count(c) / 2 * (1 + count(b)) or d}, or
-    even query xpath path functions (ex: count, name, sum, etc.).
+    expressions, ex:
+
+        *{count(a) == count(c) / 2 * (1 + count(b)) or d}
+
+    , or even query xpath functions ex:
+
+        count(//*)
+        name(//*[last()])
+        sum(//[*])
 
     Additionally some extensions are implemented to deal with perl
     data-structures, namely to choose between arrays and hashes.
@@ -148,34 +155,33 @@ METHODS
     query over several data-structures.
 
     data(dataRef)
-      my $data = Data::pQuery->data({
-        food => {
-          fruit => 'bananas',
-          vegetables => 'unions'
-        },
-        drinks => {
-          wine => 'Porto',
-          water => 'Evian'
-        }
-      });
+        my $data = Data::pQuery->data({
+               food => {
+                       fruit => 'bananas',
+                       vegetables => 'unions'
+               },
+               drinks => {
+                       wine => 'Porto',
+                       water => 'Evian'
+               }
+        });
 
-            my @values1 = $data->query('/*/*')->getvalues();
-      print @values1; # Evian,Porto,bananas,unions
+        my @values1 = $data->query('/*/*')->getvalues();
+        print @values1; # Evian,Porto,bananas,unions
 
-      my @values2 = $data->query('/*/wine')->getvalues();
-      print @values2; #Porto
+        my @values2 = $data->query('/*/wine')->getvalues();
+        print @values2; #Porto
 
-      #using a predicate, to get only first level entry which contains a fruit key
-      my @values3 = $data->query('/*[fruit]/*')->getvalues();
-      print @values3; #bananas,unions
+        #using a predicate, to get only first level entry which contains a fruit key
+        my @values3 = $data->query('/*[fruit]/*')->getvalues();
+        print @values3; #bananas,unions
+        #using another filter to return only elements which have the value matching 
+        #a /an/ pattern
+        my @values4 = $data->query('/*/*[. ~ "an"]')->getvalues();
+        print @values4;# Evian,bananas
 
-      #using another filter to return only elements which have the value matching 
-      #a /an/ pattern
-      my @values4 = $data->query('/*/*[value() ~ "an"]')->getvalues();
-      print @values4;# Evian,bananas
-
-      my @values5 = $data->query('//*[isScalar()]')->getvalues();
-      print @values5;#Evian,Porto,bananas,unions
+        my @values5 = $data->query('//*[isScalar()]')->getvalues();
+        print @values5;#Evian,Porto,bananas,unions
 
     The method data receives a hash (or array) reference and returns a
     Data::pQuery::Compile object. This is the prefered method to run several
@@ -200,7 +206,85 @@ Returns a list of values for each matched data;
     getvalue()
 Returns the value of first matched data;
 Xpath Compability
-    TODO
+    Unless some xpath functions, not yet implemented, and xpath axis
+    preceding:: and following:: directions everything else is implemented.
+    Probably buggly, sorry. I hope to fixe them as soon someone identify
+    them
+
+  Supported axis
+    self::
+    child::
+    parent::
+    ancestor::
+    ancestor-or-self::
+    descendant::
+    descendant-or-self::
+    preceding-sibling::
+    following::sibling::
+
+  Supported Functions
+    count(path?)
+    sum(path)
+    name(path?)
+    position(path?)
+    last()
+    not(expr)
+    names(path?)*
+    values(path?)*
+    value(path?)*
+
+    (*) not a xpath 1.0 functiona.
+
+    names is like name but returns a list o names.
+
+    We don't support the text() funcions as we don't know what that should
+    mean in perl data-structures context, but the value and values functiosn
+    as provided to return the value/values of current context if path
+    argument is missing or the value/values of matched data-structures.
+    That/those value/values could be scalar(s) or hash/array reference(s).
+
+  Supported operators
+    The xpath supported operators are the following:
+
+        +, -, *, div, %, =, !=, (), "", '', +, -, ., .., /, //, ::, <, <=, >, >=, 
+        [], and, or and 
+        | (paths union)
+
+    Addicionaly pQuery also supports the following operators
+
+        eq, ne, lt, le, gt, ge and ~ 
+
+    The ~ is the matching operator
+
+  Support for data types
+    I a pQuery path expression a digit step coul mean a array index or a
+    hash's key name. ex:
+
+        /a/0/b
+
+    may refere to a $d->{a}->[0]->{b} or to a $d->{a}->{0}->{b}. If a
+    enforcement is required for select only array's index 0 the pQuery
+    expression shloud be
+
+        /a/[0]/b
+
+    And similarity for hash' key '0'
+
+        /a/{0}/b
+
+    The curly bracket could also be useful to refere to keys with spaces or
+    any special character. Some examples
+
+        /{two words as a keys}//{key with a '/' or +}/*
+
+    The curly and square brackets could also be used with axis and wildcard
+    *. Examples:
+
+        //{*}
+        //[*]
+        //*/parent::[b]
+        //a//parent::{*}
+        //*[self::{*} = 3 or self::[*] > 10]
 
 AUTHOR
     Isidro Vila Verde, `<jvverde at gmail.com>'

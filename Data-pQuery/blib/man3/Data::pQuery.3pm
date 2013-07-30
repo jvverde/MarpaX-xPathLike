@@ -220,18 +220,58 @@ How to use it.
 \&     #Tonic
 .Ve
 .PP
-To get values we can invoke the getvalues ou getvalue methods o obtain a 
+To get values we can invoke the getvalues ou getvalue methods to obtain a 
 list/element matched. If what we need is to change the values we can use
 getrefs or getref methods to obtain a reference to the matched 
-data-structures.
+data-structures. The getref(s) methods always returns a reference to 
+matched data-structure. If the matched element is a scalar a reference to 
+that scalar is returned. If the matched element is a reference array (or 
+hash) a reference to that reference is returned, so we can change it and 
+not only nested data-structures.
 .SH "DESCRIPTION"
 .IX Header "DESCRIPTION"
 It looks for complex perl data-structures which match the pQuery expression 
 and returns a list of matched data-structures.
 .PP
 Like xpath it is possible to deal with any logical or arithmetic 
-expressions, ex: *{count(a) == count(c) / 2 * (1 + count(b)) or d}, or even 
-query xpath path functions (ex: count, name, sum, etc.)
+expressions, ex:
+.PP
+.Vb 1
+\&    *{count(a) == count(c) / 2 * (1 + count(b)) or d}
+.Ve
+.PP
+, or even 
+query xpath functions ex:
+.PP
+.Vb 3
+\&    count(//*)
+\&    name(//*[last()])
+\&    sum(//[*])
+.Ve
+.PP
+Additionally some extensions are implemented to deal with perl data-structures,
+namely to choose between arrays and hashes.
+.PP
+Example:
+.PP
+Get all structures but only one which are arrays
+.PP
+.Vb 1
+\&     //[*]
+.Ve
+.PP
+Similarly to get all of hash structures, we can write
+.PP
+.Vb 1
+\&     //{*}
+.Ve
+.PP
+Besides that, some extra functions are also provide to check data type in
+predicates, ex:
+.PP
+.Vb 1
+\&     //*[isScalar()]
+.Ve
 .SH "METHODS"
 .IX Header "METHODS"
 The Data::pQuery just provides two useful methods, compile and data. 
@@ -272,35 +312,34 @@ This is the prefered method to run the same query over several data-structures.
 .IX Subsection "data(dataRef)"
 .PP
 .Vb 10
-\&  my $data = Data::pQuery\->data({
-\&    food => {
-\&      fruit => \*(Aqbananas\*(Aq,
-\&      vegetables => \*(Aqunions\*(Aq
-\&    },
-\&    drinks => {
-\&      wine => \*(AqPorto\*(Aq,
-\&      water => \*(AqEvian\*(Aq
-\&    }
-\&  });
+\&    my $data = Data::pQuery\->data({
+\&           food => {
+\&                   fruit => \*(Aqbananas\*(Aq,
+\&                   vegetables => \*(Aqunions\*(Aq
+\&           },
+\&           drinks => {
+\&                   wine => \*(AqPorto\*(Aq,
+\&                   water => \*(AqEvian\*(Aq
+\&           }
+\&    });
 \&
 \&
-\&        my @values1 = $data\->query(\*(Aq/*/*\*(Aq)\->getvalues();
-\&  print @values1; # Evian,Porto,bananas,unions
+\&    my @values1 = $data\->query(\*(Aq/*/*\*(Aq)\->getvalues();
+\&    print @values1; # Evian,Porto,bananas,unions
 \&
-\&  my @values2 = $data\->query(\*(Aq/*/wine\*(Aq)\->getvalues();
-\&  print @values2; #Porto
+\&    my @values2 = $data\->query(\*(Aq/*/wine\*(Aq)\->getvalues();
+\&    print @values2; #Porto
 \&
-\&  #using a predicate, to get only first level entry which contains a fruit key
-\&  my @values3 = $data\->query(\*(Aq/*[fruit]/*\*(Aq)\->getvalues();
-\&  print @values3; #bananas,unions
+\&    #using a predicate, to get only first level entry which contains a fruit key
+\&    my @values3 = $data\->query(\*(Aq/*[fruit]/*\*(Aq)\->getvalues();
+\&    print @values3; #bananas,unions
+\&    #using another filter to return only elements which have the value matching 
+\&    #a /an/ pattern
+\&    my @values4 = $data\->query(\*(Aq/*/*[. ~ "an"]\*(Aq)\->getvalues();
+\&    print @values4;# Evian,bananas
 \&
-\&  #using another filter to return only elements which have the value matching 
-\&  #a /an/ pattern
-\&  my @values4 = $data\->query(\*(Aq/*/*[value() ~ "an"]\*(Aq)\->getvalues();
-\&  print @values4;# Evian,bananas
-\&
-\&  my @values5 = $data\->query(\*(Aq//*[isScalar()]\*(Aq)\->getvalues();
-\&  print @values5;#Evian,Porto,bananas,unions
+\&    my @values5 = $data\->query(\*(Aq//*[isScalar()]\*(Aq)\->getvalues();
+\&    print @values5;#Evian,Porto,bananas,unions
 .Ve
 .PP
 The method data receives a hash (or array) reference and returns a Data::pQuery::Compile object. 
@@ -332,7 +371,118 @@ Compile a pQuery string, query the data and returns a Data::pQuery::Results obje
 .IX Subsection "getvalue() Returns the value of first matched data;"
 .SH "Xpath Compability"
 .IX Header "Xpath Compability"
-\&\s-1TODO\s0
+Unless some xpath functions, not yet implemented, and xpath axis preceding:: 
+and following:: directions everything else is implemented. Probably buggly, 
+sorry. I hope to fixe them as soon someone identify them
+.SS "Supported axis"
+.IX Subsection "Supported axis"
+.IP "self::" 4
+.IX Item "self::"
+.PD 0
+.IP "child::" 4
+.IX Item "child::"
+.IP "parent::" 4
+.IX Item "parent::"
+.IP "ancestor::" 4
+.IX Item "ancestor::"
+.IP "ancestor-or-self::" 4
+.IX Item "ancestor-or-self::"
+.IP "descendant::" 4
+.IX Item "descendant::"
+.IP "descendant-or-self::" 4
+.IX Item "descendant-or-self::"
+.IP "preceding-sibling::" 4
+.IX Item "preceding-sibling::"
+.IP "following::sibling::" 4
+.IX Item "following::sibling::"
+.PD
+.SS "Supported Functions"
+.IX Subsection "Supported Functions"
+.IP "count(path?)" 4
+.IX Item "count(path?)"
+.PD 0
+.IP "sum(path)" 4
+.IX Item "sum(path)"
+.IP "name(path?)" 4
+.IX Item "name(path?)"
+.IP "position(path?)" 4
+.IX Item "position(path?)"
+.IP "\fIlast()\fR" 4
+.IX Item "last()"
+.IP "not(expr)" 4
+.IX Item "not(expr)"
+.PD
+=names(path?)*
+.Sp
+=values(path?)*
+.Sp
+=value(path?)*
+.PP
+(*) not a xpath 1.0 functiona.
+.PP
+names is like name but returns a list o names.
+.PP
+We don't support the \fItext()\fR funcions as we don't know what that should mean 
+in perl data-structures context, but the value and values functiosn as provided
+to return the value/values of current context if path argument is missing or 
+the value/values of matched data-structures. That/those value/values could 
+be scalar(s) or hash/array reference(s).
+.SS "Supported operators"
+.IX Subsection "Supported operators"
+The xpath supported operators are the following:
+.PP
+.Vb 3
+\&    +, \-, *, div, %, =, !=, (), "", \*(Aq\*(Aq, +, \-, ., .., /, //, ::, <, <=, >, >=, 
+\&    [], and, or and 
+\&    | (paths union)
+.Ve
+.PP
+Addicionaly pQuery also supports the following operators
+.PP
+.Vb 1
+\&    eq, ne, lt, le, gt, ge and ~
+.Ve
+.PP
+The ~ is the matching operator
+.SS "Support for data types"
+.IX Subsection "Support for data types"
+I a pQuery path expression a digit step coul mean a array index or a hash's key name.
+ex:
+.PP
+.Vb 1
+\&    /a/0/b
+.Ve
+.PP
+may refere to a \f(CW$d\fR\->{a}\->[0]\->{b} or to a \f(CW$d\fR\->{a}\->{0}\->{b}. 
+If a enforcement is required for select only array's index 0
+the pQuery expression shloud be
+.PP
+.Vb 1
+\&    /a/[0]/b
+.Ve
+.PP
+And similarity for hash' key '0'
+.PP
+.Vb 1
+\&    /a/{0}/b
+.Ve
+.PP
+The curly bracket could also be useful to refere to keys with spaces or any special 
+character. Some examples
+.PP
+.Vb 1
+\&    /{two words as a keys}//{key with a \*(Aq/\*(Aq or +}/*
+.Ve
+.PP
+The curly and square brackets could also be used with axis and wildcard *. Examples:
+.PP
+.Vb 5
+\&    //{*}
+\&    //[*]
+\&    //*/parent::[b]
+\&    //a//parent::{*}
+\&    //*[self::{*} = 3 or self::[*] > 10]
+.Ve
 .SH "AUTHOR"
 .IX Header "AUTHOR"
 Isidro Vila Verde, \f(CW\*(C`<jvverde at gmail.com>\*(C'\fR
