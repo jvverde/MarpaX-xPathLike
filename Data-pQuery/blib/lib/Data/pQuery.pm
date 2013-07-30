@@ -168,7 +168,7 @@ IndexFilter ::=
 
 
 IntExpr ::=
-  ArithmeticIntExpr														action => _do_arg1
+  WS ArithmeticIntExpr WS											action => _do_arg2
 
  ArithmeticIntExpr ::=
  	INT 																				action => _do_arg1
@@ -176,16 +176,17 @@ IntExpr ::=
 	| '(' IntExpr ')' 													action => _do_group
 	|| '-' ArithmeticIntExpr 										action => _do_unaryOperator
 	 | '+' ArithmeticIntExpr 										action => _do_unaryOperator
-	|| ArithmeticIntExpr '*' ArithmeticIntExpr  action => _do_binaryOperation
-	 | ArithmeticIntExpr '/' ArithmeticIntExpr  action => _do_binaryOperation
-	 | ArithmeticIntExpr '%' ArithmeticIntExpr  action => _do_binaryOperation
-	|| ArithmeticIntExpr '+' ArithmeticIntExpr  action => _do_binaryOperation
-	 | ArithmeticIntExpr '-' ArithmeticIntExpr  action => _do_binaryOperation
+	|| IntExpr '*' IntExpr  										action => _do_binaryOperation
+	 | IntExpr 'div' IntExpr 										action => _do_binaryOperation
+#	 | IntExpr ' /' IntExpr 	 									action => _do_binaryOperation 
+#	 | IntExpr '/ ' IntExpr 										action => _do_binaryOperation 
+	 | IntExpr '%' IntExpr  										action => _do_binaryOperation
+	|| IntExpr '+' IntExpr  										action => _do_binaryOperation
+	 | IntExpr '-' IntExpr  										action => _do_binaryOperation
 
 
 NumericExpr ::=
-  ArithmeticExpr 															action => _do_arg1
-  || PredPathExpr 														action => _do_getValueOperator 
+  WS ArithmeticExpr WS 												action => _do_arg2
 
 ArithmeticExpr ::=
 	NUMBER 																			action => _do_arg1
@@ -194,85 +195,104 @@ ArithmeticExpr ::=
 	| '(' NumericExpr ')' 											action => _do_group
 	|| '-' ArithmeticExpr 											action => _do_unaryOperator
 	 | '+' ArithmeticExpr 											action => _do_unaryOperator
-	|| ArithmeticExpr '*' ArithmeticExpr				action => _do_binaryOperation
-	 | ArithmeticExpr '/' ArithmeticExpr				action => _do_binaryOperation
-	 | ArithmeticExpr '%' ArithmeticExpr				action => _do_binaryOperation
-	|| ArithmeticExpr '+' ArithmeticExpr				action => _do_binaryOperation
-	 | ArithmeticExpr '-' ArithmeticExpr				action => _do_binaryOperation
+	|| NumericExpr '*' NumericExpr							action => _do_binaryOperation
+	 | NumericExpr 'div' NumericExpr						action => _do_binaryOperation
+#	 | NumericExpr ' /' NumericExpr							action => _do_binaryOperation
+#	 | NumericExpr '/ ' NumericExpr							action => _do_binaryOperation
+	 | NumericExpr '%' NumericExpr							action => _do_binaryOperation
+	|| NumericExpr '+' NumericExpr							action => _do_binaryOperation
+	 | NumericExpr '-' NumericExpr							action => _do_binaryOperation
 
 LogicalExpr ::=
-	LogicalFunction															action => _do_arg1
-	|| compareExpr															action => _do_arg1
+	WS LogicalFunction WS												action => _do_arg2
+	|| WS compareExpr WS												action => _do_arg2
 
 compareExpr ::=	
 	PredPathExpr																action => _do_exists
-	|| NumericExpr '<' NumericExpr							action => _do_binaryOperation
-	 | NumericExpr '<=' NumericExpr							action => _do_binaryOperation
-	 | NumericExpr '>' NumericExpr							action => _do_binaryOperation
-	 | NumericExpr '>=' NumericExpr							action => _do_binaryOperation
+	|| AnyTypeExpr '<' AnyTypeExpr							action => _do_binaryOperation
+	 | AnyTypeExpr '<=' AnyTypeExpr							action => _do_binaryOperation
+	 | AnyTypeExpr '>' AnyTypeExpr							action => _do_binaryOperation
+	 | AnyTypeExpr '>=' AnyTypeExpr							action => _do_binaryOperation
 	 | StringExpr 'lt' StringExpr								action => _do_binaryOperation
 	 | StringExpr 'le' StringExpr								action => _do_binaryOperation
 	 | StringExpr 'gt' StringExpr								action => _do_binaryOperation
 	 | StringExpr 'ge' StringExpr								action => _do_binaryOperation
 	 | StringExpr '~' RegularExpr								action => _do_binaryOperation
 	 | StringExpr '!~' RegularExpr							action => _do_binaryOperation
-	 | NumericExpr '==' NumericExpr							action => _do_binaryOperation
-	 | NumericExpr '!=' NumericExpr							action => _do_binaryOperation
+	 | NumericExpr '===' NumericExpr						action => _do_binaryOperation
+	 | NumericExpr '!==' NumericExpr						action => _do_binaryOperation
+	 | AnyTypeExpr '==' AnyTypeExpr							action => _do_binaryOperation 
+	 | AnyTypeExpr '=' AnyTypeExpr							action => _do_binaryOperation #to be xpath compatible
+	 | AnyTypeExpr '!=' AnyTypeExpr							action => _do_binaryOperation
 	 | StringExpr 'eq' StringExpr								action => _do_binaryOperation
 	 | StringExpr 'ne' StringExpr								action => _do_binaryOperation
 	|| LogicalExpr 'and' LogicalExpr						action => _do_binaryOperation
 	|| LogicalExpr 'or' LogicalExpr							action => _do_binaryOperation
 
-#operator match, not match, in, intersect and union are missing
+
+AnyTypeExpr ::=
+	WS allTypeExp WS 														action => _do_arg2	
+
+allTypeExp ::=
+	NumericExpr 																action => _do_arg1
+	|StringExpr 																action => _do_arg1					
+  || PredPathExpr 														action => _do_getValueOperator 
+
 
 StringExpr ::=
-	STRING 																			action => _do_arg1
- 	| StringFunction 														action => _do_arg1
- 	| PredPathExpr 													  	action => _do_getValueOperator 
+	WS allStringsExp WS 													action => _do_arg2
+
+allStringsExp ::=
+	STRING 			 																action => _do_arg1
+ 	| StringFunction														action => _do_arg1
+ 	| PredPathExpr															action => _do_getValueOperator
  	|| StringExpr '||' StringExpr  							action => _do_binaryOperation
 
 
-RegularExpr 
-	::= STRING																	action => _do_re
+RegularExpr ::= 
+	WS STRING	WS																action => _do_re
 
 LogicalFunction ::=
 	'not' '(' LogicalExpr ')'			 							action => _do_func
-	| 'isRef' '('  PathArgs  ')'			 					action => _do_func
-	| 'isScalar' '(' PathArgs ')'			 					action => _do_func
-	| 'isArray' '(' PathArgs ')'			 					action => _do_func
-	| 'isHash' '(' PathArgs ')'			 						action => _do_func
-	| 'isCode' '(' PathArgs ')'									action => _do_func
+	| 'isRef' '('  OptionalPathArgs  ')'			 	action => _do_func
+	| 'isScalar' '(' OptionalPathArgs ')'			 	action => _do_func
+	| 'isArray' '(' OptionalPathArgs ')'			 	action => _do_func
+	| 'isHash' '(' OptionalPathArgs ')'			 		action => _do_func
+	| 'isCode' '(' OptionalPathArgs ')'					action => _do_func
 
 StringFunction ::=
 	NameFunction																action => _do_arg1
 	| ValueFunction															action => _do_arg1
 
 NameFunction ::= 
-	'name' '(' PathArgs ')'				 							action => _do_func
+	'name' '(' OptionalPathArgs ')'				 			action => _do_func
 
-PathArgs ::= 
-	PathExpr						  											action => _do_arg1
-	|EMPTY																			action => _do_arg1
+OptionalPathArgs ::= 
+	RequiredPathArgs						  							action => _do_arg1
+	| EMPTY																			action => _do_arg1
 
-EMPTY ::=
+RequiredPathArgs ::=
+	WS PathExpr WS						  								action => _do_arg2
+
+EMPTY ::= 
 
 ValueFunction ::= 
-	'value' '(' PathArgs ')'				 						action => _do_func
+	'value' '(' OptionalPathArgs ')'				 		action => _do_func
 
 CountFunction ::= 
-	'count' '(' PathExpr ')'				 						action => _do_func
+	'count' '(' RequiredPathArgs ')'				 		action => _do_func
 
 LastFunction ::= 
-	'last' '(' PathArgs ')'					 						action => _do_func
+	'last' '(' OptionalPathArgs ')'					 		action => _do_func
 
 PositionFunction ::= 
-	'position' '(' PathArgs ')'			 						action => _do_func
+	'position' '(' OptionalPathArgs ')'			 		action => _do_func
 
 SumFunction ::= 
-	'sum' '(' PathExpr ')'				 							action => _do_func
+	'sum' '(' RequiredPathArgs ')'				 			action => _do_func
 
 SumProductFunction ::= 
-	'sumproduct' '(' PathExpr ',' PathExpr ')'	action => _do_funcw2args
+	'sumproduct' '(' RequiredPathArgs ',' RequiredPathArgs ')'	action => _do_funcw2args
 
 NumericFunction ::=
 	IntegerFunction															action => _do_arg1
@@ -286,10 +306,10 @@ IntegerFunction ::=
 	|PositionFunction														action => _do_arg1
 
 ListFunction ::=
-	'names' '(' PathArgs ')'    		 						action => _do_func
-	| 'values' '(' PathArgs ')'    		 					action => _do_func
-	| 'lasts' '(' PathArgs ')'    		 					action => _do_func
-	| 'positions' '(' PathArgs ')'    		 			action => _do_func
+	'names' '(' OptionalPathArgs ')'    		 		action => _do_func
+	| 'values' '(' OptionalPathArgs ')'    		 	action => _do_func
+	| 'lasts' '(' OptionalPathArgs ')'    		 	action => _do_func
+	| 'positions' '(' OptionalPathArgs ')'    	action => _do_func
 
 
  NUMBER ::= 
@@ -389,10 +409,14 @@ notreserved
 	~ [^\d:./*,'"|\s\]\[\(\)\{\}\\+-<>=!]+
 
 
-:discard 
-	~ WS
+# :discard 
+# 	~ WS
 
-WS 
+WS ::= 
+	whitespace
+	|EMPTY
+
+whitespace
 	~ [\s]+
 
 comma 
@@ -432,7 +456,7 @@ sub _do_curly_delimited_string{
     return $s;	
 }
 sub _do_re{
-	my $re = $_[1];
+	my $re = $_[2];
 	return qr/$re/;
 }
 sub _do_func{
@@ -456,6 +480,7 @@ sub _do_getValueOperator{
 }
 sub _do_binaryOperation{
 	my $oper = 	[$_[2]];
+	$oper =~ s/^\s+|\s+$//g;
 	my $args = 	[@_[1,3]];
 	foreach my $i (0..$#$args){
 		if (ref $args->[$i] eq q|HASH| 
@@ -729,17 +754,32 @@ sub _lasts{
 no warnings qw{uninitialized numeric};
 
 my $operatorBy = {
-	'eq' => sub($$){
-		return _logicalOper(sub {$_[0] eq $_[1]}, $_[0], $_[1]);
-	},
-	'ne' => sub($$){
-		return _logicalOper(sub {$_[0] ne $_[1]}, $_[0], $_[1]);
+	'=' => sub($$){
+		return _logicalOper(sub {$_[0] == $_[1]}, $_[0], $_[1]);
 	},
 	'==' => sub($$){
 		return _logicalOper(sub {$_[0] == $_[1]}, $_[0], $_[1]);
 	},
 	'!=' => sub($$){
 		return _logicalOper(sub {$_[0] != $_[1]}, $_[0], $_[1]);
+	},
+	'eq' => sub($$){
+		return _logicalOper(sub {$_[0] eq $_[1]}, $_[0], $_[1]);
+	},
+	'ne' => sub($$){
+		return _logicalOper(sub {$_[0] ne $_[1]}, $_[0], $_[1]);
+	},
+	'===' => sub($$){
+		return _logicalOper(sub {
+			looks_like_number($_[0])
+			and looks_like_number($_[1])
+			and $_[0] == $_[1]
+		}, $_[0], $_[1]);
+	},
+	'!==' => sub($$){
+		return _logicalOper(sub {
+			$_[0] != $_[1]
+		}, $_[0], $_[1]);
 	},
 	'>' => sub($$){
 		return _logicalOper(sub {$_[0] > $_[1]}, $_[0], $_[1]);
@@ -780,20 +820,34 @@ my $operatorBy = {
 	'!~' => sub($$){
 		return _logicalOper(sub {$_[0] !~ $_[1]}, $_[0], $_[1]);
 	},
-	'+' => sub($$;@){
-		return _arithmeticOper(sub {$_[0] + $_[1]}, $_[0], $_[1], @_[2..$#_]);
-	},
 	'*' => sub($$;@){
-		return _arithmeticOper(sub {$_[0] * $_[1]}, $_[0], $_[1], @_[2..$#_]);
+		return _naryOper(sub {$_[0] * $_[1]}, $_[0], $_[1], @_[2..$#_]);
+	},
+	'div' => sub($$;@){
+		return _naryOper(sub {
+			my $r = eval {$_[0] / $_[1]};
+			carp qq|Division problems\n$@| if $@;
+			return $r;
+		}, $_[0], $_[1], @_[2..$#_]);
 	},
 	'/' => sub($$;@){
-		return _arithmeticOper(sub {$_[0] / $_[1]}, $_[0], $_[1], @_[2..$#_]);
+		return _naryOper(sub {
+			my $r = eval {$_[0] / $_[1]};
+			carp qq|Division problems\n$@| if $@;
+			return $r;
+		}, $_[1], @_[2..$#_]);
+	},
+	'+' => sub($$;@){
+		return _naryOper(sub {$_[0] + $_[1]}, $_[0], $_[1], @_[2..$#_]);
 	},
 	'-' => sub($$;@){
-		return _arithmeticOper(sub {$_[0] - $_[1]}, $_[0], $_[1], @_[2..$#_]);
+		return _naryOper(sub {$_[0] - $_[1]}, $_[0], $_[1], @_[2..$#_]);
 	},
 	'%' => sub($$;@){
-		return _arithmeticOper(sub {$_[0] % $_[1]}, $_[0], $_[1], @_[2..$#_]);
+		return _naryOper(sub {$_[0] % $_[1]}, $_[0], $_[1], @_[2..$#_]);
+	},
+	'||' => sub{
+		return _naryOper(sub {$_[0] . $_[1]}, $_[0], $_[1], @_[2..$#_])
 	},
 	names => \&_names,
 	values => \&_values,
@@ -888,7 +942,7 @@ sub _operation($){
 	return @r if wantarray();
 	return $r[0];
 }
-sub _arithmeticOper(&$$;@){
+sub _naryOper(&$$;@){
 		my ($oper,$x,$y,@e) = @_;
 		$x = _operation($x) if ref $x;
 		$y = _operation($y) if ref $y;
@@ -1598,10 +1652,11 @@ sub compile{
 	my $reader = Marpa::R2::Scanless::R->new({
 		grammar => $grammar,
 		trace_terminals => 0,
-	});
+	}) or return undef;
 	$q =~ s/[#\N{U+A0}-\N{U+10FFFF}]/sprintf "#%d#", ord $&/ge; #code utf8 characters with sequece #utfcode#. Marpa problem? 
-	$reader->read(\$q);
-	my $qp = $reader->value;
+	eval {$reader->read(\$q)};
+	carp qq|Wrong pQuery Expression\n$@| and return undef if $@; 
+	my $qp = $reader->value or return undef;
 	#print "compile", Dumper $qp;
 	return Data::pQuery::Data->new(${$qp})
 }
@@ -1624,7 +1679,7 @@ sub new{
 
 sub query{
 	my ($self,$pQueryString) = @_;
-	my $c = Data::pQuery->compile($pQueryString);
+	my $c = Data::pQuery->compile($pQueryString) or return undef;
 	return $c->data($self->{data});	
 }
 sub DESTROY{
@@ -1683,7 +1738,7 @@ Data::pQuery - a xpath like processor for perl data-structures (hashes and array
 
 =head1 VERSION
 
-Version 0.02
+Version 0.1
 
 =head1 Why we need another one
 
@@ -1729,6 +1784,8 @@ Examples:
 	/0/invoice/Total
 	/2
 	/*/invoice[Total>100]/Total
+	//Tax
+	//Total[../Tax = .2]
 
 
 
@@ -2398,27 +2455,27 @@ Marpa::R2 is used to parse the pQuery expression. Bellow is the complete grammar
 
 	LogicalFunction ::=
 	  'not' '(' LogicalExpr ')'                   
-	  | 'isRef' '('  PathArgs  ')'                
-	  | 'isScalar' '(' PathArgs ')'               
-	  | 'isArray' '(' PathArgs ')'                
-	  | 'isHash' '(' PathArgs ')'                 
-	  | 'isCode' '(' PathArgs ')'                 
+	  | 'isRef' '('  OptionalPathArgs  ')'                
+	  | 'isScalar' '(' OptionalPathArgs ')'               
+	  | 'isArray' '(' OptionalPathArgs ')'                
+	  | 'isHash' '(' OptionalPathArgs ')'                 
+	  | 'isCode' '(' OptionalPathArgs ')'                 
 
 	StringFunction ::=
 	  NameFunction                                
 	  | ValueFunction                             
 
 	NameFunction ::= 
-	  'name' '(' PathArgs ')'                     
+	  'name' '(' OptionalPathArgs ')'                     
 
-	PathArgs ::= 
+	OptionalPathArgs ::= 
 	  PathExpr                                    
 	  |EMPTY                                      
 
 	EMPTY ::=
 
 	ValueFunction ::= 
-	  'value' '(' PathArgs ')'                    
+	  'value' '(' OptionalPathArgs ')'                    
 
 	CountFunction ::= 
 	  'count' '(' PathExpr ')'                    
@@ -2439,8 +2496,8 @@ Marpa::R2 is used to parse the pQuery expression. Bellow is the complete grammar
 	  CountFunction                               
 
 	ListFunction ::=
-	  'names' '(' PathArgs ')'                    
-	  | 'values' '(' PathArgs ')'                 
+	  'names' '(' OptionalPathArgs ')'                    
+	  | 'values' '(' OptionalPathArgs ')'                 
 
 
 	 NUMBER ::= 

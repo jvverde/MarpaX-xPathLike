@@ -133,7 +133,7 @@
 Data::pQuery \- a xpath like processor for perl data\-structures (hashes and arrays)!
 .SH "VERSION"
 .IX Header "VERSION"
-Version 0.02
+Version 0.1
 .SH "Why we need another one"
 .IX Header "Why we need another one"
 There are already some good approaches to xpath syntax, namely the Data::dPath 
@@ -177,10 +177,12 @@ The pQuery uses the xpath syntax to query any set of complex data structures,
 using keys or indexes for defining the path.
 Examples:
 .PP
-.Vb 3
+.Vb 5
 \&        /0/invoice/Total
 \&        /2
 \&        /*/invoice[Total>100]/Total
+\&        //Tax
+\&        //Total[../Tax = .2]
 .Ve
 .SH "SYNOPSIS"
 .IX Header "SYNOPSIS"
@@ -847,27 +849,27 @@ Marpa::R2 is used to parse the pQuery expression. Bellow is the complete grammar
 \&
 \&        LogicalFunction ::=
 \&          \*(Aqnot\*(Aq \*(Aq(\*(Aq LogicalExpr \*(Aq)\*(Aq                   
-\&          | \*(AqisRef\*(Aq \*(Aq(\*(Aq  PathArgs  \*(Aq)\*(Aq                
-\&          | \*(AqisScalar\*(Aq \*(Aq(\*(Aq PathArgs \*(Aq)\*(Aq               
-\&          | \*(AqisArray\*(Aq \*(Aq(\*(Aq PathArgs \*(Aq)\*(Aq                
-\&          | \*(AqisHash\*(Aq \*(Aq(\*(Aq PathArgs \*(Aq)\*(Aq                 
-\&          | \*(AqisCode\*(Aq \*(Aq(\*(Aq PathArgs \*(Aq)\*(Aq                 
+\&          | \*(AqisRef\*(Aq \*(Aq(\*(Aq  OptionalPathArgs  \*(Aq)\*(Aq                
+\&          | \*(AqisScalar\*(Aq \*(Aq(\*(Aq OptionalPathArgs \*(Aq)\*(Aq               
+\&          | \*(AqisArray\*(Aq \*(Aq(\*(Aq OptionalPathArgs \*(Aq)\*(Aq                
+\&          | \*(AqisHash\*(Aq \*(Aq(\*(Aq OptionalPathArgs \*(Aq)\*(Aq                 
+\&          | \*(AqisCode\*(Aq \*(Aq(\*(Aq OptionalPathArgs \*(Aq)\*(Aq                 
 \&
 \&        StringFunction ::=
 \&          NameFunction                                
 \&          | ValueFunction                             
 \&
 \&        NameFunction ::= 
-\&          \*(Aqname\*(Aq \*(Aq(\*(Aq PathArgs \*(Aq)\*(Aq                     
+\&          \*(Aqname\*(Aq \*(Aq(\*(Aq OptionalPathArgs \*(Aq)\*(Aq                     
 \&
-\&        PathArgs ::= 
+\&        OptionalPathArgs ::= 
 \&          PathExpr                                    
 \&          |EMPTY                                      
 \&
 \&        EMPTY ::=
 \&
 \&        ValueFunction ::= 
-\&          \*(Aqvalue\*(Aq \*(Aq(\*(Aq PathArgs \*(Aq)\*(Aq                    
+\&          \*(Aqvalue\*(Aq \*(Aq(\*(Aq OptionalPathArgs \*(Aq)\*(Aq                    
 \&
 \&        CountFunction ::= 
 \&          \*(Aqcount\*(Aq \*(Aq(\*(Aq PathExpr \*(Aq)\*(Aq                    
@@ -888,8 +890,8 @@ Marpa::R2 is used to parse the pQuery expression. Bellow is the complete grammar
 \&          CountFunction                               
 \&
 \&        ListFunction ::=
-\&          \*(Aqnames\*(Aq \*(Aq(\*(Aq PathArgs \*(Aq)\*(Aq                    
-\&          | \*(Aqvalues\*(Aq \*(Aq(\*(Aq PathArgs \*(Aq)\*(Aq                 
+\&          \*(Aqnames\*(Aq \*(Aq(\*(Aq OptionalPathArgs \*(Aq)\*(Aq                    
+\&          | \*(Aqvalues\*(Aq \*(Aq(\*(Aq OptionalPathArgs \*(Aq)\*(Aq                 
 \&
 \&
 \&         NUMBER ::= 
