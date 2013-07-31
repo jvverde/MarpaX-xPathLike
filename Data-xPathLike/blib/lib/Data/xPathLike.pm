@@ -25,210 +25,210 @@ my $grammar = Marpa::R2::Scanless::G->new({
 :start ::= Start
 
 Start    ::= 
-    WS OperExp WS                                                                action => _do_arg2
+    WS OperExp WS                                      action => _do_arg2
 
 OperExp ::=
-    PathExpr                                                                         action => _do_path
-    |Function                                                                     action => _do_arg1
+    PathExpr                                           action => _do_path
+    |Function                                          action => _do_arg1
 
 Function ::=
-    NumericFunction                                                            action => _do_arg1
-    | StringFunction                                                         action => _do_arg1
-    | ListFunction                                                             action => _do_arg1
+    NumericFunction                                    action => _do_arg1
+    | StringFunction                                   action => _do_arg1
+    | ListFunction                                     action => _do_arg1
 
 PathExpr ::=
-    absolutePath                                                                action => _do_absolutePath
-    | relativePath                                                            action => _do_relativePath
-    | PathExpr '|' PathExpr                                            action => _do_pushArgs2array
+    absolutePath                                       action => _do_absolutePath
+    | relativePath                                     action => _do_relativePath
+    | PathExpr '|' PathExpr                            action => _do_pushArgs2array
 
 PredPathExpr ::=
-    absolutePath                                                                action => _do_absolutePath
-    | stepPathNoDigitStart                                            action => _do_relativePath
-    | './' stepPath                                                            action => _do_relativePath2
-    | PredPathExpr '|' PredPathExpr                            action => _do_pushArgs2array
+    absolutePath                                       action => _do_absolutePath
+    | stepPathNoDigitStart                             action => _do_relativePath
+    | './' stepPath                                    action => _do_relativePath2
+    | PredPathExpr '|' PredPathExpr                    action => _do_pushArgs2array
 
 relativePath ::=    
-    stepPath                                                                         action => _do_arg1
+    stepPath                                           action => _do_arg1
 
 absolutePath ::=    
-    subPath                                                                         action => _do_arg1
+    subPath                                            action => _do_arg1
 
 subPath ::=    
-    '/' stepPath                                                                 action => _do_arg2
-    | '//' stepPath                                                            action => _do_vlen
+    '/' stepPath                                       action => _do_arg2
+    | '//' stepPath                                    action => _do_vlen
 
 stepPath ::=
-    step Filter subPath                                                 action => _do_stepFilterSubpath
-    | step Filter                                                             action => _do_stepFilter
-    | step subPath                                                             action => _do_stepSubpath
-    | step                                                                            action => _do_arg1
+    step Filter subPath                                action => _do_stepFilterSubpath
+    | step Filter                                      action => _do_stepFilter
+    | step subPath                                     action => _do_stepSubpath
+    | step                                             action => _do_arg1
 
 
 step ::= 
-    keyOrAxis                                                                        action => _do_arg1            
-    |index                                                                             action => _do_arg1
+    keyOrAxis                                          action => _do_arg1            
+    |index                                             action => _do_arg1
 
 index ::=
-    UINT                                                                                action => _do_array_hash_index
+    UINT                                               action => _do_array_hash_index
 
 stepPathNoDigitStart ::=     
-    keyOrAxis Filter subPath                                         action => _do_stepFilterSubpath
-    | keyOrAxis Filter                                                     action => _do_stepFilter
-    | keyOrAxis subPath                                                 action => _do_stepSubpath
-    | keyOrAxis                                                                    action => _do_arg1
+    keyOrAxis Filter subPath                           action => _do_stepFilterSubpath
+    | keyOrAxis Filter                                 action => _do_stepFilter
+    | keyOrAxis subPath                                action => _do_stepSubpath
+    | keyOrAxis                                        action => _do_arg1
 
 
 keyOrAxis ::= 
-    keyname                                                                       action => _do_keyname
-    | '[' UINT ']'                                                            action => _do_array_index
-    |    '.'                                                                                action => _do_self
-    |    '[.]'                                                                            action => _do_selfArray
-    |    '{.}'                                                                            action => _do_selfHash
-    | 'self::*'                                                                    action => _do_self    
-    | 'self::[*]'                                                                action => _do_selfArray    
-    | 'self::{*}'                                                                action => _do_selfHash    
-    | 'self::' keyname                                                    action => _do_selfNamed    
-    | 'self::' UINT                                                            action => _do_selfIndexedOrNamed    
-    | 'self::[' UINT ']'                                                action => _do_selfIndexed    
-    | '*'                                                                             action => _do_child
-    | '[*]'                                                                         action => _do_childArray
-    | '{*}'                                                                         action => _do_childHash
-    |    'child::*'                                                                action => _do_child
-    |    'child::[*]'                                                            action => _do_childArray
-    |    'child::{*}'                                                            action => _do_childHash
-    |    'child::' keyname                                                    action => _do_childNamed
-    |    'child::'    UINT                                                        action => _do_childIndexedOrNamed
-    |    'child::[' UINT ']'                                                action => _do_childIndexed
-    |    '..'                                                                            action => _do_parent
-    |    '[..]'                                                                        action => _do_parentArray
-    |    '{..}'                                                                        action => _do_parentHash
-    | 'parent::*'                                                                action => _do_parent
-    | 'parent::[*]'                                                            action => _do_parentArray
-    | 'parent::{*}'                                                            action => _do_parentHash
-    | 'parent::' keyname                                                action => _do_parentNamed              
-    | 'parent::' UINT                                                     action => _do_parentIndexedOrNamed              
-    | 'parent::[' UINT ']'                                            action => _do_parentIndexed              
-    | 'ancestor::*'                                                            action => _do_ancestor
-    | 'ancestor::[*]'                                                        action => _do_ancestorArray
-    | 'ancestor::{*}'                                                        action => _do_ancestorHash
-    | 'ancestor::' keyname                                            action => _do_ancestorNamed
-    | 'ancestor::' UINT                                                    action => _do_ancestorIndexedOrNamed
-    | 'ancestor::[' UINT ']'                                        action => _do_ancestorIndexed
-    | 'ancestor-or-self::*'                                            action => _do_ancestorOrSelf
-    | 'ancestor-or-self::[*]'                                        action => _do_ancestorOrSelfArray
-    | 'ancestor-or-self::{*}'                                        action => _do_ancestorOrSelfHash
-    | 'ancestor-or-self::'     keyname                            action => _do_ancestorOrSelfNamed
-    | 'ancestor-or-self::'     UINT                              action => _do_ancestorOrSelfIndexedOrNamed
-    | 'ancestor-or-self::[' UINT ']'                      action => _do_ancestorOrSelfIndexed
-    | 'descendant::*'                                                        action => _do_descendant
-    | 'descendant::[*]'                                                    action => _do_descendantArray
-    | 'descendant::{*}'                                                    action => _do_descendantHash
-    | 'descendant::' keyname                                        action => _do_descendantNamed
-    | 'descendant::' UINT                                                action => _do_descendantIndexedOrNamed
-    | 'descendant::[' UINT ']'                                    action => _do_descendantIndexed
-    | 'descendant-or-self::*'                                        action => _do_descendantOrSelf
-    | 'descendant-or-self::[*]'                                    action => _do_descendantOrSelfArray
-    | 'descendant-or-self::{*}'                                    action => _do_descendantOrSelfHash
-    | 'descendant-or-self::' keyname                        action => _do_descendantOrSelfNamed
-    | 'descendant-or-self::' UINT                                action => _do_descendantOrSelfIndexedOrNamed
-    | 'descendant-or-self::[' UINT ']'                    action => _do_descendantOrSelfIndexed
-    | 'preceding-sibling::*'                                         action => _do_precedingSibling
-    | 'preceding-sibling::[*]'                                     action => _do_precedingSiblingArray
-    | 'preceding-sibling::{*}'                                     action => _do_precedingSiblingHash
-    | 'preceding-sibling::' keyname                         action => _do_precedingSiblingNamed
-    | 'preceding-sibling::' UINT                                 action => _do_precedingSiblingIndexedOrNamed
-    | 'preceding-sibling::[' UINT ']'                        action => _do_precedingSiblingIndexed
-    | 'following-sibling::*'                                         action => _do_followingSibling
-    | 'following-sibling::[*]'                                     action => _do_followingSiblingArray
-    | 'following-sibling::{*}'                                     action => _do_followingSiblingHash
-    | 'following-sibling::' keyname                         action => _do_followingSiblingNamed
-    | 'following-sibling::' UINT                                 action => _do_followingSiblingIndexedOrNamed
-    | 'following-sibling::[' UINT ']'                        action => _do_followingSiblingIndexed
+    keyname                                            action => _do_keyname
+    | '[' UINT ']'                                     action => _do_array_index
+    |    '.'                                           action => _do_self
+    |    '[.]'                                         action => _do_selfArray
+    |    '{.}'                                         action => _do_selfHash
+    | 'self::*'                                        action => _do_self    
+    | 'self::[*]'                                      action => _do_selfArray    
+    | 'self::{*}'                                      action => _do_selfHash    
+    | 'self::' keyname                                 action => _do_selfNamed    
+    | 'self::' UINT                                    action => _do_selfIndexedOrNamed    
+    | 'self::[' UINT ']'                               action => _do_selfIndexed    
+    | '*'                                              action => _do_child
+    | '[*]'                                            action => _do_childArray
+    | '{*}'                                            action => _do_childHash
+    |    'child::*'                                    action => _do_child
+    |    'child::[*]'                                  action => _do_childArray
+    |    'child::{*}'                                  action => _do_childHash
+    |    'child::' keyname                             action => _do_childNamed
+    |    'child::'    UINT                             action => _do_childIndexedOrNamed
+    |    'child::[' UINT ']'                           action => _do_childIndexed
+    |    '..'                                          action => _do_parent
+    |    '[..]'                                        action => _do_parentArray
+    |    '{..}'                                        action => _do_parentHash
+    | 'parent::*'                                      action => _do_parent
+    | 'parent::[*]'                                    action => _do_parentArray
+    | 'parent::{*}'                                    action => _do_parentHash
+    | 'parent::' keyname                               action => _do_parentNamed              
+    | 'parent::' UINT                                  action => _do_parentIndexedOrNamed              
+    | 'parent::[' UINT ']'                             action => _do_parentIndexed              
+    | 'ancestor::*'                                    action => _do_ancestor
+    | 'ancestor::[*]'                                  action => _do_ancestorArray
+    | 'ancestor::{*}'                                  action => _do_ancestorHash
+    | 'ancestor::' keyname                             action => _do_ancestorNamed
+    | 'ancestor::' UINT                                action => _do_ancestorIndexedOrNamed
+    | 'ancestor::[' UINT ']'                           action => _do_ancestorIndexed
+    | 'ancestor-or-self::*'                            action => _do_ancestorOrSelf
+    | 'ancestor-or-self::[*]'                          action => _do_ancestorOrSelfArray
+    | 'ancestor-or-self::{*}'                          action => _do_ancestorOrSelfHash
+    | 'ancestor-or-self::'     keyname                 action => _do_ancestorOrSelfNamed
+    | 'ancestor-or-self::'     UINT                    action => _do_ancestorOrSelfIndexedOrNamed
+    | 'ancestor-or-self::[' UINT ']'                   action => _do_ancestorOrSelfIndexed
+    | 'descendant::*'                                  action => _do_descendant
+    | 'descendant::[*]'                                action => _do_descendantArray
+    | 'descendant::{*}'                                action => _do_descendantHash
+    | 'descendant::' keyname                           action => _do_descendantNamed
+    | 'descendant::' UINT                              action => _do_descendantIndexedOrNamed
+    | 'descendant::[' UINT ']'                         action => _do_descendantIndexed
+    | 'descendant-or-self::*'                          action => _do_descendantOrSelf
+    | 'descendant-or-self::[*]'                        action => _do_descendantOrSelfArray
+    | 'descendant-or-self::{*}'                        action => _do_descendantOrSelfHash
+    | 'descendant-or-self::' keyname                   action => _do_descendantOrSelfNamed
+    | 'descendant-or-self::' UINT                      action => _do_descendantOrSelfIndexedOrNamed
+    | 'descendant-or-self::[' UINT ']'                 action => _do_descendantOrSelfIndexed
+    | 'preceding-sibling::*'                           action => _do_precedingSibling
+    | 'preceding-sibling::[*]'                         action => _do_precedingSiblingArray
+    | 'preceding-sibling::{*}'                         action => _do_precedingSiblingHash
+    | 'preceding-sibling::' keyname                    action => _do_precedingSiblingNamed
+    | 'preceding-sibling::' UINT                       action => _do_precedingSiblingIndexedOrNamed
+    | 'preceding-sibling::[' UINT ']'                  action => _do_precedingSiblingIndexed
+    | 'following-sibling::*'                           action => _do_followingSibling
+    | 'following-sibling::[*]'                         action => _do_followingSiblingArray
+    | 'following-sibling::{*}'                         action => _do_followingSiblingHash
+    | 'following-sibling::' keyname                    action => _do_followingSiblingNamed
+    | 'following-sibling::' UINT                       action => _do_followingSiblingIndexedOrNamed
+    | 'following-sibling::[' UINT ']'                  action => _do_followingSiblingIndexed
 
 IndexExprs ::= IndexExpr+             separator => <comma>
 
 IndexExpr ::=
-    IntExpr                                                                            action => _do_index_single
-    | rangeExpr                                                                    action => _do_arg1
+    IntExpr                                            action => _do_index_single
+    | rangeExpr                                        action => _do_arg1
 
 rangeExpr ::= 
-    IntExpr '..' IntExpr                                                 action => _do_index_range
-    |IntExpr '..'                                                             action => _do_startRange
-    | '..' IntExpr                                                            action => _do_endRange
+    IntExpr '..' IntExpr                               action => _do_index_range
+    |IntExpr '..'                                      action => _do_startRange
+    | '..' IntExpr                                     action => _do_endRange
 
 Filter ::= 
     IndexFilter
     | LogicalFilter
-    | Filter Filter                                                         action => _do_mergeFilters
+    | Filter Filter                                    action => _do_mergeFilters
 
 LogicalFilter ::=     
-    '[' LogicalExpr ']'                                                 action => _do_boolean_filter
+    '[' LogicalExpr ']'                                action => _do_boolean_filter
 
 IndexFilter ::=     
-    '[' IndexExprs ']'                                                    action => _do_index_filter
+    '[' IndexExprs ']'                                 action => _do_index_filter
 
 
 IntExpr ::=
-  WS ArithmeticIntExpr WS                                            action => _do_arg2
+  WS ArithmeticIntExpr WS                              action => _do_arg2
 
  ArithmeticIntExpr ::=
-     INT                                                                                 action => _do_arg1
-    | IntegerFunction                                                        action => _do_arg1
-    | '(' IntExpr ')'                                                     action => _do_group
-    || '-' ArithmeticIntExpr                                         action => _do_unaryOperator
-     | '+' ArithmeticIntExpr                                         action => _do_unaryOperator
-    || IntExpr '*' IntExpr                                          action => _do_binaryOperation
-     | IntExpr 'div' IntExpr                                         action => _do_binaryOperation
-#     | IntExpr ' /' IntExpr                                          action => _do_binaryOperation 
-#     | IntExpr '/ ' IntExpr                                         action => _do_binaryOperation 
-     | IntExpr '%' IntExpr                                          action => _do_binaryOperation
-    || IntExpr '+' IntExpr                                          action => _do_binaryOperation
-     | IntExpr '-' IntExpr                                          action => _do_binaryOperation
+     INT                                               action => _do_arg1
+    | IntegerFunction                                  action => _do_arg1
+    | '(' IntExpr ')'                                  action => _do_group
+    || '-' ArithmeticIntExpr                           action => _do_unaryOperator
+     | '+' ArithmeticIntExpr                           action => _do_unaryOperator
+    || IntExpr '*' IntExpr                             action => _do_binaryOperation
+     | IntExpr 'div' IntExpr                           action => _do_binaryOperation
+#     | IntExpr ' /' IntExpr                           action => _do_binaryOperation 
+#     | IntExpr '/ ' IntExpr                           action => _do_binaryOperation 
+     | IntExpr '%' IntExpr                             action => _do_binaryOperation
+    || IntExpr '+' IntExpr                             action => _do_binaryOperation
+     | IntExpr '-' IntExpr                             action => _do_binaryOperation
 
 
 NumericExpr ::=
-  WS ArithmeticExpr WS                                                 action => _do_arg2
+  WS ArithmeticExpr WS                                 action => _do_arg2
 
 ArithmeticExpr ::=
-    NUMBER                                                                             action => _do_arg1
-    || PredPathExpr                                                            action => _do_getValueOperator
-    | NumericFunction                                                        action => _do_arg1
-    | '(' NumericExpr ')'                                             action => _do_group
-    || '-' ArithmeticExpr                                             action => _do_unaryOperator
-     | '+' ArithmeticExpr                                             action => _do_unaryOperator
-    || NumericExpr '*' NumericExpr                            action => _do_binaryOperation
-     | NumericExpr 'div' NumericExpr                        action => _do_binaryOperation
-#     | NumericExpr ' /' NumericExpr                            action => _do_binaryOperation
-#     | NumericExpr '/ ' NumericExpr                            action => _do_binaryOperation
-     | NumericExpr '%' NumericExpr                            action => _do_binaryOperation
-    || NumericExpr '+' NumericExpr                            action => _do_binaryOperation
-     | NumericExpr '-' NumericExpr                            action => _do_binaryOperation
+    NUMBER                                             action => _do_arg1
+    || PredPathExpr                                    action => _do_getValueOperator
+    | NumericFunction                                  action => _do_arg1
+    | '(' NumericExpr ')'                              action => _do_group
+    || '-' ArithmeticExpr                              action => _do_unaryOperator
+     | '+' ArithmeticExpr                              action => _do_unaryOperator
+    || NumericExpr '*' NumericExpr                     action => _do_binaryOperation
+     | NumericExpr 'div' NumericExpr                   action => _do_binaryOperation
+#     | NumericExpr ' /' NumericExpr                   action => _do_binaryOperation
+#     | NumericExpr '/ ' NumericExpr                   action => _do_binaryOperation
+     | NumericExpr '%' NumericExpr                     action => _do_binaryOperation
+    || NumericExpr '+' NumericExpr                     action => _do_binaryOperation
+     | NumericExpr '-' NumericExpr                     action => _do_binaryOperation
 
 LogicalExpr ::=
-    WS LogicalFunction WS                                                action => _do_arg2
-    || WS compareExpr WS                                                action => _do_arg2
+    WS LogicalFunction WS                              action => _do_arg2
+    || WS compareExpr WS                               action => _do_arg2
 
 compareExpr ::=    
-    PredPathExpr                                                                action => _do_exists
-    || AnyTypeExpr '<' AnyTypeExpr                            action => _do_binaryOperation
-     | AnyTypeExpr '<=' AnyTypeExpr                            action => _do_binaryOperation
-     | AnyTypeExpr '>' AnyTypeExpr                            action => _do_binaryOperation
-     | AnyTypeExpr '>=' AnyTypeExpr                            action => _do_binaryOperation
-     | StringExpr 'lt' StringExpr                                action => _do_binaryOperation
-     | StringExpr 'le' StringExpr                                action => _do_binaryOperation
-     | StringExpr 'gt' StringExpr                                action => _do_binaryOperation
-     | StringExpr 'ge' StringExpr                                action => _do_binaryOperation
-     | StringExpr '~' RegularExpr                                action => _do_binaryOperation
-     | StringExpr '!~' RegularExpr                            action => _do_binaryOperation
-     | NumericExpr '===' NumericExpr                        action => _do_binaryOperation
-     | NumericExpr '!==' NumericExpr                        action => _do_binaryOperation
-     | AnyTypeExpr '==' AnyTypeExpr                            action => _do_binaryOperation 
-     | AnyTypeExpr '=' AnyTypeExpr                            action => _do_binaryOperation #to be xpath compatible
-     | AnyTypeExpr '!=' AnyTypeExpr                            action => _do_binaryOperation
-     | StringExpr 'eq' StringExpr                                action => _do_binaryOperation
-     | StringExpr 'ne' StringExpr                                action => _do_binaryOperation
-    || LogicalExpr 'and' LogicalExpr                        action => _do_binaryOperation
-    || LogicalExpr 'or' LogicalExpr                            action => _do_binaryOperation
+    PredPathExpr                                       action => _do_exists
+    || AnyTypeExpr '<' AnyTypeExpr                     action => _do_binaryOperation
+     | AnyTypeExpr '<=' AnyTypeExpr                    action => _do_binaryOperation
+     | AnyTypeExpr '>' AnyTypeExpr                     action => _do_binaryOperation
+     | AnyTypeExpr '>=' AnyTypeExpr                    action => _do_binaryOperation
+     | StringExpr 'lt' StringExpr                      action => _do_binaryOperation
+     | StringExpr 'le' StringExpr                      action => _do_binaryOperation
+     | StringExpr 'gt' StringExpr                      action => _do_binaryOperation
+     | StringExpr 'ge' StringExpr                      action => _do_binaryOperation
+     | StringExpr '~' RegularExpr                      action => _do_binaryOperation
+     | StringExpr '!~' RegularExpr                     action => _do_binaryOperation
+     | NumericExpr '===' NumericExpr                   action => _do_binaryOperation
+     | NumericExpr '!==' NumericExpr                   action => _do_binaryOperation
+     | AnyTypeExpr '==' AnyTypeExpr                    action => _do_binaryOperation 
+     | AnyTypeExpr '=' AnyTypeExpr                     action => _do_binaryOperation #to be xpath compatible
+     | AnyTypeExpr '!=' AnyTypeExpr                    action => _do_binaryOperation
+     | StringExpr 'eq' StringExpr                      action => _do_binaryOperation
+     | StringExpr 'ne' StringExpr                      action => _do_binaryOperation
+    || LogicalExpr 'and' LogicalExpr                   action => _do_binaryOperation
+    || LogicalExpr 'or' LogicalExpr                    action => _do_binaryOperation
 
 
 AnyTypeExpr ::=
@@ -293,7 +293,7 @@ SumFunction ::=
     'sum' '(' RequiredPathArgs ')'                     action => _do_func
 
 SumProductFunction ::= 
-    'sumproduct' '(' RequiredPathArgs ',' RequiredPathArgs ')'    action => _do_funcw2args
+    'sumproduct' '(' RequiredPathArgs ',' RequiredPathArgs ')'             action => _do_funcw2args
 
 NumericFunction ::=
     IntegerFunction                                    action => _do_arg1
@@ -401,7 +401,7 @@ ID
     ~ token
     | token ':' token      #to allow replication of xml tags names with namespaces
 
-token                                 #must have at least one non digit 
+token                      #must have at least one non digit 
     ~ notreserved
     | token [\d] 
     | [\d] token
@@ -1656,7 +1656,7 @@ sub compile{
     }) or return undef;
     $q =~ s/[#\N{U+A0}-\N{U+10FFFF}]/sprintf "#%d#", ord $&/ge; #code utf8 characters with sequece #utfcode#. Marpa problem? 
     eval {$reader->read(\$q)};
-    carp qq|Wrong pQuery Expression\n$@| and return undef if $@; 
+    carp qq|Wrong xPathLike Expression\n$@| and return undef if $@; 
     my $qp = $reader->value or return undef;
     #print "compile", Dumper $qp;
     return Data::xPathLike::Data->new(${$qp})
@@ -1679,8 +1679,8 @@ sub new{
 }
 
 sub query{
-    my ($self,$pQueryString) = @_;
-    my $c = Data::xPathLike->compile($pQueryString) or return undef;
+    my ($self,$xPathLikeString) = @_;
+    my $c = Data::xPathLike->compile($xPathLikeString) or return undef;
     return $c->data($self->{data});    
 }
 sub DESTROY{
@@ -1691,14 +1691,14 @@ package Data::xPathLike::Data;
 use Data::Dumper;
 
 sub new{
-    my ($self,$pQuery) = @_;
-    return undef unless defined $pQuery and (defined $pQuery->{oper} or defined $pQuery->{paths});
-    return bless {pQuery=>$pQuery}, $self;
+    my ($self,$xPathLike) = @_;
+    return undef unless defined $xPathLike and (defined $xPathLike->{oper} or defined $xPathLike->{paths});
+    return bless {xPathLike=>$xPathLike}, $self;
 }
 
 sub data{
     my ($self,$data) = @_;
-    return Data::xPathLike->_execute($data,$self->{pQuery});
+    return Data::xPathLike->_execute($data,$self->{xPathLike});
 }
 
 sub DESTROY{
@@ -1736,7 +1736,7 @@ __END__
 
 =head1 NAME
 
-Data::xPathLike - a xpath like processor for perl data-structures (hashes and arrays)! 
+Data::xPathLike - a xPath like processor for perl data-structures (hashes and arrays)! 
 
 =head1 VERSION
 
@@ -1744,10 +1744,10 @@ Version 0.1
 
 =head1 Why we need another one
 
-There are already some good approaches to xpath syntax, namely the Data::dPath 
+There are already some good approaches to xPath syntax, namely the Data::dPath 
 and Data::Path. 
 Nevertheless we still missing some of powerfull constructions as provided by 
-xpath.
+xPath.
 Suppose, for example, we have an array of invoices with Total, Amount and Tax 
 and need to check which one does not comply to the rule "Total = Amount * (1+Tax)".
 
@@ -1780,7 +1780,7 @@ For the data structure below we can easily achieve it with this code:
      $)->getvalues();
 
 
-The pQuery uses the xpath 1.0 syntax to query any set of complex perl 
+The xPathLike uses the xPath 1.0 syntax to query any set of complex perl 
 data structures, using keys or indexes for defining the path.
 Examples:
 
@@ -1794,7 +1794,7 @@ Examples:
      sum(//Total)
 
 
-Like as in xpath it's also possible to query a function.
+Like as in xPath it's also possible to query a function.
 
 
 =head1 SYNOPSIS
@@ -1840,17 +1840,17 @@ not only nested data-structures.
 
 =head1 DESCRIPTION
 
-It looks for complex perl data-structures which match the pQuery expression 
+It looks for complex perl data-structures which match the xPathLike expression 
 and returns a list of matched data-structures.
 
 
-Like xpath it is possible to deal with any logical or arithmetic 
+Like xPath it is possible to deal with any logical or arithmetic 
 expressions, ex: 
 
     *{count(a) == count(c) / 2 * (1 + count(b)) or d}
 
 , or even 
-query xpath functions ex: 
+query xPath functions ex: 
 
     count(//*)
     name(//*[last()])
@@ -1879,16 +1879,16 @@ predicates, ex:
 =head1 METHODS
 
 The Data::xPathLike just provides two useful methods, compile and data. 
-The first is used to compile a pQuery expression and the second is used
+The first is used to compile a xPathLike expression and the second is used
 to prepare data to be queried. 
 
 =head2 Data::xPathLike methods
 
-=head3 new(pQuery)
+=head3 new()
 
 Used only internally!!! Do nothing;
 
-=head3 compile(pQueryString)
+=head3 compile(xPathLikeString)
 
      my $query = Data::xPathLike->compile('*');                #compile the query
      
@@ -1906,7 +1906,7 @@ Used only internally!!! Do nothing;
      })->getvalues();
      # @values3 = ({fruit => 'bananas'})
 
-The compile method receives a pQuery string, compiles it and returns a Data::xPathLike::Data object.
+The compile method receives a xPathLike string, compiles it and returns a Data::xPathLike::Data object.
 This is the prefered method to run the same query over several data-structures.
 
 =head3 data(dataRef)
@@ -1954,9 +1954,9 @@ Executes the query over data and returns a Data::xPathLike::Results object
 
 =head2 Data::xPathLike::Compiler methods
 
-=head3 query(pQueryString)
+=head3 query(xPathLikeString)
 
-Compile a pQuery string, query the data and returns a Data::xPathLike::Results object
+Compile a xPathLike string, query the data and returns a Data::xPathLike::Results object
 
 =head2 Data::xPathLike::Results methods
 
@@ -1973,9 +1973,9 @@ Returns a list of values for each matched data;
 Returns the value of first matched data;
 
 
-=head1 Xpath Compability
+=head1 xPath Compability
 
-Unless some xpath functions, not yet implemented, and xpath axis preceding:: 
+Unless some xPath functions, not yet implemented, and xPath axis preceding:: 
 and following:: directions everything else is implemented. Probably buggly, 
 sorry. I hope to fixe them as soon someone (?) identify them.
 
@@ -2027,27 +2027,27 @@ sorry. I hope to fixe them as soon someone (?) identify them.
 
 =back
 
-(*) not a xpath 1.0 function. 
+(*) not a xPath 1.0 function. 
 
 names is like name but returns a list of names.
 
-We don't support the text() funcions as we don't know what that should mean 
-in perl data-structures context, but the value and values functiosn as provided
-to return the value/values of current context if path argument is missing or 
-the value/values of matched data-structures. That/those value/values could 
-be scalar(s) or hash/array reference(s).
+We don't support the C<text()> funcions as we don't know what that should mean 
+in perl data-structures context, but the C<value()> and C<values()> functions 
+are provided to return the value/values of current context if path argument is 
+missing or the value/values of matched data-structures. That/those value/values 
+could be scalar(s) or hash/array reference(s).
 
 
 
 =head2 Supported operators
 
-The xpath supported operators are the following: 
+The xPath supported operators are the following: 
 
     +, -, *, div, %, =, !=, (), "", '', +, -, ., .., /, //, ::, <, <=, >, >=, [], and, or 
       and 
     | (paths union)
 
-Addicionaly pQuery also supports the following operators
+Addicionaly xPathLike also supports the following operators
 
     eq, ne, lt, le, gt, ge and ~ 
 
@@ -2055,18 +2055,18 @@ The ~ is the matching operator
 
 =head2 Support for data types
 
-In pQuery path expression, a digit step could mean a array index or a hash's key name.
+In xPathLike path expression, a digit step could mean a array index or a hash's key name.
 ex:
 
     /a/0/b
 
 may refere to a C<$d-E<gt>{a}-E<gt>[0]-E<gt>{b}> or to a C<$d-E<gt>{a}-E<gt>{0}-E<gt>{b}>. 
 If a enforcement is required for select only array's index 0
-the pQuery expression should be       
+the xPathLike expression should be       
 
     /a/[0]/b
 
-And similarity for hash' key '0'    
+And similarly for hash' key '0'    
 
     /a/{0}/b
 
@@ -2082,6 +2082,7 @@ The curly and square brackets could also be used with axis and wildcard *. Examp
     //*/parent::[b]
     //a//parent::{*}
     //*[self::{*} = 3 or self::[*] > 10]
+    /1/[*][4]/child::[*][1]/{Σ}/following-sibling::*[last()]
 
 If a hash key is just a * the path expression is also posible using instead curly 
 brackets, quotes (double or single)
@@ -2119,7 +2120,7 @@ Send email to C<< <jvverde at gmail.com> >> with subject Data::xPathLike
 
 =begin futuro
 
-Please report any bugs or feature requests to C<bug-data-pquery at rt.cpan.org>, or through
+Please report any bugs or feature requests to C<bug-data-xPathLike at rt.cpan.org>, or through
 the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Data-xPathLike>.  I will be notified, and then you'll
 automatically be notified of progress on your bug as I make changes.
 

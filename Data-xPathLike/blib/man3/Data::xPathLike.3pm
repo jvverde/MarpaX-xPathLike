@@ -130,16 +130,16 @@
 .if n .ad l
 .nh
 .SH "NAME"
-Data::xPathLike \- a xpath like processor for perl data\-structures (hashes and arrays)!
+Data::xPathLike \- a xPath like processor for perl data\-structures (hashes and arrays)!
 .SH "VERSION"
 .IX Header "VERSION"
 Version 0.1
 .SH "Why we need another one"
 .IX Header "Why we need another one"
-There are already some good approaches to xpath syntax, namely the Data::dPath 
+There are already some good approaches to xPath syntax, namely the Data::dPath 
 and Data::Path. 
 Nevertheless we still missing some of powerfull constructions as provided by 
-xpath.
+xPath.
 Suppose, for example, we have an array of invoices with Total, Amount and Tax 
 and need to check which one does not comply to the rule \*(L"Total = Amount * (1+Tax)\*(R".
 .PP
@@ -172,7 +172,7 @@ For the data structure below we can easily achieve it with this code:
 \&     $)\->getvalues();
 .Ve
 .PP
-The pQuery uses the xpath 1.0 syntax to query any set of complex perl 
+The xPathLike uses the xPath 1.0 syntax to query any set of complex perl 
 data structures, using keys or indexes for defining the path.
 Examples:
 .PP
@@ -186,7 +186,7 @@ Examples:
 \&     sum(//Total)
 .Ve
 .PP
-Like as in xpath it's also possible to query a function.
+Like as in xPath it's also possible to query a function.
 .SH "SYNOPSIS"
 .IX Header "SYNOPSIS"
 How to use it.
@@ -230,10 +230,10 @@ hash) a reference to that reference is returned, so we can change it and
 not only nested data-structures.
 .SH "DESCRIPTION"
 .IX Header "DESCRIPTION"
-It looks for complex perl data-structures which match the pQuery expression 
+It looks for complex perl data-structures which match the xPathLike expression 
 and returns a list of matched data-structures.
 .PP
-Like xpath it is possible to deal with any logical or arithmetic 
+Like xPath it is possible to deal with any logical or arithmetic 
 expressions, ex:
 .PP
 .Vb 1
@@ -241,7 +241,7 @@ expressions, ex:
 .Ve
 .PP
 , or even 
-query xpath functions ex:
+query xPath functions ex:
 .PP
 .Vb 3
 \&    count(//*)
@@ -275,17 +275,17 @@ predicates, ex:
 .SH "METHODS"
 .IX Header "METHODS"
 The Data::xPathLike just provides two useful methods, compile and data. 
-The first is used to compile a pQuery expression and the second is used
+The first is used to compile a xPathLike expression and the second is used
 to prepare data to be queried.
 .SS "Data::xPathLike methods"
 .IX Subsection "Data::xPathLike methods"
-\fInew(pQuery)\fR
-.IX Subsection "new(pQuery)"
+\fI\fInew()\fI\fR
+.IX Subsection "new()"
 .PP
 Used only internally!!! Do nothing;
 .PP
-\fIcompile(pQueryString)\fR
-.IX Subsection "compile(pQueryString)"
+\fIcompile(xPathLikeString)\fR
+.IX Subsection "compile(xPathLikeString)"
 .PP
 .Vb 1
 \&     my $query = Data::xPathLike\->compile(\*(Aq*\*(Aq);                #compile the query
@@ -305,7 +305,7 @@ Used only internally!!! Do nothing;
 \&     # @values3 = ({fruit => \*(Aqbananas\*(Aq})
 .Ve
 .PP
-The compile method receives a pQuery string, compiles it and returns a Data::xPathLike::Data object.
+The compile method receives a xPathLike string, compiles it and returns a Data::xPathLike::Data object.
 This is the prefered method to run the same query over several data-structures.
 .PP
 \fIdata(dataRef)\fR
@@ -352,10 +352,10 @@ This is the prefered method to run several query over same data.
 Executes the query over data and returns a Data::xPathLike::Results object
 .SS "Data::xPathLike::Compiler methods"
 .IX Subsection "Data::xPathLike::Compiler methods"
-\fIquery(pQueryString)\fR
-.IX Subsection "query(pQueryString)"
+\fIquery(xPathLikeString)\fR
+.IX Subsection "query(xPathLikeString)"
 .PP
-Compile a pQuery string, query the data and returns a Data::xPathLike::Results object
+Compile a xPathLike string, query the data and returns a Data::xPathLike::Results object
 .SS "Data::xPathLike::Results methods"
 .IX Subsection "Data::xPathLike::Results methods"
 \fI\fIgetrefs()\fI Returns a list os references for each matched data;\fR
@@ -369,9 +369,9 @@ Compile a pQuery string, query the data and returns a Data::xPathLike::Results o
 .PP
 \fI\fIgetvalue()\fI Returns the value of first matched data;\fR
 .IX Subsection "getvalue() Returns the value of first matched data;"
-.SH "Xpath Compability"
-.IX Header "Xpath Compability"
-Unless some xpath functions, not yet implemented, and xpath axis preceding:: 
+.SH "xPath Compability"
+.IX Header "xPath Compability"
+Unless some xPath functions, not yet implemented, and xPath axis preceding:: 
 and following:: directions everything else is implemented. Probably buggly, 
 sorry. I hope to fixe them as soon someone (?) identify them.
 .SS "Supported axis"
@@ -419,18 +419,18 @@ sorry. I hope to fixe them as soon someone (?) identify them.
 .IX Item "value(path?)*"
 .PD
 .PP
-(*) not a xpath 1.0 function.
+(*) not a xPath 1.0 function.
 .PP
 names is like name but returns a list of names.
 .PP
-We don't support the \fItext()\fR funcions as we don't know what that should mean 
-in perl data-structures context, but the value and values functiosn as provided
-to return the value/values of current context if path argument is missing or 
-the value/values of matched data-structures. That/those value/values could 
-be scalar(s) or hash/array reference(s).
+We don't support the \f(CW\*(C`text()\*(C'\fR funcions as we don't know what that should mean 
+in perl data-structures context, but the \f(CW\*(C`value()\*(C'\fR and \f(CW\*(C`values()\*(C'\fR functions 
+are provided to return the value/values of current context if path argument is 
+missing or the value/values of matched data-structures. That/those value/values 
+could be scalar(s) or hash/array reference(s).
 .SS "Supported operators"
 .IX Subsection "Supported operators"
-The xpath supported operators are the following:
+The xPath supported operators are the following:
 .PP
 .Vb 3
 \&    +, \-, *, div, %, =, !=, (), "", \*(Aq\*(Aq, +, \-, ., .., /, //, ::, <, <=, >, >=, [], and, or 
@@ -438,7 +438,7 @@ The xpath supported operators are the following:
 \&    | (paths union)
 .Ve
 .PP
-Addicionaly pQuery also supports the following operators
+Addicionaly xPathLike also supports the following operators
 .PP
 .Vb 1
 \&    eq, ne, lt, le, gt, ge and ~
@@ -447,7 +447,7 @@ Addicionaly pQuery also supports the following operators
 The ~ is the matching operator
 .SS "Support for data types"
 .IX Subsection "Support for data types"
-In pQuery path expression, a digit step could mean a array index or a hash's key name.
+In xPathLike path expression, a digit step could mean a array index or a hash's key name.
 ex:
 .PP
 .Vb 1
@@ -456,13 +456,13 @@ ex:
 .PP
 may refere to a \f(CW\*(C`$d\->{a}\->[0]\->{b}\*(C'\fR or to a \f(CW\*(C`$d\->{a}\->{0}\->{b}\*(C'\fR. 
 If a enforcement is required for select only array's index 0
-the pQuery expression should be
+the xPathLike expression should be
 .PP
 .Vb 1
 \&    /a/[0]/b
 .Ve
 .PP
-And similarity for hash' key '0'
+And similarly for hash' key '0'
 .PP
 .Vb 1
 \&    /a/{0}/b
@@ -477,12 +477,13 @@ character. Some examples
 .PP
 The curly and square brackets could also be used with axis and wildcard *. Examples:
 .PP
-.Vb 5
+.Vb 6
 \&    //{*}
 \&    //[*]
 \&    //*/parent::[b]
 \&    //a//parent::{*}
 \&    //*[self::{*} = 3 or self::[*] > 10]
+\&    /1/[*][4]/child::[*][1]/{I\*^X}/following\-sibling::*[last()]
 .Ve
 .PP
 If a hash key is just a * the path expression is also posible using instead curly 
