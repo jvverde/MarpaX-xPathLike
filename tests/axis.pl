@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 use strict;
 use utf8;
-use Data::pQuery;
+use Data::xPathLike;
 use Data::Dumper;
 use Test::More 'no_plan';
 use Devel::Cycle;
@@ -23,10 +23,10 @@ my $d = [
 	{ map { $_ => qq|b$_|} 0..3},
 ];
 
-my $data = Data::pQuery->data($d);
+my $data = Data::xPathLike->data($d);
 
 #ok(defined $data, "data defined");
-#ok($data->isa('Data::pQuery::Compiler'), "is Data::pQuery::Compiler");
+#ok($data->isa('Data::xPathLike::Compiler'), "is Data::xPathLike::Compiler");
 my $x={};
 verify($data, undef,'','$d');
 sub escape{

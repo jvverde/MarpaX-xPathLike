@@ -1,18 +1,18 @@
 #!/usr/bin/perl
 use strict;
-use Data::pQuery;
+use Data::xPathLike;
 use Data::Dumper;
 use warnings;
 ($\,$,) = ("\n",",");
 
 use strict;
-use Data::pQuery;
+use Data::xPathLike;
 use Data::Dumper;
 
 ($\,$,) = ("\n",",");
 
 
-my $query = Data::pQuery->compile('*');                #compile the query
+my $query = Data::xPathLike->compile('*');                #compile the query
 
 my @values1 = $query->data({fruit => 'bananas'})->getvalues();
 print @values1;

@@ -1,6 +1,6 @@
 # NAME
 
-Data::pQuery - a xpath like processor for perl data-structures (hashes and arrays)! 
+Data::xPathLike - a xpath like processor for perl data-structures (hashes and arrays)! 
 
 # VERSION
 
@@ -19,11 +19,11 @@ For the data structure below we can easily achieve it with this code:
 
 
 
-     use Data::pQuery;
+     use Data::xPathLike;
      use Data::Dumper;
 
      ($\,$,) = (qq|\n|, q|,|);
-     my $data = Data::pQuery->data([
+     my $data = Data::xPathLike->data([
              {invoice => {
                              Amount => 100,
                              Tax => 0.2,
@@ -46,7 +46,7 @@ For the data structure below we can easily achieve it with this code:
 
 
 
-The pQuery uses the xpath 1.0 syntax to query any set of complex perl 
+The xPathLike uses the xpath 1.0 syntax to query any set of complex perl 
 data structures, using keys or indexes for defining the path.
 Examples:
 
@@ -71,7 +71,7 @@ Like as in xpath it's also possible to query a function.
 How to use it.
 
      use strict;
-     use Data::pQuery;
+     use Data::xPathLike;
      use Data::Dumper;
 
      ($\,$,) = ("\n",",");
@@ -86,7 +86,7 @@ How to use it.
           } 
      };
 
-     my $data = Data::pQuery->data($d);
+     my $data = Data::xPathLike->data($d);
      my $results = $data->query(q|/*/*/0|);
      my @values = $results->getvalues();
      print @values;                         
@@ -110,7 +110,7 @@ not only nested data-structures.
 
 # DESCRIPTION
 
-It looks for complex perl data-structures which match the pQuery expression 
+It looks for complex perl data-structures which match the xPathLike expression 
 and returns a list of matched data-structures.
 
 
@@ -151,19 +151,19 @@ predicates, ex:
 
 # METHODS
 
-The Data::pQuery just provides two useful methods, compile and data. 
-The first is used to compile a pQuery expression and the second is used
+The Data::xPathLike just provides two useful methods, compile and data. 
+The first is used to compile a xPathLike expression and the second is used
 to prepare data to be queried. 
 
-## Data::pQuery methods
+## Data::xPathLike methods
 
-### new(pQuery)
+### new()
 
 Used only internally!!! Do nothing;
 
-### compile(pQueryString)
+### compile(xPathLikeString)
 
-     my $query = Data::pQuery->compile('*');                #compile the query
+     my $query = Data::xPathLike->compile('*');                #compile the query
      
 
      my @values1 = $query->data({fruit => 'bananas'})->getvalues();
@@ -180,14 +180,14 @@ Used only internally!!! Do nothing;
      })->getvalues();
      # @values3 = ({fruit => 'bananas'})
 
-The compile method receives a pQuery string, compiles it and returns a Data::pQuery::Data object.
+The compile method receives a xPathLike string, compiles it and returns a Data::xPathLike::Data object.
 This is the prefered method to run the same query over several data-structures.
 
 ### data(dataRef)
 
 
 
-    my $data = Data::pQuery->data({
+    my $data = Data::xPathLike->data({
            food => {
                    fruit => 'bananas',
                    vegetables => 'unions'
@@ -221,22 +221,22 @@ This is the prefered method to run the same query over several data-structures.
 
 
 
-The method data receives a hash (or array) reference and returns a Data::pQuery::Compile object. 
+The method data receives a hash (or array) reference and returns a Data::xPathLike::Compile object. 
 This is the prefered method to run several query over same data.
 
-## Data::pQuery::Data methods
+## Data::xPathLike::Data methods
 
 ### data(data)
 
-Executes the query over data and returns a Data::pQuery::Results object
+Executes the query over data and returns a Data::xPathLike::Results object
 
-## Data::pQuery::Compiler methods
+## Data::xPathLike::Compiler methods
 
-### query(pQueryString)
+### query(xPathLikeString)
 
-Compile a pQuery string, query the data and returns a Data::pQuery::Results object
+Compile a xPathLike string, query the data and returns a Data::xPathLike::Results object
 
-## Data::pQuery::Results methods
+## Data::xPathLike::Results methods
 
 ### getrefs()
 Returns a list os references for each matched data;
@@ -304,7 +304,7 @@ The xpath supported operators are the following:
       and 
     | (paths union)
 
-Addicionaly pQuery also supports the following operators
+Addicionaly xPathLike also supports the following operators
 
     eq, ne, lt, le, gt, ge and ~ 
 
@@ -312,14 +312,14 @@ The ~ is the matching operator
 
 ## Support for data types
 
-In pQuery path expression, a digit step could mean a array index or a hash's key name.
+In xPathLike path expression, a digit step could mean a array index or a hash's key name.
 ex:
 
     /a/0/b
 
 may refere to a `$d->{a}->[0]->{b}` or to a `$d->{a}->{0}->{b}`. 
 If a enforcement is required for select only array's index 0
-the pQuery expression shoudl be       
+the xPathLike expression should be       
 
     /a/[0]/b
 
@@ -339,6 +339,7 @@ The curly and square brackets could also be used with axis and wildcard \*. Exam
     //*/parent::[b]
     //a//parent::{*}
     //*[self::{*} = 3 or self::[*] > 10]
+    /1/[*][4]/child::[*][1]/{Σ}/following-sibling::*[last()]
 
 If a hash key is just a \* the path expression is also posible using instead curly 
 brackets, quotes (double or single)
@@ -375,37 +376,37 @@ Isidro Vila Verde, `<jvverde at gmail.com>`
 
 # BUGS
 
-Send email to `<jvverde at gmail.com>` with subject Data::pQuery
+Send email to `<jvverde at gmail.com>` with subject Data::xPathLike
 
 
 
-Please report any bugs or feature requests to `bug-data-pquery at rt.cpan.org`, or through
-the web interface at [http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Data-pQuery](http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Data-pQuery).  I will be notified, and then you'll
+Please report any bugs or feature requests to `bug-data-xPathLike at rt.cpan.org`, or through
+the web interface at [http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Data-xPathLike](http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Data-xPathLike).  I will be notified, and then you'll
 automatically be notified of progress on your bug as I make changes.
 
 # SUPPORT
 
 You can find documentation for this module with the perldoc command.
 
-    perldoc Data::pQuery
+    perldoc Data::xPathLike
 
 
 
 - RT: CPAN's request tracker (report bugs here)
 
-    [http://rt.cpan.org/NoAuth/Bugs.html?Dist=Data-pQuery](http://rt.cpan.org/NoAuth/Bugs.html?Dist=Data-pQuery)
+    [http://rt.cpan.org/NoAuth/Bugs.html?Dist=Data-xPathLike](http://rt.cpan.org/NoAuth/Bugs.html?Dist=Data-xPathLike)
 
 - AnnoCPAN: Annotated CPAN documentation
 
-    [http://annocpan.org/dist/Data-pQuery](http://annocpan.org/dist/Data-pQuery)
+    [http://annocpan.org/dist/Data-xPathLike](http://annocpan.org/dist/Data-xPathLike)
 
 - CPAN Ratings
 
-    [http://cpanratings.perl.org/d/Data-pQuery](http://cpanratings.perl.org/d/Data-pQuery)
+    [http://cpanratings.perl.org/d/Data-xPathLike](http://cpanratings.perl.org/d/Data-xPathLike)
 
 - Search CPAN
 
-    [http://search.cpan.org/dist/Data-pQuery/](http://search.cpan.org/dist/Data-pQuery/)
+    [http://search.cpan.org/dist/Data-xPathLike/](http://search.cpan.org/dist/Data-xPathLike/)
 
 
 

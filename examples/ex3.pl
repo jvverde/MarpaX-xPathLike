@@ -1,11 +1,11 @@
 #!/usr/bin/perl
 use strict;
-use Data::pQuery;
+use Data::xPathLike;
 use Data::Dumper;
 use warnings;
 ($\,$,) = ("\n",",");
 
-my $data = Data::pQuery->data({
+my $data = Data::xPathLike->data({
        food => {
                fruit => 'bananas',
                vegetables => 'unions'

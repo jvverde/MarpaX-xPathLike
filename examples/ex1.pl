@@ -1,12 +1,12 @@
 #!/usr/bin/perl
 use strict;
-use Data::pQuery;
+use Data::xPathLike;
 use Data::Dumper;
 use warnings;
 ($\,$,) = ("\n",",");
 
 use strict;
-use Data::pQuery;
+use Data::xPathLike;
 use Data::Dumper;
 
 ($\,$,) = ("\n",",");
@@ -21,7 +21,7 @@ my $d = {
         } 
 };
 
-my $data = Data::pQuery->data($d);
+my $data = Data::xPathLike->data($d);
 my $results = $data->query(q|/*/*/0|);
 my @values = $results->getvalues();
 print @values;                                  
