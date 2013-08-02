@@ -333,7 +333,7 @@ sub verify{
 		}
 		foreach (keys %{$d}){
 			my $v = $_;
-			$v =~ s/"/\\"/g;
+			$v =~ s/"|\\/\\$&/g;
 			my $s = step($_);
 			my $query = qq|${xpath}/{$s}[name() eq "$v"]|;
 			my $k = escape($_);
@@ -342,7 +342,7 @@ sub verify{
 		}
 		foreach (keys %{$d}){
 			my $v = $_;
-			$v =~ s/"/\\"/g;
+			$v =~ s/"|\\/\\$&/g;
 			my $query = qq|${xpath}/*[name() eq "$v"]|;
 			my $k = escape($_);
 			my $expectedString = $path.qq|->{qq/$k/}|;
