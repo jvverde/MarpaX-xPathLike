@@ -199,13 +199,17 @@ METHODS
 
   MarpaX::xPathLike::Results methods
     getrefs()
-Returns a list os references for each matched data;
+    Returns a list os references for each matched data;
+
     getref()
-Returns a reference for first matched data;
+    Returns a reference for first matched data;
+
     getvalues()
-Returns a list of values for each matched data;
+    Returns a list of values for each matched data;
+
     getvalue()
-Returns the value of first matched data;
+    Returns the value of first matched data;
+
 xPath Compability
     Unless some xPath functions, not yet implemented, and xPath axis
     preceding:: and following:: directions everything else is implemented.

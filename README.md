@@ -239,15 +239,19 @@ Compile a xPathLike string, query the data and returns a MarpaX::xPathLike::Resu
 ## MarpaX::xPathLike::Results methods
 
 ### getrefs()
+
 Returns a list os references for each matched data;
 
 ### getref()
+
 Returns a reference for first matched data;
 
 ### getvalues()
+
 Returns a list of values for each matched data;
 
 ### getvalue()
+
 Returns the value of first matched data;
 
 
