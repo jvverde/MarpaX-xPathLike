@@ -16,7 +16,7 @@ require Exporter;
 our @ISA = qw(Exporter);
 our @EXPORT = qw();
 
-our $VERSION = '0.106';
+our $VERSION = '0.2';
 use MarpaX::xPathLike::DSL;
 use MarpaX::xPathLike::Actions;
 use Test::Deep qw {cmp_details deep_diag};

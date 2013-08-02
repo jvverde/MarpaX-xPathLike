@@ -1,17 +1,17 @@
 # NAME
 
-MarpaX::xPathLike - a xpath like processor for perl data-structures (hashes and arrays)! 
+MarpaX::xPathLike - a xPath like processor for perl data-structures (hashes and arrays)! 
 
 # VERSION
 
-Version 0.1
+Version 0.2
 
 # Why we need another one
 
-There are already some good approaches to xpath syntax, namely the Data::dPath 
+There are already some good approaches to xPath syntax, namely the Data::dPath 
 and Data::Path. 
 Nevertheless we still missing some of powerfull constructions as provided by 
-xpath.
+xPath.
 Suppose, for example, we have an array of invoices with Total, Amount and Tax 
 and need to check which one does not comply to the rule "Total = Amount \* (1+Tax)".
 
@@ -46,7 +46,7 @@ For the data structure below we can easily achieve it with this code:
 
 
 
-The xPathLike uses the xpath 1.0 syntax to query any set of complex perl 
+The xPathLike uses the xPath 1.0 syntax to query any set of complex perl 
 data structures, using keys or indexes for defining the path.
 Examples:
 
@@ -62,7 +62,7 @@ Examples:
 
 
 
-Like as in xpath it's also possible to query a function.
+Like as in xPath it's also possible to query a function.
 
 
 
@@ -115,13 +115,13 @@ and returns a list of matched data-structures.
 
 
 
-Like xpath it is possible to deal with any logical or arithmetic 
+Like xPath it is possible to deal with any logical or arithmetic 
 expressions, ex: 
 
     *{count(a) == count(c) / 2 * (1 + count(b)) or d}
 
 , or even 
-query xpath functions ex: 
+query xPath functions ex: 
 
     count(//*)
     name(//*[last()])
@@ -252,9 +252,9 @@ Returns the value of first matched data;
 
 
 
-# Xpath Compability
+# xPath Compability
 
-Unless some xpath functions, not yet implemented, and xpath axis preceding:: 
+Unless some xPath functions, not yet implemented, and xPath axis preceding:: 
 and following:: directions everything else is implemented. Probably buggly, 
 sorry. I hope to fixe them as soon someone (?) identify them.
 
@@ -282,15 +282,15 @@ sorry. I hope to fixe them as soon someone (?) identify them.
 - values(path?)\*
 - value(path?)\*
 
-(\*) not a xpath 1.0 function. 
+(\*) not a xPath 1.0 function. 
 
 names is like name but returns a list of names.
 
-We don't support the text() funcions as we don't know what that should mean 
-in perl data-structures context, but the value and values functiosn as provided
-to return the value/values of current context if path argument is missing or 
-the value/values of matched data-structures. That/those value/values could 
-be scalar(s) or hash/array reference(s).
+We don't support the `text()` funcions as we don't know what that should mean 
+in perl data-structures context, but the `value()` and `values()` functions 
+are provided to return the value/values of current context if path argument is 
+missing or the value/values of matched data-structures. That/those value/values 
+could be scalar(s) or hash/array reference(s).
 
 
 
@@ -298,7 +298,7 @@ be scalar(s) or hash/array reference(s).
 
 ## Supported operators
 
-The xpath supported operators are the following: 
+The xPath supported operators are the following: 
 
     +, -, *, div, %, =, !=, (), "", '', +, -, ., .., /, //, ::, <, <=, >, >=, [], and, or 
       and 
@@ -318,19 +318,19 @@ ex:
     /a/0/b
 
 may refere to a `$d->{a}->[0]->{b}` or to a `$d->{a}->{0}->{b}`. 
-If a enforcement is required for select only array's index 0
+If a restriction is required for select only array's index 0
 the xPathLike expression should be       
 
     /a/[0]/b
 
-And similarity for hash' key '0'    
+And similarly for hash' key '0'    
 
     /a/{0}/b
 
 The curly bracket could also be useful to refere to keys with spaces or any special 
-character. Some examples
+character with the help of quotes (singles or doubles). Some examples
 
-    /{two words as a keys}//{key with a / or a +}/*
+    /{'five words as a keys'}//{"key with a / or a +"}/*
 
 The curly and square brackets could also be used with axis and wildcard \*. Examples:
 
@@ -339,34 +339,16 @@ The curly and square brackets could also be used with axis and wildcard \*. Exam
     //*/parent::[b]
     //a//parent::{*}
     //*[self::{*} = 3 or self::[*] > 10]
-    /1/[*][4]/child::[*][1]/{Σ}/following-sibling::*[last()]
+    /1/[*][4]/child::[*][1]/{a}/following-sibling::*[last()]
 
-If a hash key is just a \* the path expression is also posible using instead curly 
-brackets, quotes (double or single)
+If a hash key is just a \* (or any other special character) the path expression could be something like this
 
-    //"*"/b
-    //a/'*'
-
-Inside curly brackets, or quotes a backslash is used to escape { or } if the step 
-delimited by those characters and " when used inside doubles quotes or  ' 
-for single quotes delimitation,or escape itself. In any other situation is 
-literaly interpreted
-
-    //"2\""
-    //'hash\'s key'
-    //{\{}/
-    
-
-    //'2"'
-    //"hash\'s key"
-    //'{'
-    
-
-    //{\\}
-    //"\\"
-    //'\\'
-
-
+    //{"*"}/b
+    //a/{'*'}
+    //{"+"}/b
+    //a/{'/'}
+    //{"}"}/b
+    //a/{'"'}
 
 
 
@@ -377,12 +359,11 @@ Isidro Vila Verde, `<jvverde at gmail.com>`
 # BUGS
 
 Send email to `<jvverde at gmail.com>` with subject MarpaX::xPathLike
-
-
-
-Please report any bugs or feature requests to `bug-data-xPathLike at rt.cpan.org`, or through
+or report any bugs or feature requests to `bug-data-xPathLike at rt.cpan.org`, or through
 the web interface at [http://rt.cpan.org/NoAuth/ReportBug.html?Queue=MarpaX-xPathLike](http://rt.cpan.org/NoAuth/ReportBug.html?Queue=MarpaX-xPathLike).  I will be notified, and then you'll
 automatically be notified of progress on your bug as I make changes.
+
+
 
 # SUPPORT
 
@@ -391,6 +372,8 @@ You can find documentation for this module with the perldoc command.
     perldoc MarpaX::xPathLike
 
 
+
+You can also look for information at:
 
 - RT: CPAN's request tracker (report bugs here)
 
@@ -411,6 +394,11 @@ You can find documentation for this module with the perldoc command.
 
 
 # ACKNOWLEDGEMENTS
+
+I would like to say thansk to amon / Lukas Atkinson for scrutinized the code i give me such valuable feedback. 
+To Ron Savage for introduce me to the Marpa::R2 and all your help with UTF8 problems and good advices.
+To Jean-Damien to point me some importante issues on first release.
+And final a big Thank you to Jeffrey Kegler for creating the Marpa::R2.
 
 
 
