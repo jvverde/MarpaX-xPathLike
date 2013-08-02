@@ -974,7 +974,7 @@ sub compile{
             }        
         }
     }
-    #print "compile", Dumper $qp;
+    #print "compile", Dumper [@ptree];
     return Data::xPathLike::Data->new(${$ptree[0]})
 }
 

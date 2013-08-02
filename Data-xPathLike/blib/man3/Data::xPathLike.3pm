@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "Data::xPathLike 3"
-.TH Data::xPathLike 3 "2013-08-01" "perl v5.14.2" "User Contributed Perl Documentation"
+.TH Data::xPathLike 3 "2013-08-02" "perl v5.14.2" "User Contributed Perl Documentation"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -455,7 +455,7 @@ ex:
 .Ve
 .PP
 may refere to a \f(CW\*(C`$d\->{a}\->[0]\->{b}\*(C'\fR or to a \f(CW\*(C`$d\->{a}\->{0}\->{b}\*(C'\fR. 
-If a enforcement is required for select only array's index 0
+If a restriction is required for select only array's index 0
 the xPathLike expression should be
 .PP
 .Vb 1
@@ -469,10 +469,10 @@ And similarly for hash' key '0'
 .Ve
 .PP
 The curly bracket could also be useful to refere to keys with spaces or any special 
-character. Some examples
+character with the help of quotes (singles or doubles). Some examples
 .PP
 .Vb 1
-\&    /{two words as a keys}//{key with a / or a +}/*
+\&    /{\*(Aqfive words as a keys\*(Aq}//{"key with a / or a +"}/*
 .Ve
 .PP
 The curly and square brackets could also be used with axis and wildcard *. Examples:
@@ -486,31 +486,15 @@ The curly and square brackets could also be used with axis and wildcard *. Examp
 \&    /1/[*][4]/child::[*][1]/{a}/following\-sibling::*[last()]
 .Ve
 .PP
-If a hash key is just a * the path expression is also posible using instead curly 
-brackets, quotes (double or single)
+If a hash key is just a * (or any other special character) the path expression could be something like this
 .PP
-.Vb 2
-\&    //"*"/b
-\&    //a/\*(Aq*\*(Aq
-.Ve
-.PP
-Inside curly brackets, or quotes a backslash is used to escape { or } if the step 
-delimited by those characters and " when used inside doubles quotes or  ' 
-for single quotes delimitation,or escape itself. In any other situation is 
-literaly interpreted
-.PP
-.Vb 3
-\&    //"2\e""
-\&    //\*(Aqhash\e\*(Aqs key\*(Aq
-\&    //{\e{}/
-\&    
-\&    //\*(Aq2"\*(Aq
-\&    //"hash\e\*(Aqs key"
-\&    //\*(Aq{\*(Aq
-\&    
-\&    //{\e\e}
-\&    //"\e\e"
-\&    //\*(Aq\e\e\*(Aq
+.Vb 6
+\&    //{"*"}/b
+\&    //a/{\*(Aq*\*(Aq}
+\&    //{"+"}/b
+\&    //a/{\*(Aq/\*(Aq}
+\&    //{"}"}/b
+\&    //a/{\*(Aq"\*(Aq}
 .Ve
 .SH "AUTHOR"
 .IX Header "AUTHOR"

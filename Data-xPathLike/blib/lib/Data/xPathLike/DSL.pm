@@ -349,8 +349,9 @@ single_quoted_chars
      ~ single_quoted_char*
  
 single_quoted_char  
-    ~ [^']
+    ~ [^'\\]
     | '\' [']
+    | '\' '\'
 
 double_quoted        
     ~ ["] double_quoted_chars ["]
@@ -359,16 +360,17 @@ double_quoted_chars
      ~ double_quoted_char*
  
 double_quoted_char  
-    ~ [^"]
+    ~ [^"\\]
     | '\' '"'
+    | '\' '\'
 
 keyname ::= 
     keyword                                           action => _do_token
     | ('{') keyword ('}')                             action => _do_token
     | ('{') UINT ('}')                                action => ::first
     | ('{') STRING ('}')                              action => ::first
- #   | STRING                                          action => ::first
- #   | curly_delimited_string                          action => _do_curly_delimited_string
+#   | STRING                                          action => ::first
+#   | curly_delimited_string                          action => _do_curly_delimited_string
 
 # curly_delimited_string
 #     ~ '{' keyword '}'
@@ -385,7 +387,7 @@ keyname ::=
 
 keyword 
     ~ token
-    
+
 # ~ ID
 
 # ID 

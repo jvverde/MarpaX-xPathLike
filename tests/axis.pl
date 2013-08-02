@@ -16,6 +16,7 @@ my $prob = shift;
 $prob ||= 1;
 
 my $d = [
+	(map {{$_ => $_}} split //, q|!$%#&<>-_.:,;^~'`\\@£§\/][)(}{(){}=?[]'"|),
 	#{ map { $_ => qq|_$_|} map {chr($_)} 200..300},
 	# { map { 'a'.$_ => qq|_$_|} 'Φ'..'Δ'},
 	# { map { $_.'"' => qq|_$_|} 'Φ'..'Δ'},
@@ -24,7 +25,7 @@ my $d = [
 	{ map { $_ => qq|a$_|} 0..2},
 	['a'..'b', {
 				q|two words key| => [qw|Σ Φ Ψ Ω Δ|], 
-				q|!$%#&/()=?[]'"| => q|some text|
+				q|!$%#&<>-_.:,;^~'`\\@£§/][)(}{(){}=?[]'"| => q|some text|,
 			},
 			[{Σ => q|sigma|, Ψ => q|psi|, others => [qw|ω τ ξ|]}, [{λμνρ => 'others'}]]
 	],
@@ -33,7 +34,8 @@ my $d = [
 #print Dumper $d;
 
 my $data = Data::xPathLike->data($d);
-# print Dumper $data->query('/6/3/0/{2}')->getvalues();
+# print Dumper $data->query(q|/17/{"\\"}/self::{"\\"}|)->getvalues();
+# exit;
 # print Dumper $data->query('/6/3/0')->getvalues();
 # exit;
 
@@ -51,7 +53,7 @@ sub step{
 	my $s = $_[0];
 	return (rand(100) > 50 ? $s : (rand(100) > 50 ? qq|"$s"| : qq|'$s'|)) if $s =~ /^\d+$/;
 	return (rand(100) > 50 ? $s : (rand(100) > 50 ? qq|"$s"| : qq|'$s'|)) if $s =~ /^[^\d:.\/*,'"|\s\]\[\(\)\{\}\\+-<>=!]+$/i;
-	$s =~ s/"/\\"/g;
+	$s =~ s/"|\\/\\$&/g;
 	return qq|"$s"|;
 }
 sub verify{
@@ -64,7 +66,7 @@ sub verify{
 		#print Dumper \@expected;
 		my $test = qq|$query == ($expectedString)|;
 		#print "test -> $test";
-		my @r = $data->query($query)->getvalues();
+		my @r = eval {$data->query($query)->getvalues()};
 		is_deeply([@r],[@expected], $test); 
 	}
 	my $d = eval $path;

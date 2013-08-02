@@ -19,14 +19,14 @@ sub _do_double_quoted {
     my $s = $_[1];
     $s =~ s/#([0-9]+)#/chr $1/ge; #recovery utf8 character 
     $s =~ s/^"|"$//g;
-    $s =~ s/\\"/"/g;
+    $s =~ s/\\("|\\)/$1/g;
     return $s;
 }
 sub _do_single_quoted {
     my $s = $_[1];
     $s =~ s/#([0-9]+)#/chr $1/ge; #recovery utf8 character 
     $s =~ s/^'|'$//g;
-    $s =~ s/\\'/'/g;
+    $s =~ s/\\('|\\)/$1/g;
     return $s;
 }
 # sub _do_curly_delimited_string{
