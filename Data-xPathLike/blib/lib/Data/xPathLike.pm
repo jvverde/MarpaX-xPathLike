@@ -950,9 +950,9 @@ sub compile{
         trace_terminals => 0,
     }) or return undef;
     #code utf8 characters with sequece #utfcode#. Marpa problem?
-    $q =~ s/[#\N{U+A0}-\N{U+10FFFF}]/sprintf "#%d#", ord $&/ge 
+    $q =~ s/[#\N{U+A0}-\N{U+10FFFF}]/sprintf "#%d#", ord $&/ge;
     #and, if we replace, we need to delimite the key if not already delimited  
-    and $q =~ s/{(?!["'])(.*?#\d+#.*?)(?!["'])}/{"$1"}/g; # and print "new q = $q"; 
+    #and $q =~ s/\/{(?!["'])(.*?#\d+#.*?)(?!["'])}/\/{"$1"}/g; # and print "new q = $q"; 
     eval {$reader->read(\$q)};
     carp qq|Wrong xPathLike Expression $q\n$@| and return undef if $@; 
     #my $qp = $reader->value or return undef;

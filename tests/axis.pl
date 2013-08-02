@@ -34,7 +34,9 @@ my $d = [
 #print Dumper $d;
 
 my $data = Data::xPathLike->data($d);
-# print Dumper $data->query(q|/17/{"\\"}/self::{"\\"}|)->getvalues();
+# print Dumper $data->query(q|//{#23#}|)->getvalues();
+# exit;
+
 # exit;
 # print Dumper $data->query('/6/3/0')->getvalues();
 # exit;

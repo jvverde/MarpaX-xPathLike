@@ -365,8 +365,8 @@ double_quoted_char
     | '\' '\'
 
 keyname ::= 
-    keyword                                           action => _do_token
-    | ('{') keyword ('}')                             action => _do_token
+    keyword                                           action => ::first
+    | ('{') keyword ('}')                             action => ::first
     | ('{') UINT ('}')                                action => ::first
     | ('{') STRING ('}')                              action => ::first
 #   | STRING                                          action => ::first
@@ -385,19 +385,18 @@ keyname ::=
 #     | '\'    '{'
 #     | '\'    '}'
 
-keyword 
-    ~ token
+keyword ::=
+    token                                             action => _do_token 
 
-# ~ ID
+token 
+    ~ ID
 
-# ID 
-#     ~ token
-#     | token ':' token      #to allow replication of xml tags names with namespaces
-
-token                      #must have at least one non digit 
+ID                      #must have at least one non digit 
     ~ notreserved
-    | token [\d] 
-    | [\d] token
+    | ID digits 
+    | ID digits ID
+    | digits ID
+    | digits ID digits
 
 notreserved 
     ~ [^\d:./*,'"|\s\]\[\(\)\{\}\\+-<>=!]+
