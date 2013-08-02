@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 use strict;
 use utf8;
-use Data::xPathLike;
+use MarpaX::xPathLike;
 use Data::Dumper;
 use Test::More 'no_plan';
 use Devel::Cycle;
@@ -33,7 +33,7 @@ my $d = [
 ];
 #print Dumper $d;
 
-my $data = Data::xPathLike->data($d);
+my $data = MarpaX::xPathLike->data($d);
 # print Dumper $data->query(q|//{#23#}|)->getvalues();
 # exit;
 
@@ -43,7 +43,7 @@ my $data = Data::xPathLike->data($d);
 
 
 #ok(defined $data, "data defined");
-#ok($data->isa('Data::xPathLike::Compiler'), "is Data::xPathLike::Compiler");
+#ok($data->isa('MarpaX::xPathLike::Compiler'), "is MarpaX::xPathLike::Compiler");
 my $x={};
 verify($data, undef,'','$d');
 sub escape{

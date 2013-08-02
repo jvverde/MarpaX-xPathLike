@@ -1,11 +1,11 @@
 #!/usr/bin/perl
 use strict;
-use Data::xPathLike;
+use MarpaX::xPathLike;
 use Data::Dumper;
 use warnings;
 ($\,$,) = ("\n",",");
 
-my $data = Data::xPathLike->data({
+my $data = MarpaX::xPathLike->data({
        food => {
                fruit => 'bananas',
                vegetables => 'unions'
