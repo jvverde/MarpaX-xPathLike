@@ -11,7 +11,7 @@
 
 #   MakeMaker Parameters:
 
-#     ABSTRACT_FROM => q[lib/MarpaX/xPathLike.pm]
+#     ABSTRACT_FROM => q[lib/MarpaX/xPathLike.pod]
 #     AUTHOR => [q[Isidro Vila Verde <jvverde@gmail.com>]]
 #     BUILD_REQUIRES => { Test::More=>q[0] }
 #     CONFIGURE_REQUIRES => { ExtUtils::MakeMaker=>q[0] }
@@ -19,7 +19,7 @@
 #     MIN_PERL_VERSION => q[5.006]
 #     NAME => q[MarpaX::xPathLike]
 #     PL_FILES => {  }
-#     PREREQ_PM => { Test::More=>q[0] }
+#     PREREQ_PM => { Test::More=>q[0], Marpa::R2=>q[0], Scalar::Util=>q[0] }
 #     TEST_REQUIRES => {  }
 #     VERSION_FROM => q[lib/MarpaX/xPathLike.pm]
 #     clean => { FILES=>q[MarpaX-xPathLike-*] }
@@ -61,12 +61,12 @@ AR_STATIC_ARGS = cr
 DIRFILESEP = /
 DFSEP = $(DIRFILESEP)
 NAME = MarpaX::xPathLike
-NAME_SYM = Data_xPathLike
-VERSION = 0.1
+NAME_SYM = MarpaX_xPathLike
+VERSION = 0.2
 VERSION_MACRO = VERSION
-VERSION_SYM = 0_1
+VERSION_SYM = 0_2
 DEFINE_VERSION = -D$(VERSION_MACRO)=\"$(VERSION)\"
-XS_VERSION = 0.1
+XS_VERSION = 0.2
 XS_VERSION_MACRO = XS_VERSION
 XS_DEFINE_VERSION = -D$(XS_VERSION_MACRO)=\"$(XS_VERSION)\"
 INST_ARCHLIB = blib/arch
@@ -152,7 +152,7 @@ MM_REVISION = 66600
 MAKE = make
 FULLEXT = MarpaX/xPathLike
 BASEEXT = xPathLike
-PARENT_NAME = Data
+PARENT_NAME = MarpaX
 DLBASE = $(BASEEXT)
 VERSION_FROM = lib/MarpaX/xPathLike.pm
 OBJECT = 
@@ -166,14 +166,16 @@ C_FILES  =
 O_FILES  = 
 H_FILES  = 
 MAN1PODS = 
-MAN3PODS = lib/MarpaX/xPathLike.pm
+MAN3PODS = lib/MarpaX/xPathLike.pod \
+	lib/MarpaX/xPathLike/Actions.pm \
+	lib/MarpaX/xPathLike/DSL.pm
 
 # Where is the Config information that we are using/depend on
 CONFIGDEP = $(PERL_ARCHLIB)$(DFSEP)Config.pm $(PERL_INC)$(DFSEP)config.h
 
 # Where to build things
-INST_LIBDIR      = $(INST_LIB)/Data
-INST_ARCHLIBDIR  = $(INST_ARCHLIB)/Data
+INST_LIBDIR      = $(INST_LIB)/MarpaX
+INST_ARCHLIBDIR  = $(INST_ARCHLIB)/MarpaX
 
 INST_AUTODIR     = $(INST_LIB)/auto/$(FULLEXT)
 INST_ARCHAUTODIR = $(INST_ARCHLIB)/auto/$(FULLEXT)
@@ -188,9 +190,18 @@ PERL_ARCHIVE       =
 PERL_ARCHIVE_AFTER = 
 
 
-TO_INST_PM = lib/MarpaX/xPathLike.pm
+TO_INST_PM = lib/MarpaX/xPathLike.pm \
+	lib/MarpaX/xPathLike.pod \
+	lib/MarpaX/xPathLike/Actions.pm \
+	lib/MarpaX/xPathLike/DSL.pm
 
-PM_TO_BLIB = lib/MarpaX/xPathLike.pm \
+PM_TO_BLIB = lib/MarpaX/xPathLike/DSL.pm \
+	blib/lib/MarpaX/xPathLike/DSL.pm \
+	lib/MarpaX/xPathLike.pod \
+	blib/lib/MarpaX/xPathLike.pod \
+	lib/MarpaX/xPathLike/Actions.pm \
+	blib/lib/MarpaX/xPathLike/Actions.pm \
+	lib/MarpaX/xPathLike.pm \
 	blib/lib/MarpaX/xPathLike.pm
 
 
@@ -260,7 +271,7 @@ RCS_LABEL = rcs -Nv$(VERSION_SYM): -q
 DIST_CP = best
 DIST_DEFAULT = tardist
 DISTNAME = MarpaX-xPathLike
-DISTVNAME = MarpaX-xPathLike-0.1
+DISTVNAME = MarpaX-xPathLike-0.2
 
 
 # --- MakeMaker macro section:
@@ -413,9 +424,13 @@ POD2MAN = $(POD2MAN_EXE)
 
 
 manifypods : pure_all  \
-	lib/MarpaX/xPathLike.pm
+	lib/MarpaX/xPathLike/DSL.pm \
+	lib/MarpaX/xPathLike.pod \
+	lib/MarpaX/xPathLike/Actions.pm
 	$(NOECHO) $(POD2MAN) --section=3 --perm_rw=$(PERM_RW) \
-	  lib/MarpaX/xPathLike.pm $(INST_MAN3DIR)/MarpaX::xPathLike.$(MAN3EXT) 
+	  lib/MarpaX/xPathLike/DSL.pm $(INST_MAN3DIR)/MarpaX::xPathLike::DSL.$(MAN3EXT) \
+	  lib/MarpaX/xPathLike.pod $(INST_MAN3DIR)/MarpaX::xPathLike.$(MAN3EXT) \
+	  lib/MarpaX/xPathLike/Actions.pm $(INST_MAN3DIR)/MarpaX::xPathLike::Actions.$(MAN3EXT) 
 
 
 
@@ -481,7 +496,7 @@ realclean purge ::  clean realclean_subdirs
 metafile : create_distdir
 	$(NOECHO) $(ECHO) Generating META.yml
 	$(NOECHO) $(ECHO) '---' > META_new.yml
-	$(NOECHO) $(ECHO) 'abstract: '\''a xpath like processor for perl data-structures (hashes and arrays)! '\''' >> META_new.yml
+	$(NOECHO) $(ECHO) 'abstract: '\''a xPath like processor for perl data-structures (hashes and arrays)! '\''' >> META_new.yml
 	$(NOECHO) $(ECHO) 'author:' >> META_new.yml
 	$(NOECHO) $(ECHO) '  - '\''Isidro Vila Verde <jvverde@gmail.com>'\''' >> META_new.yml
 	$(NOECHO) $(ECHO) 'build_requires:' >> META_new.yml
@@ -500,12 +515,14 @@ metafile : create_distdir
 	$(NOECHO) $(ECHO) '    - t' >> META_new.yml
 	$(NOECHO) $(ECHO) '    - inc' >> META_new.yml
 	$(NOECHO) $(ECHO) 'requires:' >> META_new.yml
+	$(NOECHO) $(ECHO) '  Marpa::R2: 0' >> META_new.yml
+	$(NOECHO) $(ECHO) '  Scalar::Util: 0' >> META_new.yml
 	$(NOECHO) $(ECHO) '  perl: 5.006' >> META_new.yml
-	$(NOECHO) $(ECHO) 'version: 0.1' >> META_new.yml
+	$(NOECHO) $(ECHO) 'version: 0.2' >> META_new.yml
 	-$(NOECHO) $(MV) META_new.yml $(DISTVNAME)/META.yml
 	$(NOECHO) $(ECHO) Generating META.json
 	$(NOECHO) $(ECHO) '{' > META_new.json
-	$(NOECHO) $(ECHO) '   "abstract" : "a xpath like processor for perl data-structures (hashes and arrays)! ",' >> META_new.json
+	$(NOECHO) $(ECHO) '   "abstract" : "a xPath like processor for perl data-structures (hashes and arrays)! ",' >> META_new.json
 	$(NOECHO) $(ECHO) '   "author" : [' >> META_new.json
 	$(NOECHO) $(ECHO) '      "Isidro Vila Verde <jvverde@gmail.com>"' >> META_new.json
 	$(NOECHO) $(ECHO) '   ],' >> META_new.json
@@ -538,12 +555,14 @@ metafile : create_distdir
 	$(NOECHO) $(ECHO) '      },' >> META_new.json
 	$(NOECHO) $(ECHO) '      "runtime" : {' >> META_new.json
 	$(NOECHO) $(ECHO) '         "requires" : {' >> META_new.json
+	$(NOECHO) $(ECHO) '            "Marpa::R2" : "0",' >> META_new.json
+	$(NOECHO) $(ECHO) '            "Scalar::Util" : "0",' >> META_new.json
 	$(NOECHO) $(ECHO) '            "perl" : "5.006"' >> META_new.json
 	$(NOECHO) $(ECHO) '         }' >> META_new.json
 	$(NOECHO) $(ECHO) '      }' >> META_new.json
 	$(NOECHO) $(ECHO) '   },' >> META_new.json
 	$(NOECHO) $(ECHO) '   "release_status" : "stable",' >> META_new.json
-	$(NOECHO) $(ECHO) '   "version" : "0.1"' >> META_new.json
+	$(NOECHO) $(ECHO) '   "version" : "0.2"' >> META_new.json
 	$(NOECHO) $(ECHO) '}' >> META_new.json
 	-$(NOECHO) $(MV) META_new.json $(DISTVNAME)/META.json
 
@@ -840,10 +859,12 @@ testdb_static :: testdb_dynamic
 # Creates a PPD (Perl Package Description) for a binary distribution.
 ppd :
 	$(NOECHO) $(ECHO) '<SOFTPKG NAME="$(DISTNAME)" VERSION="$(VERSION)">' > $(DISTNAME).ppd
-	$(NOECHO) $(ECHO) '    <ABSTRACT>a xpath like processor for perl data-structures (hashes and arrays)! </ABSTRACT>' >> $(DISTNAME).ppd
+	$(NOECHO) $(ECHO) '    <ABSTRACT>a xPath like processor for perl data-structures (hashes and arrays)! </ABSTRACT>' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '    <AUTHOR>Isidro Vila Verde &lt;jvverde@gmail.com&gt;</AUTHOR>' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '    <IMPLEMENTATION>' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '        <PERLCORE VERSION="5,006,0,0" />' >> $(DISTNAME).ppd
+	$(NOECHO) $(ECHO) '        <REQUIRE NAME="Marpa::R2" />' >> $(DISTNAME).ppd
+	$(NOECHO) $(ECHO) '        <REQUIRE NAME="Scalar::Util" />' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '        <ARCHITECTURE NAME="x86_64-linux-gnu-thread-multi-5.14" />' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '        <CODEBASE HREF="" />' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '    </IMPLEMENTATION>' >> $(DISTNAME).ppd
@@ -854,6 +875,9 @@ ppd :
 
 pm_to_blib : $(FIRST_MAKEFILE) $(TO_INST_PM)
 	$(NOECHO) $(ABSPERLRUN) -MExtUtils::Install -e 'pm_to_blib({@ARGV}, '\''$(INST_LIB)/auto'\'', q[$(PM_FILTER)], '\''$(PERM_DIR)'\'')' -- \
+	  lib/MarpaX/xPathLike/DSL.pm blib/lib/MarpaX/xPathLike/DSL.pm \
+	  lib/MarpaX/xPathLike.pod blib/lib/MarpaX/xPathLike.pod \
+	  lib/MarpaX/xPathLike/Actions.pm blib/lib/MarpaX/xPathLike/Actions.pm \
 	  lib/MarpaX/xPathLike.pm blib/lib/MarpaX/xPathLike.pm 
 	$(NOECHO) $(TOUCH) pm_to_blib
 

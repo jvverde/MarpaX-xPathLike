@@ -7,7 +7,7 @@ require Exporter;
 our @ISA = qw(Exporter);
 our @EXPORT = qw();
 
-our $VERSION = '0.101';
+our $VERSION = '0.2';
 
 sub new(){}
 sub _do_token{

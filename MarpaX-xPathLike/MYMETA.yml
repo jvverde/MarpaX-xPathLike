@@ -21,4 +21,4 @@ requires:
   Marpa::R2: 0
   Scalar::Util: 0
   perl: 5.006
-version: 0.106
+version: 0.2

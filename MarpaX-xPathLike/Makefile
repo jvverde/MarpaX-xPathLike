@@ -62,11 +62,11 @@ DIRFILESEP = /
 DFSEP = $(DIRFILESEP)
 NAME = MarpaX::xPathLike
 NAME_SYM = MarpaX_xPathLike
-VERSION = 0.106
+VERSION = 0.2
 VERSION_MACRO = VERSION
-VERSION_SYM = 0_106
+VERSION_SYM = 0_2
 DEFINE_VERSION = -D$(VERSION_MACRO)=\"$(VERSION)\"
-XS_VERSION = 0.106
+XS_VERSION = 0.2
 XS_VERSION_MACRO = XS_VERSION
 XS_DEFINE_VERSION = -D$(XS_VERSION_MACRO)=\"$(XS_VERSION)\"
 INST_ARCHLIB = blib/arch
@@ -271,7 +271,7 @@ RCS_LABEL = rcs -Nv$(VERSION_SYM): -q
 DIST_CP = best
 DIST_DEFAULT = tardist
 DISTNAME = MarpaX-xPathLike
-DISTVNAME = MarpaX-xPathLike-0.106
+DISTVNAME = MarpaX-xPathLike-0.2
 
 
 # --- MakeMaker macro section:
@@ -518,7 +518,7 @@ metafile : create_distdir
 	$(NOECHO) $(ECHO) '  Marpa::R2: 0' >> META_new.yml
 	$(NOECHO) $(ECHO) '  Scalar::Util: 0' >> META_new.yml
 	$(NOECHO) $(ECHO) '  perl: 5.006' >> META_new.yml
-	$(NOECHO) $(ECHO) 'version: 0.106' >> META_new.yml
+	$(NOECHO) $(ECHO) 'version: 0.2' >> META_new.yml
 	-$(NOECHO) $(MV) META_new.yml $(DISTVNAME)/META.yml
 	$(NOECHO) $(ECHO) Generating META.json
 	$(NOECHO) $(ECHO) '{' > META_new.json
@@ -562,7 +562,7 @@ metafile : create_distdir
 	$(NOECHO) $(ECHO) '      }' >> META_new.json
 	$(NOECHO) $(ECHO) '   },' >> META_new.json
 	$(NOECHO) $(ECHO) '   "release_status" : "stable",' >> META_new.json
-	$(NOECHO) $(ECHO) '   "version" : "0.106"' >> META_new.json
+	$(NOECHO) $(ECHO) '   "version" : "0.2"' >> META_new.json
 	$(NOECHO) $(ECHO) '}' >> META_new.json
 	-$(NOECHO) $(MV) META_new.json $(DISTVNAME)/META.json
 
