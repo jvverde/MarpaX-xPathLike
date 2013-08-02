@@ -11,7 +11,7 @@
 
 #   MakeMaker Parameters:
 
-#     ABSTRACT_FROM => q[lib/Data/xPathLike.pm]
+#     ABSTRACT_FROM => q[lib/Data/xPathLike.pod]
 #     AUTHOR => [q[Isidro Vila Verde <jvverde@gmail.com>]]
 #     BUILD_REQUIRES => { Test::More=>q[0] }
 #     CONFIGURE_REQUIRES => { ExtUtils::MakeMaker=>q[0] }
@@ -19,7 +19,7 @@
 #     MIN_PERL_VERSION => q[5.006]
 #     NAME => q[Data::xPathLike]
 #     PL_FILES => {  }
-#     PREREQ_PM => { Test::More=>q[0] }
+#     PREREQ_PM => { Test::More=>q[0], Marpa::R2=>q[0], Scalar::Util=>q[0] }
 #     TEST_REQUIRES => {  }
 #     VERSION_FROM => q[lib/Data/xPathLike.pm]
 #     clean => { FILES=>q[Data-xPathLike-*] }
@@ -62,11 +62,11 @@ DIRFILESEP = /
 DFSEP = $(DIRFILESEP)
 NAME = Data::xPathLike
 NAME_SYM = Data_xPathLike
-VERSION = 0.1
+VERSION = 0.101
 VERSION_MACRO = VERSION
-VERSION_SYM = 0_1
+VERSION_SYM = 0_101
 DEFINE_VERSION = -D$(VERSION_MACRO)=\"$(VERSION)\"
-XS_VERSION = 0.1
+XS_VERSION = 0.101
 XS_VERSION_MACRO = XS_VERSION
 XS_DEFINE_VERSION = -D$(XS_VERSION_MACRO)=\"$(XS_VERSION)\"
 INST_ARCHLIB = blib/arch
@@ -166,7 +166,9 @@ C_FILES  =
 O_FILES  = 
 H_FILES  = 
 MAN1PODS = 
-MAN3PODS = lib/Data/xPathLike.pm
+MAN3PODS = lib/Data/xPathLike.pod \
+	lib/Data/xPathLike/Actions.pm \
+	lib/Data/xPathLike/DSL.pm
 
 # Where is the Config information that we are using/depend on
 CONFIGDEP = $(PERL_ARCHLIB)$(DFSEP)Config.pm $(PERL_INC)$(DFSEP)config.h
@@ -188,10 +190,19 @@ PERL_ARCHIVE       =
 PERL_ARCHIVE_AFTER = 
 
 
-TO_INST_PM = lib/Data/xPathLike.pm
+TO_INST_PM = lib/Data/xPathLike.pm \
+	lib/Data/xPathLike.pod \
+	lib/Data/xPathLike/Actions.pm \
+	lib/Data/xPathLike/DSL.pm
 
-PM_TO_BLIB = lib/Data/xPathLike.pm \
-	blib/lib/Data/xPathLike.pm
+PM_TO_BLIB = lib/Data/xPathLike/Actions.pm \
+	blib/lib/Data/xPathLike/Actions.pm \
+	lib/Data/xPathLike.pm \
+	blib/lib/Data/xPathLike.pm \
+	lib/Data/xPathLike.pod \
+	blib/lib/Data/xPathLike.pod \
+	lib/Data/xPathLike/DSL.pm \
+	blib/lib/Data/xPathLike/DSL.pm
 
 
 # --- MakeMaker platform_constants section:
@@ -260,7 +271,7 @@ RCS_LABEL = rcs -Nv$(VERSION_SYM): -q
 DIST_CP = best
 DIST_DEFAULT = tardist
 DISTNAME = Data-xPathLike
-DISTVNAME = Data-xPathLike-0.1
+DISTVNAME = Data-xPathLike-0.101
 
 
 # --- MakeMaker macro section:
@@ -413,9 +424,13 @@ POD2MAN = $(POD2MAN_EXE)
 
 
 manifypods : pure_all  \
-	lib/Data/xPathLike.pm
+	lib/Data/xPathLike/Actions.pm \
+	lib/Data/xPathLike.pod \
+	lib/Data/xPathLike/DSL.pm
 	$(NOECHO) $(POD2MAN) --section=3 --perm_rw=$(PERM_RW) \
-	  lib/Data/xPathLike.pm $(INST_MAN3DIR)/Data::xPathLike.$(MAN3EXT) 
+	  lib/Data/xPathLike/Actions.pm $(INST_MAN3DIR)/Data::xPathLike::Actions.$(MAN3EXT) \
+	  lib/Data/xPathLike.pod $(INST_MAN3DIR)/Data::xPathLike.$(MAN3EXT) \
+	  lib/Data/xPathLike/DSL.pm $(INST_MAN3DIR)/Data::xPathLike::DSL.$(MAN3EXT) 
 
 
 
@@ -481,7 +496,7 @@ realclean purge ::  clean realclean_subdirs
 metafile : create_distdir
 	$(NOECHO) $(ECHO) Generating META.yml
 	$(NOECHO) $(ECHO) '---' > META_new.yml
-	$(NOECHO) $(ECHO) 'abstract: '\''a xpath like processor for perl data-structures (hashes and arrays)! '\''' >> META_new.yml
+	$(NOECHO) $(ECHO) 'abstract: '\''a xPath like processor for perl data-structures (hashes and arrays)! '\''' >> META_new.yml
 	$(NOECHO) $(ECHO) 'author:' >> META_new.yml
 	$(NOECHO) $(ECHO) '  - '\''Isidro Vila Verde <jvverde@gmail.com>'\''' >> META_new.yml
 	$(NOECHO) $(ECHO) 'build_requires:' >> META_new.yml
@@ -500,12 +515,14 @@ metafile : create_distdir
 	$(NOECHO) $(ECHO) '    - t' >> META_new.yml
 	$(NOECHO) $(ECHO) '    - inc' >> META_new.yml
 	$(NOECHO) $(ECHO) 'requires:' >> META_new.yml
+	$(NOECHO) $(ECHO) '  Marpa::R2: 0' >> META_new.yml
+	$(NOECHO) $(ECHO) '  Scalar::Util: 0' >> META_new.yml
 	$(NOECHO) $(ECHO) '  perl: 5.006' >> META_new.yml
-	$(NOECHO) $(ECHO) 'version: 0.1' >> META_new.yml
+	$(NOECHO) $(ECHO) 'version: 0.101' >> META_new.yml
 	-$(NOECHO) $(MV) META_new.yml $(DISTVNAME)/META.yml
 	$(NOECHO) $(ECHO) Generating META.json
 	$(NOECHO) $(ECHO) '{' > META_new.json
-	$(NOECHO) $(ECHO) '   "abstract" : "a xpath like processor for perl data-structures (hashes and arrays)! ",' >> META_new.json
+	$(NOECHO) $(ECHO) '   "abstract" : "a xPath like processor for perl data-structures (hashes and arrays)! ",' >> META_new.json
 	$(NOECHO) $(ECHO) '   "author" : [' >> META_new.json
 	$(NOECHO) $(ECHO) '      "Isidro Vila Verde <jvverde@gmail.com>"' >> META_new.json
 	$(NOECHO) $(ECHO) '   ],' >> META_new.json
@@ -538,12 +555,14 @@ metafile : create_distdir
 	$(NOECHO) $(ECHO) '      },' >> META_new.json
 	$(NOECHO) $(ECHO) '      "runtime" : {' >> META_new.json
 	$(NOECHO) $(ECHO) '         "requires" : {' >> META_new.json
+	$(NOECHO) $(ECHO) '            "Marpa::R2" : "0",' >> META_new.json
+	$(NOECHO) $(ECHO) '            "Scalar::Util" : "0",' >> META_new.json
 	$(NOECHO) $(ECHO) '            "perl" : "5.006"' >> META_new.json
 	$(NOECHO) $(ECHO) '         }' >> META_new.json
 	$(NOECHO) $(ECHO) '      }' >> META_new.json
 	$(NOECHO) $(ECHO) '   },' >> META_new.json
 	$(NOECHO) $(ECHO) '   "release_status" : "stable",' >> META_new.json
-	$(NOECHO) $(ECHO) '   "version" : "0.1"' >> META_new.json
+	$(NOECHO) $(ECHO) '   "version" : "0.101"' >> META_new.json
 	$(NOECHO) $(ECHO) '}' >> META_new.json
 	-$(NOECHO) $(MV) META_new.json $(DISTVNAME)/META.json
 
@@ -840,10 +859,12 @@ testdb_static :: testdb_dynamic
 # Creates a PPD (Perl Package Description) for a binary distribution.
 ppd :
 	$(NOECHO) $(ECHO) '<SOFTPKG NAME="$(DISTNAME)" VERSION="$(VERSION)">' > $(DISTNAME).ppd
-	$(NOECHO) $(ECHO) '    <ABSTRACT>a xpath like processor for perl data-structures (hashes and arrays)! </ABSTRACT>' >> $(DISTNAME).ppd
+	$(NOECHO) $(ECHO) '    <ABSTRACT>a xPath like processor for perl data-structures (hashes and arrays)! </ABSTRACT>' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '    <AUTHOR>Isidro Vila Verde &lt;jvverde@gmail.com&gt;</AUTHOR>' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '    <IMPLEMENTATION>' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '        <PERLCORE VERSION="5,006,0,0" />' >> $(DISTNAME).ppd
+	$(NOECHO) $(ECHO) '        <REQUIRE NAME="Marpa::R2" />' >> $(DISTNAME).ppd
+	$(NOECHO) $(ECHO) '        <REQUIRE NAME="Scalar::Util" />' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '        <ARCHITECTURE NAME="x86_64-linux-gnu-thread-multi-5.14" />' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '        <CODEBASE HREF="" />' >> $(DISTNAME).ppd
 	$(NOECHO) $(ECHO) '    </IMPLEMENTATION>' >> $(DISTNAME).ppd
@@ -854,7 +875,10 @@ ppd :
 
 pm_to_blib : $(FIRST_MAKEFILE) $(TO_INST_PM)
 	$(NOECHO) $(ABSPERLRUN) -MExtUtils::Install -e 'pm_to_blib({@ARGV}, '\''$(INST_LIB)/auto'\'', q[$(PM_FILTER)], '\''$(PERM_DIR)'\'')' -- \
-	  lib/Data/xPathLike.pm blib/lib/Data/xPathLike.pm 
+	  lib/Data/xPathLike/Actions.pm blib/lib/Data/xPathLike/Actions.pm \
+	  lib/Data/xPathLike.pm blib/lib/Data/xPathLike.pm \
+	  lib/Data/xPathLike.pod blib/lib/Data/xPathLike.pod \
+	  lib/Data/xPathLike/DSL.pm blib/lib/Data/xPathLike/DSL.pm 
 	$(NOECHO) $(TOUCH) pm_to_blib
 
 

@@ -1,5 +1,5 @@
 {
-   "abstract" : "a xpath like processor for perl data-structures (hashes and arrays)! ",
+   "abstract" : "a xPath like processor for perl data-structures (hashes and arrays)! ",
    "author" : [
       "Isidro Vila Verde <jvverde@gmail.com>"
    ],
@@ -32,10 +32,12 @@
       },
       "runtime" : {
          "requires" : {
+            "Marpa::R2" : "0",
+            "Scalar::Util" : "0",
             "perl" : "5.006"
          }
       }
    },
    "release_status" : "stable",
-   "version" : "0.1"
+   "version" : "0.101"
 }

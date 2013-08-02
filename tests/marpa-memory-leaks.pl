@@ -12,7 +12,7 @@
      path ::=
       step               action => _do_step
      step ~ [a-z]+ 
-    END_OF_SOURCE
+END_OF_SOURCE
     });
 
     sub _do_step{ return {step => $_[1]}};

@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "Data::xPathLike 3"
-.TH Data::xPathLike 3 "2013-07-31" "perl v5.14.2" "User Contributed Perl Documentation"
+.TH Data::xPathLike 3 "2013-08-01" "perl v5.14.2" "User Contributed Perl Documentation"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -133,7 +133,7 @@
 Data::xPathLike \- a xPath like processor for perl data\-structures (hashes and arrays)!
 .SH "VERSION"
 .IX Header "VERSION"
-Version 0.1
+Version 0.101
 .SH "Why we need another one"
 .IX Header "Why we need another one"
 There are already some good approaches to xPath syntax, namely the Data::dPath 
@@ -483,7 +483,7 @@ The curly and square brackets could also be used with axis and wildcard *. Examp
 \&    //*/parent::[b]
 \&    //a//parent::{*}
 \&    //*[self::{*} = 3 or self::[*] > 10]
-\&    /1/[*][4]/child::[*][1]/{I\*^X}/following\-sibling::*[last()]
+\&    /1/[*][4]/child::[*][1]/{a}/following\-sibling::*[last()]
 .Ve
 .PP
 If a hash key is just a * the path expression is also posible using instead curly 
