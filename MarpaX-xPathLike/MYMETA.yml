@@ -18,7 +18,10 @@ no_index:
     - t
     - inc
 requires:
+  Carp: 0
+  Data::Dumper: 0
   Marpa::R2: 0
   Scalar::Util: 0
+  Test::Deep: 0
   perl: 5.006
-version: 0.2
+version: 0.203

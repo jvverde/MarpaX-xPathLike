@@ -2,7 +2,7 @@ package MarpaX::xPathLike::DSL;
 use strict;
 use warnings FATAL => 'all';
 
-our $VERSION = '0.2';
+our $VERSION = '0.201';
 
 our $xpath = <<'END_OF_SOURCE';
 

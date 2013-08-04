@@ -20,6 +20,9 @@ WriteMakefile(
     PREREQ_PM => {
 				'Marpa::R2'					=> 0,
 				'Scalar::Util'      => 0,
+                'Test::Deep'    => 0,
+                'Data::Dumper'  => 0,
+                'Carp' => 0,
         #'ABC'              => 1.6,
         #'Foo::Bar::Module' => 5.0401,
     },
