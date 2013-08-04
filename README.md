@@ -4,7 +4,7 @@ MarpaX::xPathLike - a xPath like processor for perl data-structures (hashes and 
 
 # VERSION
 
-Version 0.2
+Version 0.203
 
 # Why we need another one
 
@@ -399,7 +399,7 @@ You can also look for information at:
 
 # ACKNOWLEDGEMENTS
 
-I would like to say thansk to amon / Lukas Atkinson for scrutinized the code i give me such valuable feedback. 
+I would like to say thanks to amon / Lukas Atkinson for scrutinized the code give me such valuable feedback. 
 To Ron Savage for introduce me to the Marpa::R2 and all your help with UTF8 problems and good advices.
 To Jean-Damien to point me some importante issues on first release.
 And final a big Thank you to Jeffrey Kegler for creating the Marpa::R2.
